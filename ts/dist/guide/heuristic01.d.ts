@@ -100,7 +100,7 @@ declare function verbOfItem(data: {
     parent: string;
     action: string;
 } | null;
-declare function shortLiteral(pm: PathMatch): boolean;
+declare function shortLiteral(pm: PathMatch, parts: string[]): boolean;
 declare function nounless(pm: PathMatch, parts: string[]): boolean;
 declare function responsePayload(schema: any): {
     scalars: boolean;

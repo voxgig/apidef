@@ -541,7 +541,22 @@ func StripSchemaNamespace(name string) string {
 var versionSegRE = regexp.MustCompile(`^[vV]?\d+$`)
 
 func CanonizeCmpName(orig string) string {
-	return Canonize(StripSchemaNamespace(orig))
+	return Canonize(stripToolAffixes(StripSchemaNamespace(orig)))
+}
+
+var toolSuffixRE = regexp.MustCompile(`^(.*[a-z0-9])(Output|Input)$`)
+
+// stripToolAffixes mirrors ts/src/utility.ts: a generator's module path before
+// the last double underscore, and its Output or Input, are no part of a name.
+func stripToolAffixes(name string) string {
+	bare := name
+	if at := strings.LastIndex(name, "__"); 0 < at && at+2 < len(name) {
+		bare = name[at+2:]
+	}
+	if m := toolSuffixRE.FindStringSubmatch(bare); m != nil {
+		return m[1]
+	}
+	return bare
 }
 
 // resplitFromCmp mirrors ts/src/utility.ts: a name with no word boundaries
@@ -766,9 +781,45 @@ var heldSegmentRE = regexp.MustCompile(`^(\{[^}]+\})\.(?:[A-Za-z0-9]+|\{[^}]+\})
 var namedSegmentRE = regexp.MustCompile(`^([^{}.]+)\.([A-Za-z0-9]+|\{[^}]+\})$`)
 
 // guideSegment mirrors ts/src/utility.ts: a route segment as the guide
-// classifies and names it, ${id} read as {id}, and false for a format alone,
-// which names nothing.
+// classifies and names it, ${id} read as {id}, what precedes its first dot,
+// and false for a format alone or a segment opening with a dot, which name
+// nothing.
 func guideSegment(seg string) (string, bool) {
+	seg = strings.ReplaceAll(seg, "${", "{")
+	dot := dotOutsidePlaceholder(seg)
+	if dot == 0 {
+		return "", false
+	}
+	if 0 < dot {
+		return seg[:dot], true
+	}
+	if formatExtensions[strings.ToLower(seg)] {
+		return "", false
+	}
+	return seg, true
+}
+
+// dotOutsidePlaceholder mirrors ts/src/utility.ts.
+func dotOutsidePlaceholder(seg string) int {
+	depth := 0
+	for i := 0; i < len(seg); i++ {
+		switch seg[i] {
+		case '{':
+			depth++
+		case '}':
+			depth--
+		case '.':
+			if depth == 0 {
+				return i
+			}
+		}
+	}
+	return -1
+}
+
+// selectorSegment mirrors ts/src/utility.ts: a format or a dotted placeholder
+// dropped, but a dotted name kept whole, so it tells routes apart.
+func selectorSegment(seg string) (string, bool) {
 	seg = strings.ReplaceAll(seg, "${", "{")
 	if m := heldSegmentRE.FindStringSubmatch(seg); m != nil {
 		return m[1], true
@@ -786,13 +837,26 @@ func guideSegment(seg string) (string, bool) {
 // guideParts mirrors ts/src/utility.ts: the query string and a fragment are
 // cut away, and a route that is all fragment, or of formats alone, keeps them.
 func guideParts(path string) []string {
+	return segmentParts(path, guideSegment)
+}
+
+// selectorParts mirrors ts/src/utility.ts.
+func selectorParts(path string) []string {
+	return segmentParts(path, selectorSegment)
+}
+
+func selectorPath(path string) string {
+	return "/" + strings.Join(selectorParts(path), "/")
+}
+
+func segmentParts(path string, segment func(string) (string, bool)) []string {
 	parts := splitAndFilter(queryStringRE.ReplaceAllString(fragmentRE.ReplaceAllString(path, ""), ""), "/")
 	if len(parts) == 0 {
 		parts = splitAndFilter(queryStringRE.ReplaceAllString(path, ""), "/")
 	}
 	kept := []string{}
 	for _, part := range parts {
-		if seg, ok := guideSegment(part); ok {
+		if seg, ok := segment(part); ok {
 			kept = append(kept, seg)
 		}
 	}

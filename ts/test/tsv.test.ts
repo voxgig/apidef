@@ -33,6 +33,7 @@ import {
   formatJSONIC,
   stripOperationVerb,
   guideParts,
+  selectorParts,
   getModelPath,
   isEntityWrapperProp,
   envelopeProp,
@@ -491,6 +492,15 @@ describe('tsv-guide-parts', () => {
   for (const row of loadTsv('guide-parts')) {
     test(`guideParts(${row.input})`, () => {
       assert.deepStrictEqual(guideParts(row.input), JSON.parse(row.expected))
+    })
+  }
+})
+
+
+describe('tsv-selector-parts', () => {
+  for (const row of loadTsv('selector-parts')) {
+    test(`selectorParts(${row.input})`, () => {
+      assert.deepStrictEqual(selectorParts(row.input), JSON.parse(row.expected))
     })
   }
 })
@@ -980,6 +990,37 @@ describe('tsv-arg-example', () => {
     test(`resolveArgExample(${row.argdef}, ${row.schema})`, () => {
       const ex = resolveArgExample(JSON.parse(row.argdef), JSON.parse(row.schema))
       assert.deepStrictEqual(undefined === ex ? {} : { ex }, JSON.parse(row.expected))
+    })
+  }
+})
+
+
+// Whether a create's request requires each field: only the parent's `required`
+// says so, never an object property's own list of its fields.
+describe('tsv-field-required', () => {
+  const rows = loadTsv('field-required')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(row.name, async () => {
+      const schema = JSON.parse(row.schema)
+      const before = JSON.stringify(schema)
+      const ment: any = {
+        name: 'thing',
+        fields: {},
+        op: { create: { name: 'create', points: [{ m: 'POST', o: '/things' }] } },
+      }
+      const content = { 'application/json': { schema } }
+      const def = { paths: { '/things': { post: {
+        requestBody: { content }, responses: { '201': { content } },
+      } } } }
+
+      await fieldTransform({ apimodel: { main: { kit: { entity: { thing: ment } } } }, def } as any)
+
+      const got = Object.fromEntries(Object.values<any>(ment.fields).map((f: any) => [f.n, f.r]))
+      assert.deepStrictEqual(got, JSON.parse(row.expected))
+      // A parsed schema is shared between references, so it is left as it was
+      // (the walk names each property with `key$`, as parsing does).
+      assert.equal(JSON.stringify(schema, (k, v) => 'key$' === k ? undefined : v), before)
     })
   }
 })

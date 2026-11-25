@@ -3,7 +3,7 @@
     "alarm.create POST /alarms exist=alarms action= req=\"`reqdata.alarms`\" bf=[\"alarms\"]",
     "alert.create POST /alerts exist=alerts action= req=\"`reqdata.alerts`\" bf=[\"alerts\"]",
     "bale.create POST /bales exist= action= req={\"label\":\"`reqdata.label`\",\"size\":\"`reqdata.size`\"} bf=[\"label\",\"size\"]",
-    "batch.create POST /batches exist=batch_inputs action= req=\"`reqdata.batch_inputs`\" bf=[\"batch_inputs\"]",
+    "batch.create POST /batches exist=batches action= req=\"`reqdata.batches`\" bf=[\"batches\"]",
     "beacon.create POST /beacons exist=pings action= req=\"`reqdata.pings`\" bf=[\"pings\"]",
     "bin.create POST /bins exist=bins action= req=\"`reqdata.bins`\" bf=[\"bins\"]",
     "broadcast.create POST /broadcasts exist=sms_messages action= req=\"`reqdata.sms_messages`\" bf=[\"sms_messages\"]",
@@ -11,7 +11,7 @@
     "coil.create POST /coils exist= action= req=\"`reqdata`\" bf=false",
     "coin.create POST /coins exist=coins action= req=\"`reqdata.coins`\" bf=[\"coins\"]",
     "crate.create POST /crates exist=crates action= req=\"`reqdata.crates`\" bf=[\"crates\"]",
-    "crew.create POST /crews exist=crew_inputs action= req=\"`reqdata.crew_inputs`\" bf=[\"crew_inputs\"]",
+    "crew.create POST /crews exist=crews action= req=\"`reqdata.crews`\" bf=[\"crews\"]",
     "deck.create POST /decks exist= action= req={\"title\":\"`reqdata.title`\"} bf=[\"title\"]",
     "doc.update PATCH /docs/{doc_id} exist=doc_change_list,id action= req=\"`reqdata.doc_change_list`\" bf=[\"doc_change_list\"]",
     "doc.update PUT /docs/{doc_id}/archive exist=id action=archive req=\"`reqdata`\" bf=null",
@@ -100,7 +100,7 @@
       }
     },
     "batch": {
-      "batch_inputs": {
+      "batches": {
         "t": "`$ARRAY`",
         "r": false,
         "syn": true
@@ -169,7 +169,7 @@
       }
     },
     "crew": {
-      "crew_inputs": {
+      "crews": {
         "t": "`$ARRAY`",
         "r": false,
         "syn": true

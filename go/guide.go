@@ -69,7 +69,8 @@ var verbWords = map[string]bool{
 	"compute": true, "convert": true, "process": true, "trigger": true, "dispatch": true,
 	"apply": true, "revoke": true, "grant": true, "save": true, "test": true, "inject": true,
 	"analyze": true, "autocomplete": true, "bypass": true, "contains": true, "finish": true,
-	"reorder": true, "shuffle": true,
+	"reorder": true, "shuffle": true, "show": true, "award": true, "authorize": true,
+	"reload": true,
 }
 
 var versionParamRE = regexp.MustCompile(`(?i)version`)
@@ -83,6 +84,24 @@ var genericCmpWords = map[string]bool{
 	"default": true, "empty": true, "ok": true, "response": true,
 	"result": true, "success": true, "void": true,
 }
+
+// A name made only of these words names nothing.
+var genericNameWords = map[string]bool{
+	"default": true, "empty": true, "ok": true, "response": true,
+	"result": true, "success": true, "void": true, "list": true, "resource": true,
+}
+
+// A generic word and a number, as a generator names what it was not told to.
+var generatedCmpRE = regexp.MustCompile(`^(example|model|schema|body|inline|inline_object|object)_?\d+$`)
+
+// The body a generator names for the operation it is sent to.
+var operationBodyRE = regexp.MustCompile(`^body_.+_(get|put|post|patch|delete)$`)
+
+// A bare number is a release or an index, never a noun.
+var numberPartRE = regexp.MustCompile(`^\d+$`)
+
+// Verbs a remote procedure opens with beside the verb words.
+var procedureVerbs = map[string]bool{"put": true, "set": true, "post": true}
 
 // A version tag groups routes by release, not by resource.
 var versionTagRE = regexp.MustCompile(`^v\d+([a-z]+\d*)?$`)
@@ -118,7 +137,8 @@ func emptyObjectSchema(schema any) bool {
 // genericCmp mirrors ts/src/guide/heuristic01.ts.
 func genericCmp(name string, refs map[string]int, schema any) bool {
 	if genericCmpWords[name] || idLiteralRE.MatchString(name) || emptyObjectSchema(schema) ||
-		(name == "object" && len(mergedProperties(schema)) == 0) {
+		(name == "object" && len(mergedProperties(schema)) == 0) ||
+		generatedCmpRE.MatchString(name) || operationBodyRE.MatchString(name) || allGenericWords(name) {
 		return true
 	}
 	at := strings.LastIndex(name, "_")
@@ -134,6 +154,19 @@ func genericCmp(name string, refs map[string]int, schema any) bool {
 		}
 	}
 	return false
+}
+
+// allGenericWords mirrors ts/src/guide/heuristic01.ts.
+func allGenericWords(name string) bool {
+	if !strings.Contains(name, "_") {
+		return false
+	}
+	for _, word := range strings.Split(name, "_") {
+		if !genericNameWords[word] {
+			return false
+		}
+	}
+	return true
 }
 
 // dataCmpRefs is the definition's component reference counts.
@@ -1709,6 +1742,12 @@ func pathEntityName(data map[string]any, mdesc map[string]any, parts []string,
 	if parent, action, ok := methodOf(safeStr(mdesc["path"])); ok {
 		return joins("method-name", parent, action, false)
 	}
+	if parent, action, ok := procedureOf(safeStr(mdesc["path"])); ok {
+		return joins("procedure", parent, action, READ_METHODS[method])
+	}
+	if parent, action, ok := idsOfItem(data, parts, pathowner); ok {
+		return joins("ids-of-item", parent, action, READ_METHODS[method])
+	}
 	if parent, action, ok := singletonPartOf(data, parts, pathowner); ok {
 		return joins("singleton-part", parent, action, READ_METHODS[method])
 	}
@@ -1745,7 +1784,7 @@ func pathEntityName(data map[string]any, mdesc map[string]any, parts []string,
 	// A short literal names nothing: the component the route answers, else
 	// the route's key, else what a route with no literal is named by, else the
 	// padded literal.
-	if pm != nil && shortLiteral(pm) {
+	if pm != nil && shortLiteral(pm, parts) {
 		*why = append(*why, "short-literal")
 		if answered := answeredCmp(mdesc); answered != "" {
 			*why = append(*why, "answers="+answered)
@@ -2113,7 +2152,7 @@ func findActions(data map[string]any, mdesc map[string]any) {
 	pathmapEntry := work["pathmap"].(map[string]any)
 	pathEntry, _ := pathmapEntry[pathStr].(map[string]any)
 	parts, _ := pathEntry["parts"].([]string)
-	parts = verbParts(parts)
+	parts = withoutInnerNumbers(verbParts(parts))
 
 	plen := len(parts)
 
@@ -2593,7 +2632,7 @@ func pathNoun(pm *PathMatchResult, parts []string, why *[]string) string {
 	}
 	if custom != nil || (isVerbWord(parts[at]) && !keyedBy(next, name)) {
 		for i := at - 1; 0 <= i; i-- {
-			if !isParam(parts[i]) {
+			if !isParam(parts[i]) && !numberPartRE.MatchString(parts[i]) {
 				// A version segment ends the base path, so no noun precedes the verb.
 				if versionTagRE.MatchString(strings.ToLower(parts[i])) {
 					break
@@ -3061,6 +3100,81 @@ func methodOf(pathStr string) (string, string, bool) {
 	return parent, action, true
 }
 
+var procedureActionRE = regexp.MustCompile(`[#?&]Action=([A-Za-z][A-Za-z0-9_]*)`)
+var procedureDotRE = regexp.MustCompile(`^[^{}]*\.([A-Za-z][A-Za-z0-9_]*)$`)
+var queryOrFragmentRE = regexp.MustCompile(`[?#].*$`)
+
+// withoutInnerNumbers drops every bare number but the last part, as
+// ts/src/guide/heuristic01.ts FindActions does.
+func withoutInnerNumbers(parts []string) []string {
+	out := []string{}
+	for i, part := range parts {
+		if i == len(parts)-1 || !numberPartRE.MatchString(part) {
+			out = append(out, part)
+		}
+	}
+	return out
+}
+
+// procedureOf mirrors ts/src/guide/heuristic01.ts: a remote procedure the
+// route names, as an Action= value or after the last dot of a segment; the
+// object after its verb names the entity, and the verb is the action.
+func procedureOf(pathStr string) (string, string, bool) {
+	segs := strings.Split(queryOrFragmentRE.ReplaceAllString(pathStr, ""), "/")
+	named := ""
+	window := 1
+	if m := procedureActionRE.FindStringSubmatch(pathStr); m != nil {
+		named, window = m[1], 2
+	} else if m := procedureDotRE.FindStringSubmatch(segs[len(segs)-1]); m != nil {
+		named = m[1]
+	}
+	if named == "" {
+		return "", "", false
+	}
+	words := strings.Split(Canonize(named), "_")
+	verb := -1
+	for i := 0; i < window && i < len(words); i++ {
+		if verbWords[words[i]] || procedureVerbs[words[i]] {
+			verb = i
+			break
+		}
+	}
+	if verb < 0 {
+		return "", "", false
+	}
+	parent := strings.Join(words[verb+1:], "_")
+	if len(strings.ReplaceAll(parent, "_", "")) < 3 {
+		return "", "", false
+	}
+	return parent, strings.Join(words[:verb+1], "_"), true
+}
+
+// idsOfItem mirrors ts/src/guide/heuristic01.ts: a list of identifiers
+// beneath an item key, and each identifier in it, is an action of that item.
+func idsOfItem(data map[string]any, parts []string, pathowner map[string]any) (string, string, bool) {
+	if len(parts) == 0 {
+		return "", "", false
+	}
+	at := len(parts) - 1
+	if isParam(parts[at]) {
+		at--
+	}
+	if at < 2 || isParam(parts[at]) || !isParam(parts[at-1]) {
+		return "", "", false
+	}
+	lit := Snakify(parts[at])
+	if lit[strings.LastIndex(lit, "_")+1:] != "ids" {
+		return "", "", false
+	}
+	route := pathNamed(data, "/"+strings.Join(parts[:at], "/"))
+	owners, _ := pathowner[route].(map[string]any)
+	parent := ownerOf(owners)
+	if route == "" || parent == "" {
+		return "", "", false
+	}
+	return parent, lit, true
+}
+
 // singletonPartOf mirrors ts/src/guide/heuristic01.ts: a sub-path of a
 // keyless singleton, read, written and deleted with no schema and no key
 // beneath it, is an action of that singleton.
@@ -3142,6 +3256,19 @@ func readOfItem(data map[string]any, mdesc map[string]any, parts []string,
 	}
 	if key < 0 || lastLit < 0 {
 		return "", "", "", false
+	}
+	// A trailing key that keys its literal's collection reads that
+	// collection's item; only a modifier after the literal makes a download,
+	// and a route at the literal that is itself a download is no collection.
+	if tail := parts[len(parts)-1]; isParam(tail) {
+		prefix := pathNamed(data, "/"+strings.Join(parts[:len(parts)-1], "/"))
+		prefixdef, _ := paths[prefix].(map[string]any)
+		prefixRead, _ := prefixdef["get"].(map[string]any)
+		prefixResponses, _ := prefixRead["responses"].(map[string]any)
+		download := prefixRead != nil && binaryResponse(prefixResponses)
+		if keyedBy(tail, LiteralName(parts[lastLit])) || (prefix != "" && !download) {
+			return "", "", "", false
+		}
 	}
 	detail := len(parts)-1 == lastLit && key == lastLit-1 && itemReadWords[LiteralName(parts[lastLit])]
 	if !detail && !binary {
@@ -3472,8 +3599,9 @@ func recordNode(schema map[string]any, keyName string) map[string]any {
 }
 
 // A literal too short for a word names nothing.
-func shortLiteral(pm *PathMatchResult) bool {
-	return len(strings.ReplaceAll(Canonize(pm.Matches[PATH_NAME_INDEX[pm.Expr]]), "_", "")) < 3
+func shortLiteral(pm *PathMatchResult, parts []string) bool {
+	short := func(lit string) bool { return len(strings.ReplaceAll(Canonize(lit), "_", "")) < 3 }
+	return short(pm.Matches[PATH_NAME_INDEX[pm.Expr]]) || short(pathNoun(pm, parts, &[]string{}))
 }
 
 // The path of the definition that is the given path with its parameters
@@ -3766,7 +3894,7 @@ func nounless(pm *PathMatchResult, parts []string) bool {
 	if genericWords[name] {
 		return true
 	}
-	if !verbWords[name] {
+	if !isVerbWord(parts[at]) {
 		return false
 	}
 	for _, part := range parts[:at] {
@@ -3818,6 +3946,9 @@ func commandBodyName(data map[string]any, mdesc map[string]any) string {
 		return ""
 	}
 	name := cleanCmp(data, CanonizeCmpName(cmpRefName(xref)))
+	if generatedCmpRE.MatchString(name) || operationBodyRE.MatchString(name) {
+		return ""
+	}
 	for stripped := true; stripped; {
 		stripped = false
 		for _, sfx := range commandSuffixes {

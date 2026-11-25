@@ -1,0 +1,213 @@
+{
+ "openapi": "3.0.0",
+ "info": {
+  "title": "verb-noun",
+  "version": "1.0.0"
+ },
+ "servers": [
+  {
+   "url": "https://example.com"
+  }
+ ],
+ "paths": {
+  "/shows": {
+   "get": {
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/Show"
+         }
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/shows/{id}": {
+   "get": {
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Show"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/tokens": {
+   "get": {
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/Token"
+         }
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/tokens/authorize": {
+   "post": {
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Token"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/c/{id}/show": {
+   "get": {
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Category"
+        }
+       }
+      }
+     }
+    },
+    "tags": [
+     "category"
+    ]
+   }
+  },
+  "/account": {
+   "get": {
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Account"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/account/2/verify": {
+   "post": {
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "status": {
+           "type": "string"
+          }
+         }
+        }
+       }
+      }
+     }
+    }
+   }
+  }
+ },
+ "components": {
+  "schemas": {
+   "Show": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "title": {
+      "type": "string"
+     }
+    }
+   },
+   "Token": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "value": {
+      "type": "string"
+     }
+    }
+   },
+   "Category": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     }
+    }
+   },
+   "Account": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "email": {
+      "type": "string"
+     }
+    }
+   }
+  }
+ }
+}

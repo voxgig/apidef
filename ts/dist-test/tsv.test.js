@@ -380,6 +380,13 @@ function loadTsv(name, dir = SHARED_TSV_DIR) {
         });
     }
 });
+(0, node_test_1.describe)('tsv-selector-parts', () => {
+    for (const row of loadTsv('selector-parts')) {
+        (0, node_test_1.test)(`selectorParts(${row.input})`, () => {
+            node_assert_1.default.deepStrictEqual((0, utility_1.selectorParts)(row.input), JSON.parse(row.expected));
+        });
+    }
+});
 (0, node_test_1.describe)('tsv-operation-verb', () => {
     for (const row of loadTsv('operation-verb')) {
         (0, node_test_1.test)(`stripOperationVerb(canonize(${row.input}))`, () => {
@@ -789,6 +796,33 @@ function loadTsv(name, dir = SHARED_TSV_DIR) {
         (0, node_test_1.test)(`resolveArgExample(${row.argdef}, ${row.schema})`, () => {
             const ex = (0, args_1.resolveArgExample)(JSON.parse(row.argdef), JSON.parse(row.schema));
             node_assert_1.default.deepStrictEqual(undefined === ex ? {} : { ex }, JSON.parse(row.expected));
+        });
+    }
+});
+// Whether a create's request requires each field: only the parent's `required`
+// says so, never an object property's own list of its fields.
+(0, node_test_1.describe)('tsv-field-required', () => {
+    const rows = loadTsv('field-required');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(row.name, async () => {
+            const schema = JSON.parse(row.schema);
+            const before = JSON.stringify(schema);
+            const ment = {
+                name: 'thing',
+                fields: {},
+                op: { create: { name: 'create', points: [{ m: 'POST', o: '/things' }] } },
+            };
+            const content = { 'application/json': { schema } };
+            const def = { paths: { '/things': { post: {
+                            requestBody: { content }, responses: { '201': { content } },
+                        } } } };
+            await (0, field_1.fieldTransform)({ apimodel: { main: { kit: { entity: { thing: ment } } } }, def });
+            const got = Object.fromEntries(Object.values(ment.fields).map((f) => [f.n, f.r]));
+            node_assert_1.default.deepStrictEqual(got, JSON.parse(row.expected));
+            // A parsed schema is shared between references, so it is left as it was
+            // (the walk names each property with `key$`, as parsing does).
+            node_assert_1.default.equal(JSON.stringify(schema, (k, v) => 'key$' === k ? undefined : v), before);
         });
     }
 });

@@ -385,6 +385,18 @@ func TestTsvGuideParts(t *testing.T) {
 	}
 }
 
+func TestTsvSelectorParts(t *testing.T) {
+	for _, row := range loadTsv(t, "selector-parts") {
+		t.Run(row["input"], func(t *testing.T) {
+			var want []string
+			unmarshalCol(t, row, "expected", &want)
+			if got := selectorParts(row["input"]); !reflect.DeepEqual(got, want) {
+				t.Errorf("selectorParts(%q) = %v, want %v", row["input"], got, want)
+			}
+		})
+	}
+}
+
 func TestTsvOperationVerb(t *testing.T) {
 	for _, row := range loadTsv(t, "operation-verb") {
 		t.Run(row["input"], func(t *testing.T) {
@@ -1271,6 +1283,66 @@ func TestInferFieldsFromExamples(t *testing.T) {
 
 // The field FieldTransform builds from one property, beside a plain property
 // so that the record is not read as an envelope around it.
+// TestFieldRequired mirrors tsv-field-required: only the parent's `required`
+// makes a create's field required, never an object property's own list.
+func TestFieldRequired(t *testing.T) {
+	rows := loadTsv(t, "field-required")
+	if len(rows) == 0 {
+		t.Fatal("no field-required rows loaded")
+	}
+	for _, row := range rows {
+		t.Run(row["name"], func(t *testing.T) {
+			var schema map[string]any
+			if err := json.Unmarshal([]byte(row["schema"]), &schema); err != nil {
+				t.Fatalf("bad schema %q: %v", row["schema"], err)
+			}
+			var want any
+			if err := json.Unmarshal([]byte(row["expected"]), &want); err != nil {
+				t.Fatalf("bad expected %q: %v", row["expected"], err)
+			}
+			before, _ := json.Marshal(schema)
+
+			ent := map[string]any{
+				"name":   "thing",
+				"fields": map[string]any{},
+				"op": map[string]any{"create": map[string]any{
+					"name":   "create",
+					"points": []any{map[string]any{"m": "POST", "o": "/things"}},
+				}},
+			}
+			content := map[string]any{"application/json": map[string]any{"schema": schema}}
+			def := map[string]any{"paths": map[string]any{"/things": map[string]any{
+				"post": map[string]any{
+					"requestBody": map[string]any{"content": content},
+					"responses":   map[string]any{"201": map[string]any{"content": content}},
+				},
+			}}}
+			apimodel := map[string]any{"main": map[string]any{
+				KIT: map[string]any{"entity": map[string]any{"thing": ent}},
+			}}
+
+			if _, err := FieldTransform(&ApiDefContext{ApiModel: apimodel, Def: def}); err != nil {
+				t.Fatalf("FieldTransform: %v", err)
+			}
+
+			got := map[string]any{}
+			for _, fv := range ent["fields"].(map[string]any) {
+				f, _ := fv.(map[string]any)
+				got[fmt.Sprint(f["n"])] = f["r"]
+			}
+			gotJSON, _ := json.Marshal(got)
+			var gotVal any
+			_ = json.Unmarshal(gotJSON, &gotVal)
+			if !reflect.DeepEqual(gotVal, want) {
+				t.Errorf("required = %s, want %s", gotJSON, row["expected"])
+			}
+			if after, _ := json.Marshal(schema); string(after) != string(before) {
+				t.Errorf("the parsed schema changed: %s, was %s", after, before)
+			}
+		})
+	}
+}
+
 func TestAllOfField(t *testing.T) {
 	rows := loadTsv(t, "allof-field")
 	if len(rows) == 0 {

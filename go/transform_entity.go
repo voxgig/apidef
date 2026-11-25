@@ -613,7 +613,7 @@ func separateSharedPoints(guide map[string]any, def map[string]any) []string {
 	separated := []string{}
 	literals := func(key string) []string {
 		out := []string{}
-		for _, part := range guideParts(key) {
+		for _, part := range selectorParts(key) {
 			if !isParam(part) {
 				out = append(out, part)
 			}
@@ -623,7 +623,8 @@ func separateSharedPoints(guide map[string]any, def map[string]any) []string {
 	actionOf := func(lits []string) string {
 		words := []string{}
 		for _, lit := range lits {
-			word := verbSpellingRE.ReplaceAllString(Snakify(fusedPlaceholderRE.ReplaceAllString(lit, "")), "")
+			word := verbSpellingRE.ReplaceAllString(Snakify(strings.ReplaceAll(
+				fusedPlaceholderRE.ReplaceAllString(lit, ""), ".", "_")), "")
 			if word != "" {
 				words = append(words, word)
 			}
@@ -703,7 +704,7 @@ func separateSharedPoints(guide map[string]any, def map[string]any) []string {
 			keys := []string{}
 			seen := map[string]bool{}
 			for _, pathStr := range members {
-				if k := guidePath(pathStr); !seen[k] {
+				if k := selectorPath(pathStr); !seen[k] {
 					seen[k] = true
 					keys = append(keys, k)
 				}
@@ -760,7 +761,7 @@ func separateSharedPoints(guide map[string]any, def map[string]any) []string {
 				}
 				taken[action] = true
 				for _, pathStr := range members {
-					if guidePath(pathStr) != other {
+					if selectorPath(pathStr) != other {
 						continue
 					}
 					gpath, _ := paths[pathStr].(map[string]any)
