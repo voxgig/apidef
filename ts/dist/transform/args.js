@@ -51,7 +51,7 @@ exports.argsTransform = argsTransform;
 function routeArgdefs(def, mpoint) {
     const pathdef = def.paths?.[mpoint.o];
     const opdef = pathdef?.[mpoint.m.toLowerCase()];
-    return [...(pathdef?.parameters ?? []), ...(opdef?.parameters ?? [])];
+    return (0, utility_1.routeParams)(pathdef, opdef);
 }
 // The names a caller gives a REST route's arguments, as this step names them.
 function routeArgNames(def, mpoint) {

@@ -8,7 +8,7 @@ import {
 
 import type { Ignored } from '@tabnas/openapi'
 
-import { relativizePath } from './utility'
+import { paramKey, relativizePath } from './utility'
 
 import { parseGraphQL } from './parse/graphql'
 
@@ -134,6 +134,7 @@ async function parseOpenAPI(source: any, _meta?: any) {
   // parameter declared by `$ref` counts. See docs/design/derived-names.md
   const renamed = normalizeColonPathParams(parsed, _meta)
   dropIgnoredHeaders(parsed, resolved.ignored, renamed)
+  dropDuplicateParams(parsed)
 
   const def = decycle(parsed)
 
@@ -176,6 +177,44 @@ function dropIgnoredHeaders(parsed: any, ignored: Ignored[], renamed: Map<string
     (rank.get(a) as number) - (rank.get(b) as number))
 
   if (0 < dropped.length) parsed[IGNORED_HEADERS_KEY] = dropped
+}
+
+
+// A parameter list must not repeat a location and name (OpenAPI 3 and Swagger
+// 2 alike). A definition that does keeps the first and records the rest for a
+// warning. Header names compare without case, as HTTP compares them.
+const DUPLICATE_PARAMS_KEY = 'x-apidef-duplicate-params'
+
+function dropDuplicateParams(parsed: any) {
+  delete parsed[DUPLICATE_PARAMS_KEY]
+  if (!isRecord(parsed.paths)) return
+
+  const dropped: { path: string, method?: string, in: string, name: string }[] = []
+  const kept = (list: any[], path: string, method?: string) => {
+    const seen = new Set<string>()
+    return list.filter((param: any) => {
+      const key = paramKey(param)
+      if (null == key) return true
+      if (!seen.has(key)) {
+        seen.add(key)
+        return true
+      }
+      dropped.push({ path, ...(method ? { method: method.toUpperCase() } : {}), in: param.in, name: param.name })
+      return false
+    })
+  }
+
+  for (const path of Object.keys(parsed.paths).sort()) {
+    const item = parsed.paths[path]
+    if (!isRecord(item)) continue
+    if (Array.isArray(item.parameters)) item.parameters = kept(item.parameters, path)
+    for (const method of METHODS) {
+      const op = item[method]
+      if (isRecord(op) && Array.isArray(op.parameters)) op.parameters = kept(op.parameters, path, method)
+    }
+  }
+
+  if (0 < dropped.length) parsed[DUPLICATE_PARAMS_KEY] = dropped
 }
 
 
@@ -311,6 +350,7 @@ export {
   normalizePathKeys,
   colonPathKeys,
   IGNORED_HEADERS_KEY,
+  DUPLICATE_PARAMS_KEY,
 }
 
 

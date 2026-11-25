@@ -3368,3 +3368,52 @@ func jsNumberString(f float64) string {
 	}
 	return sign + digits[:1] + "." + digits[1:] + "e" + e
 }
+
+// paramKey mirrors ts/src/utility.ts: the identity OpenAPI gives a parameter,
+// its location and name (a header's without case).
+func paramKey(entry any) (string, bool) {
+	param, _ := entry.(map[string]any)
+	in, inOk := param["in"].(string)
+	name, nameOk := param["name"].(string)
+	if param == nil || !inOk || !nameOk {
+		return "", false
+	}
+	if in == "header" {
+		name = strings.ToLower(name)
+	}
+	return in + "\x00" + name, true
+}
+
+// routeParams mirrors ts/src/utility.ts: a route's parameters, the path item's
+// each replaced by the operation's own declaration of the same location and
+// name, then the operation's others.
+func routeParams(pathItem map[string]any, op map[string]any) []any {
+	own, _ := op["parameters"].([]any)
+	byKey := map[string]int{}
+	for i, param := range own {
+		if key, ok := paramKey(param); ok {
+			if _, has := byKey[key]; !has {
+				byKey[key] = i
+			}
+		}
+	}
+	used := map[int]bool{}
+	out := []any{}
+	shared, _ := pathItem["parameters"].([]any)
+	for _, param := range shared {
+		if key, ok := paramKey(param); ok {
+			if i, has := byKey[key]; has {
+				used[i] = true
+				out = append(out, own[i])
+				continue
+			}
+		}
+		out = append(out, param)
+	}
+	for i, param := range own {
+		if !used[i] {
+			out = append(out, param)
+		}
+	}
+	return out
+}
