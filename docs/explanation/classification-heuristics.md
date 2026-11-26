@@ -404,7 +404,10 @@ reads stay on `artifact`. A trailing literal that is a verb, `send` in
 of `message`; so does the verb after a colon in a custom method, as
 `count` in `/schedules:count` acts on `schedule`. A version segment names no
 resource, so in Shortcut's `GET /api/v3/search`, where only `api` and `v3`
-come before the verb, `search` names the route itself.
+come before the verb, `search` names the route itself. Only the path's first
+version segment ends its base path: a later one versions a sub-API and is
+skipped, so in GitLab's `/api/v4/packages/conan/v1/ping` the walk passes
+Conan's `v1` and `conan` names the route.
 
 A tag that names a literal earlier in the path than its own noun keeps
 naming only where the route is a selector or a view of that literal's

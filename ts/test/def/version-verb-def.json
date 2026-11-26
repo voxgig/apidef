@@ -95,6 +95,18 @@
           }
         }
       }
+    },
+    "/api/v3/packages/conan/v1/ping": {
+      "get": {
+        "tags": [
+          "conan_packages"
+        ],
+        "responses": {
+          "200": {
+            "description": "Ping the Conan API"
+          }
+        }
+      }
     }
   },
   "components": {

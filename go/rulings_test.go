@@ -531,9 +531,10 @@ func TestRulings(t *testing.T) {
 		{
 			def: "version-verb-def.json",
 			expect: map[string]string{
-				"GET /api/v3/search":             "search load",
-				"POST /api/v3/stories/search":    "story list search",
-				"GET /api/v3/stories/{story_id}": "story load",
+				"GET /api/v3/search":                 "search load",
+				"POST /api/v3/stories/search":        "story list search",
+				"GET /api/v3/stories/{story_id}":     "story load",
+				"GET /api/v3/packages/conan/v1/ping": "conan load",
 			},
 		},
 		{
