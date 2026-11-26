@@ -8,6 +8,9 @@ it only has paths and methods — so apidef *infers* it. That inference is the
 This page explains the ideas. For the exact output shape see
 [The guide model](../reference/guide.md); for the resulting API model see
 [The internal API model](../reference/model.md).
+Why the guide is a chain of rules rather than a learned model, and the order
+its decisions are taken in, is in
+[Why the guide is a chain of rules](./why-the-guide-is-rules.md).
 
 ## Paths are split into parts
 
