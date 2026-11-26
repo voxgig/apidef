@@ -51,31 +51,31 @@ const flowstepTransform = async function (ctx) {
                     def: { mark: mark01 }
                 }]
         });
+        // A switched-off update writes no mark for the load to find.
         loadStep(opmap, flow, ent, {
             input: {
                 ref: ref01,
                 suffix: '_dt0',
                 srcdatavar: ref01 + '_data'
             },
-            valid: [{
+            valid: stepOff(flow, 'update') ? [] : [{
                     apply: 'TextFieldMark',
                     def: { mark: mark01 }
                 }]
         });
         // A remove runs only on the record the flow's own create made.
-        const created = createdRecord(flow);
+        const created = stepOn(flow, 'create');
         removeStep(opmap, flow, ent, {
             input: { ref: ref01, suffix: '_rm0' },
             active: created,
         });
         // The "removed item is gone" verify LIST only makes sense after a real
-        // remove step, which is now gated on create. Gate the verify on create
-        // too, so create-less flows stay read-only.
+        // remove step, so it follows that step on or off.
         if (null != opmap.remove && null != opmap.create) {
             listStep(opmap, flow, ent, {
                 input: { suffix: '_rt0' },
                 valid: [{ apply: 'ItemNotExists', def: { ref: ref01 } }],
-                active: created,
+                active: stepOn(flow, 'remove'),
             });
         }
         msg += flowname + ' ';
@@ -102,9 +102,13 @@ function newFlowStep(opname, args, point) {
 function recordPoint(point) {
     return [point?.rb, point?.rs].every((body) => null == body || 'json' === body.kind);
 }
-function createdRecord(flow) {
-    const create = flow.step.find((step) => 'create' === step.o);
-    return null != create && false !== create.a;
+function stepOn(flow, opname) {
+    const step = flow.step.find((step) => opname === step.o);
+    return null != step && false !== step.a;
+}
+function stepOff(flow, opname) {
+    const step = flow.step.find((step) => opname === step.o);
+    return false === step?.a;
 }
 // A step calls the op without an action, so it reads the point that call
 // reaches: the last plain point, the most generic as points sort the most

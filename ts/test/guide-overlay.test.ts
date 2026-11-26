@@ -24,13 +24,15 @@ const HEAD = [
 const staged: string[] = []
 
 
-function stage(entry: string | null, name: string = PREFIX + 'guide.aontu'): string {
+function stage(
+  entry: string | null, name: string = PREFIX + 'guide.aontu', def: string = DEF,
+): string {
   const dir = Fs.mkdtempSync(Path.join(Os.tmpdir(), 'apidef-overlay-'))
   staged.push(dir)
   const folder = Path.join(dir, 'model')
   Fs.mkdirSync(Path.join(folder, 'guide'), { recursive: true })
   Fs.mkdirSync(Path.join(dir, 'def'))
-  Fs.copyFileSync(Path.join(__dirname, '..', 'test', 'def', DEF), Path.join(dir, 'def', DEF))
+  Fs.copyFileSync(Path.join(__dirname, '..', 'test', 'def', def), Path.join(dir, 'def', def))
   if (null != entry) {
     Fs.writeFileSync(Path.join(folder, 'guide', name), entry)
   }
@@ -38,9 +40,9 @@ function stage(entry: string | null, name: string = PREFIX + 'guide.aontu'): str
 }
 
 
-async function run(folder: string, log?: any): Promise<any> {
+async function run(folder: string, log?: any, def: string = DEF): Promise<any> {
   const build = await ApiDef.makeBuild({ folder, outprefix: PREFIX })
-  return build({ name: 'solar', def: DEF }, {
+  return build({ name: 'solar', def }, {
     log,
     spec: {
       base: folder,
@@ -81,6 +83,22 @@ describe('guide-overlay', () => {
     assert.deepStrictEqual(Object.keys(bres.apimodel.main.kit.entity), ['planet'])
     assert.deepStrictEqual(Object.keys(bres.apimodel.main.kit.entity.planet.op).sort(),
       ['create', 'list', 'load', 'update'])
+  })
+
+
+  test('withdrawn-action-redeclared', async () => {
+    const def = 'verb-word-def.json'
+    const actions = async (entry: string) => {
+      const bres = await run(stage(HEAD + entry, undefined, def), undefined, def)
+      assert.strictEqual(bres.ok, true, String(bres.err?.message))
+      const points = Object.values(bres.apimodel.main.kit.entity.export.op)
+        .flatMap((op: any) => op.points).filter((point: any) => '/api/export' === point.o)
+      assert.strictEqual(points.length, 2)
+      return points.map((point: any) => point.q?.$action ?? null)
+    }
+    assert.deepStrictEqual(await actions('guide: {}\n'), [null, null])
+    assert.deepStrictEqual(await actions(
+      'guide: entity: export: path: "/api/export": action: "export": {}\n'), ['export', 'export'])
   })
 
 

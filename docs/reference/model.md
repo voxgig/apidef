@@ -535,8 +535,9 @@ and `test/flow-step.tsv` pin each case.
 A basic flow sets `a: false` on a step whose point sends or answers a body
 that is not JSON, such as a raw, multipart, or form body. The step reads the
 point its call reaches, the last point with no action. When the create step
-is off, the remove step and the list after it are off too, so a flow never
-removes a record it did not create.
+is off, the remove step is off too, so a flow never removes a record it did
+not create, and the list after the remove is off whenever the remove is. When
+the update step is off, the load step checks no mark.
 
 ## Worked example (abridged)
 

@@ -138,6 +138,9 @@ func TestTsvFlowStep(t *testing.T) {
 				if tf, ok := step["i"].(map[string]any)["textfield"]; ok {
 					shown["tf"] = tf
 				}
+				if step["o"] == "load" && !hasTextFieldMark(step["v"]) {
+					shown["mark"] = false
+				}
 				got = append(got, shown)
 			}
 			if !jsonEqual(got, want) {
@@ -247,4 +250,14 @@ func flowTestPoint(spec any) map[string]any {
 		}
 	}
 	return point
+}
+
+func hasTextFieldMark(valid any) bool {
+	list, _ := valid.([]any)
+	for _, v := range list {
+		if m, _ := v.(map[string]any); m["apply"] == "TextFieldMark" {
+			return true
+		}
+	}
+	return false
 }

@@ -1997,6 +1997,8 @@ describe('tsv-flow-step', () => {
         ...(0 < Object.keys(step.m).length ? { m: step.m } : {}),
         ...(0 < Object.keys(step.d).length ? { d: step.d } : {}),
         ...(null == step.i.textfield ? {} : { tf: step.i.textfield }),
+        ...('load' === step.o && !step.v.some((v: any) => 'TextFieldMark' === v.apply) ?
+          { mark: false } : {}),
       })), JSON.parse(row.expected))
     })
   }

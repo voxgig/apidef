@@ -120,12 +120,17 @@ func FlowstepTransform(ctx *ApiDefContext) (*TransformResult, error) {
 				"suffix":     "_dt0",
 				"srcdatavar": ref01 + "_data",
 			}
-			step := newFlowStep("load", map[string]any{
-				"input": input,
-				"valid": []any{map[string]any{
+			// A switched-off update writes no mark for the load to find.
+			valid := []any{}
+			if !stepOff(steps, "update") {
+				valid = append(valid, map[string]any{
 					"apply": "TextFieldMark",
 					"def":   map[string]any{"mark": mark01},
-				}},
+				})
+			}
+			step := newFlowStep("load", map[string]any{
+				"input": input,
+				"valid": valid,
 			}, point)
 			fillItemMatch(step, point, input, "load", entname)
 			steps = append(steps, step)
@@ -134,7 +139,7 @@ func FlowstepTransform(ctx *ApiDefContext) (*TransformResult, error) {
 		// removeStep and the post-remove listStep — gated on remove and
 		// create, since a flow removes only what it created
 		if removeOp, ok := opmap["remove"].(map[string]any); ok && hasCreate {
-			created := createdRecord(steps)
+			created := stepOn(steps, "create")
 			point := plainPoint(removeOp)
 			input := map[string]any{
 				"ref":    ref01,
@@ -156,7 +161,7 @@ func FlowstepTransform(ctx *ApiDefContext) (*TransformResult, error) {
 						"apply": "ItemNotExists",
 						"def":   map[string]any{"ref": ref01},
 					}},
-					"active": created,
+					"active": stepOn(steps, "remove"),
 				}, listPoint)
 				fillCollectionMatch(listStep, listPoint, listInput)
 				steps = append(steps, listStep)
@@ -203,13 +208,23 @@ func recordPoint(point map[string]any) bool {
 	return true
 }
 
-func createdRecord(steps []any) bool {
+func flowStepOf(steps []any, opname string) map[string]any {
 	for _, s := range steps {
-		if step, _ := s.(map[string]any); step["o"] == "create" {
-			return step["a"] != false
+		if step, _ := s.(map[string]any); step["o"] == opname {
+			return step
 		}
 	}
-	return false
+	return nil
+}
+
+func stepOn(steps []any, opname string) bool {
+	step := flowStepOf(steps, opname)
+	return step != nil && step["a"] != false
+}
+
+func stepOff(steps []any, opname string) bool {
+	step := flowStepOf(steps, opname)
+	return step != nil && step["a"] == false
 }
 
 // plainPoint mirrors ts/src/transform/flowstep.ts.
