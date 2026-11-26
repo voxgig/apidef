@@ -795,12 +795,17 @@ verb-result-def.json	GET /farms/{farmId}/croptypes/{code}	croptype	true	load		co
 verb-result-def.json	GET /tasks	task	true	list			
 verb-result-def.json	GET /tasks/{id}	task	true	load			
 verb-result-def.json	POST /tasks/{id}/cancel	task	true	create	cancel		
+verb-word-def.json	GET /api/export	export	true	list			
+verb-word-def.json	GET /api/export/{exportId}	export	true	load		exportId->id	
 verb-word-def.json	GET /books	book	true	list			
 verb-word-def.json	GET /books/autocomplete	book	true	list	autocomplete		
 verb-word-def.json	GET /books/contains	book	true	list	contains		
 verb-word-def.json	GET /messages/{messageId}	message	true	load		messageId->id	
 verb-word-def.json	GET /queues/{queueId}	queue	true	load		queueId->id	
 verb-word-def.json	GET /uploads/{uploadId}	upload	true	load		uploadId->id	
+verb-word-def.json	POST /api/export	export	true	create			
+verb-word-def.json	POST /api/export/{exportId}/upload	export	true	create	upload	exportId->id	
+verb-word-def.json	POST /books/upload	book	true	create	upload		
 verb-word-def.json	POST /queues/{queueId}/reorder	queue	true	create	reorder	queueId->id	
 verb-word-def.json	POST /queues/{queueId}/shuffle	queue	true	create	shuffle	queueId->id	
 verb-word-def.json	POST /uploads/{uploadId}/finish	upload	true	create	finish	uploadId->id	

@@ -357,6 +357,13 @@ func mergeCollectionPaths(guide map[string]any, recordRef func(pathStr string, m
 		}
 	}
 
+	for _, pathStr := range ownedPaths {
+		if owner := owned[pathStr]; owner.item {
+			entity, _ := entities[owner.ename].(map[string]any)
+			withdrawOwnCollectionAction(entity, owner.ename, pathStr)
+		}
+	}
+
 	// With no path left it names nothing guide.aontu could switch back on.
 	for _, ename := range emptied {
 		delete(entities, ename)
@@ -843,6 +850,23 @@ func onlyBeneath(entity map[string]any, root string) bool {
 		}
 	}
 	return true
+}
+
+// withdrawOwnCollectionAction mirrors ts/src/transform/entity.ts: a
+// collection literal that is also a verb word, as `/api/upload` over
+// `/api/upload/{upload_id}`, was read as an action named for the entity it
+// keys; it is that entity's collection, so the action is withdrawn.
+func withdrawOwnCollectionAction(entity map[string]any, ename string, pathStr string) {
+	paths, _ := entity["path"].(map[string]any)
+	pathDesc, _ := paths[pathStr].(map[string]any)
+	actions, _ := pathDesc["action"].(map[string]any)
+	segs := strings.Split(guidePath(pathStr), "/")
+	if _, ok := actions[ename]; !ok || Canonize(segs[len(segs)-1]) != ename {
+		return
+	}
+	delete(actions, ename)
+	why, _ := pathDesc["why_path"].([]string)
+	pathDesc["why_path"] = append(append([]string{}, why...), "own-collection="+ename)
 }
 
 // collectionRoot mirrors ts/src/transform/entity.ts: a path of literals

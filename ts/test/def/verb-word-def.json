@@ -257,6 +257,119 @@
      }
     }
    }
+  },
+  "/api/export": {
+   "get": {
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/Export"
+         }
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "parameters": [],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Export"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Export"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/export/{exportId}": {
+   "get": {
+    "parameters": [
+     {
+      "name": "exportId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Export"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/export/{exportId}/upload": {
+   "post": {
+    "parameters": [
+     {
+      "name": "exportId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Export"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/books/upload": {
+   "post": {
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Book"
+        }
+       }
+      }
+     }
+    }
+   }
   }
  },
  "components": {
@@ -300,6 +413,17 @@
     "type": "object",
     "properties": {
      "id": {
+      "type": "string"
+     }
+    }
+   },
+   "Export": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "name": {
       "type": "string"
      }
     }
