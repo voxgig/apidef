@@ -816,6 +816,7 @@ version-actions-def.json	POST /v1/things	thing	true	create	v1
 version-actions-def.json	POST /v2/things	thing	true	create			
 version-actions-def.json	POST /v2/things/{id}/actions/archive	thing	true	create	archive_v2		
 version-actions-def.json	POST /v3/things/{id}/actions/archive	thing	true	create	archive		
+version-verb-def.json	GET /api/v3/packages/conan/v1/ping	conan	true	load			
 version-verb-def.json	GET /api/v3/search	search	true	load			
 version-verb-def.json	GET /api/v3/stories/{story_id}	story	true	load		story_id->id	
 version-verb-def.json	POST /api/v3/stories/search	story	true	list	search		
