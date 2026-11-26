@@ -62,8 +62,11 @@ const flowstepTransform = async function (ctx) {
                     def: { mark: mark01 }
                 }]
         });
+        // A remove runs only on the record the flow's own create made.
+        const created = createdRecord(flow);
         removeStep(opmap, flow, ent, {
-            input: { ref: ref01, suffix: '_rm0' }
+            input: { ref: ref01, suffix: '_rm0' },
+            active: created,
         });
         // The "removed item is gone" verify LIST only makes sense after a real
         // remove step, which is now gated on create. Gate the verify on create
@@ -71,7 +74,8 @@ const flowstepTransform = async function (ctx) {
         if (null != opmap.remove && null != opmap.create) {
             listStep(opmap, flow, ent, {
                 input: { suffix: '_rt0' },
-                valid: [{ apply: 'ItemNotExists', def: { ref: ref01 } }]
+                valid: [{ apply: 'ItemNotExists', def: { ref: ref01 } }],
+                active: created,
             });
         }
         msg += flowname + ' ';
@@ -79,8 +83,10 @@ const flowstepTransform = async function (ctx) {
     return { ok: true, msg };
 };
 exports.flowstepTransform = flowstepTransform;
-function newFlowStep(opname, args) {
-    return {
+// A basic step moves a JSON record; a point whose request or response body is
+// anything else waits, switched off, for steps that move files.
+function newFlowStep(opname, args, point) {
+    const step = {
         o: opname,
         i: args.input ?? {},
         m: args.match ?? {},
@@ -88,6 +94,17 @@ function newFlowStep(opname, args) {
         s: args.spec ?? [],
         v: args.valid ?? [],
     };
+    if (false === args.active || !recordPoint(point)) {
+        step.a = false;
+    }
+    return step;
+}
+function recordPoint(point) {
+    return [point?.rb, point?.rs].every((body) => null == body || 'json' === body.kind);
+}
+function createdRecord(flow) {
+    const create = flow.step.find((step) => 'create' === step.o);
+    return null != create && false !== create.a;
 }
 // A step calls the op without an action, so it reads the point that call
 // reaches: the last plain point, the most generic as points sort the most
@@ -120,7 +137,7 @@ function originalSnakeNameOfRenamedId(point) {
 const createStep = (opmap, flow, ent, args) => {
     if (null != opmap.create) {
         const point = plainPoint(opmap.create.points);
-        const step = newFlowStep('create', args);
+        const step = newFlowStep('create', args, point);
         (0, jostraca_1.each)(point.g.params, (param) => {
             if ('id' === param.n) {
                 const origName = originalSnakeNameOfRenamedId(point);
@@ -163,7 +180,7 @@ function seedRelatedOpParams(opmap, createPoint, step) {
 const listStep = (opmap, flow, ent, args) => {
     if (null != opmap.list) {
         const point = plainPoint(opmap.list.points);
-        const step = newFlowStep('list', args);
+        const step = newFlowStep('list', args, point);
         (0, jostraca_1.each)(point.g.params, (param) => {
             if ('id' === param.n) {
                 const origName = originalSnakeNameOfRenamedId(point);
@@ -180,7 +197,7 @@ const listStep = (opmap, flow, ent, args) => {
 const updateStep = (opmap, flow, ent, args) => {
     if (null != opmap.update) {
         const point = plainPoint(opmap.update.points);
-        const step = newFlowStep('update', args);
+        const step = newFlowStep('update', args, point);
         (0, jostraca_1.each)(point.g.params, (param) => {
             if (isEntityIdParam(point, param, 'update')) {
                 // Entity's own id — supplied at test time via the loaded/created
@@ -195,7 +212,7 @@ const updateStep = (opmap, flow, ent, args) => {
 const loadStep = (opmap, flow, ent, args) => {
     if (null != opmap.load) {
         const point = plainPoint(opmap.load.points);
-        const step = newFlowStep('load', args);
+        const step = newFlowStep('load', args, point);
         (0, jostraca_1.each)(point.g.params, (param) => {
             if (isEntityIdParam(point, param, 'load')) {
                 step.m.id = args.input?.id ?? ent.name + '01';
@@ -214,7 +231,7 @@ const removeStep = (opmap, flow, ent, args) => {
     // live mode and makes no sense as a self-contained CRUD test.
     if (null != opmap.remove && null != opmap.create) {
         const point = plainPoint(opmap.remove.points);
-        const step = newFlowStep('remove', args);
+        const step = newFlowStep('remove', args, point);
         (0, jostraca_1.each)(point.g.params, (param) => {
             if (isEntityIdParam(point, param, 'remove')) {
                 step.m.id = args.input?.id ?? ent.name + '01';

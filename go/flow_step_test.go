@@ -126,6 +126,9 @@ func TestTsvFlowStep(t *testing.T) {
 			for _, s := range steps {
 				step := s.(map[string]any)
 				shown := map[string]any{"o": step["o"]}
+				if false == step["a"] {
+					shown["a"] = false
+				}
 				if m := step["m"].(map[string]any); len(m) > 0 {
 					shown["m"] = m
 				}
@@ -237,6 +240,11 @@ func flowTestPoint(spec any) map[string]any {
 	}
 	if action, ok := desc["action"].(string); ok {
 		point["q"] = map[string]any{"exist": []any{}, "$action": action}
+	}
+	for _, key := range []string{"rb", "rs"} {
+		if kind, ok := desc[key].(string); ok {
+			point[key] = map[string]any{"kind": kind}
+		}
 	}
 	return point
 }

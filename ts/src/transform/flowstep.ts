@@ -99,8 +99,12 @@ const flowstepTransform: Transform = async function(
         }]
       })
 
+    // A remove runs only on the record the flow's own create made.
+    const created = createdRecord(flow)
+
     removeStep(opmap, flow, ent, {
-      input: { ref: ref01, suffix: '_rm0' }
+      input: { ref: ref01, suffix: '_rm0' },
+      active: created,
     })
 
     // The "removed item is gone" verify LIST only makes sense after a real
@@ -109,7 +113,8 @@ const flowstepTransform: Transform = async function(
     if (null != opmap.remove && null != opmap.create) {
       listStep(opmap, flow, ent, {
         input: { suffix: '_rt0' },
-        valid: [{ apply: 'ItemNotExists', def: { ref: ref01 } }]
+        valid: [{ apply: 'ItemNotExists', def: { ref: ref01 } }],
+        active: created,
       })
     }
 
@@ -125,8 +130,10 @@ type MakeFlowStep =
 
 
 
-function newFlowStep(opname: OpName, args: Record<string, any>): ModelEntityFlowStep {
-  return {
+// A basic step moves a JSON record; a point whose request or response body is
+// anything else waits, switched off, for steps that move files.
+function newFlowStep(opname: OpName, args: Record<string, any>, point: any): ModelEntityFlowStep {
+  const step: ModelEntityFlowStep = {
     o: opname,
     i: args.input ?? {},
     m: args.match ?? {},
@@ -134,6 +141,21 @@ function newFlowStep(opname: OpName, args: Record<string, any>): ModelEntityFlow
     s: args.spec ?? [],
     v: args.valid ?? [],
   }
+  if (false === args.active || !recordPoint(point)) {
+    step.a = false
+  }
+  return step
+}
+
+
+function recordPoint(point: any): boolean {
+  return [point?.rb, point?.rs].every((body: any) => null == body || 'json' === body.kind)
+}
+
+
+function createdRecord(flow: ModelEntityFlow): boolean {
+  const create = flow.step.find((step: ModelEntityFlowStep) => 'create' === step.o)
+  return null != create && false !== create.a
 }
 
 
@@ -177,7 +199,7 @@ const createStep: MakeFlowStep = (
 ) => {
   if (null != opmap.create) {
     const point = plainPoint(opmap.create.points)
-    const step = newFlowStep('create', args)
+    const step = newFlowStep('create', args, point)
 
     each(point.g.params, (param: any) => {
       if ('id' === param.n) {
@@ -227,7 +249,7 @@ const listStep: MakeFlowStep = (
 ) => {
   if (null != opmap.list) {
     const point = plainPoint(opmap.list.points)
-    const step = newFlowStep('list', args)
+    const step = newFlowStep('list', args, point)
 
     each(point.g.params, (param: any) => {
       if ('id' === param.n) {
@@ -253,7 +275,7 @@ const updateStep: MakeFlowStep = (
 ) => {
   if (null != opmap.update) {
     const point = plainPoint(opmap.update.points)
-    const step = newFlowStep('update', args)
+    const step = newFlowStep('update', args, point)
 
     each(point.g.params, (param: any) => {
       if (isEntityIdParam(point, param, 'update')) {
@@ -277,7 +299,7 @@ const loadStep: MakeFlowStep = (
 ) => {
   if (null != opmap.load) {
     const point = plainPoint(opmap.load.points)
-    const step = newFlowStep('load', args)
+    const step = newFlowStep('load', args, point)
 
     each(point.g.params, (param: any) => {
       if (isEntityIdParam(point, param, 'load')) {
@@ -305,7 +327,7 @@ const removeStep: MakeFlowStep = (
   // live mode and makes no sense as a self-contained CRUD test.
   if (null != opmap.remove && null != opmap.create) {
     const point = plainPoint(opmap.remove.points)
-    const step = newFlowStep('remove', args)
+    const step = newFlowStep('remove', args, point)
 
     each(point.g.params, (param: any) => {
       if (isEntityIdParam(point, param, 'remove')) {
