@@ -9,6 +9,7 @@ import { getelem } from '@voxgig/struct'
 import {
   nom,
   nonNullType,
+  sortedKeys,
 } from '../utility'
 
 
@@ -43,6 +44,7 @@ import type {
   ModelEntity,
   ModelEntityFlow,
   ModelEntityFlowStep,
+  ModelFlowFile,
   ModelOp,
 } from '../model'
 
@@ -64,6 +66,12 @@ const flowstepTransform: Transform = async function(
     const opmap = ent.op
 
     const ref01 = ent.name + '_ref01'
+
+    if ('file' === flow.kind) {
+      fileSteps(opmap, flow, ent, ref01)
+      msg += flowname + ' '
+      return
+    }
 
     createStep(opmap, flow, ent, { input: { ref: ref01 } })
 
@@ -201,24 +209,27 @@ const createStep: MakeFlowStep = (
   if (null != opmap.create) {
     const point = plainPoint(opmap.create.points)
     const step = newFlowStep('create', args, point)
-
-    each(point.g.params, (param: any) => {
-      if ('id' === param.n) {
-        const origName = originalSnakeNameOfRenamedId(point)
-        if (origName) {
-          step.m[origName] = args.input?.[origName] ?? origName.replace(/_id/, '') + '01'
-        }
-        // If there's no rename-from, this is genuinely the entity's id — skip
-        // (the create call generates it).
-        return
-      }
-      step.m[param.n] = args.input?.[param.n] ?? param.n.replace(/_id/, '') + '01'
-    })
-
-    seedRelatedOpParams(opmap, point, step)
-
+    fillCreateMatch(opmap, point, step, args)
     flow.step.push(step)
   }
+}
+
+
+function fillCreateMatch(opmap: any, point: any, step: ModelEntityFlowStep, args: Record<string, any>) {
+  each(point.g.params, (param: any) => {
+    if ('id' === param.n) {
+      const origName = originalSnakeNameOfRenamedId(point)
+      if (origName) {
+        step.m[origName] = args.input?.[origName] ?? origName.replace(/_id/, '') + '01'
+      }
+      // If there's no rename-from, this is genuinely the entity's id — skip
+      // (the create call generates it).
+      return
+    }
+    step.m[param.n] = args.input?.[param.n] ?? param.n.replace(/_id/, '') + '01'
+  })
+
+  seedRelatedOpParams(opmap, point, step)
 }
 
 
@@ -420,6 +431,215 @@ function identityFields(ent: ModelEntity): Record<string, boolean> {
   return out
 }
 
-export {
-  flowstepTransform,
+// Content is described, never carried; docs/reference/model.md states the rule.
+const FILE_BYTES = 512
+const FILE_TEXT = 192
+
+// The ops that write a slot, in the order the generator chooses among them.
+const SLOT_WRITERS: OpName[] = ['update', 'patch', 'create']
+
+type FileWay = {
+  via: 'slot' | 'body'
+  action: string
+  content: 'bytes' | 'text'
+  read?: any
+  write?: any
+  writeop?: OpName
 }
+
+
+function fileContent(content: 'bytes' | 'text', size: number, seed: number): Uint8Array | string {
+  const n = 'text' === content ? 96 : 256
+  const ks = Array.from({ length: size }, (_, i) => (seed + 7 * Math.floor(i / 2)) % n)
+  return 'text' === content ?
+    ks.map((k) => 95 === k ? '\n' : String.fromCharCode(32 + k)).join('') :
+    Uint8Array.from(ks)
+}
+
+
+function livePoints(opmap: any, opname: string): any[] {
+  return (opmap?.[opname]?.points ?? []).filter((point: any) => false !== point?.a)
+}
+
+
+function actionOf(point: any): string {
+  return null == point?.q?.$action ? '' : String(point.q.$action)
+}
+
+
+// Slots as sdkgen derives them, then the raw bodies no slot takes: text, and
+// bytes the plain point sends where the entity has no unnamed slot.
+function fileWays(ent: ModelEntity): FileWay[] {
+  const opmap: any = ent.op ?? {}
+  const slots: Record<string, FileWay> = {}
+  const bodies: Record<string, FileWay> = {}
+  const way = (into: Record<string, FileWay>, via: FileWay['via'], action: string,
+    content: FileWay['content']) => (into[action] = into[action] ?? { via, action, content })
+
+  for (const point of livePoints(opmap, 'load')) {
+    if ('raw' !== point?.rs?.kind) continue
+    const action = actionOf(point)
+    const found = true === point.rs.binary ?
+      way(slots, 'slot', action, 'bytes') : way(bodies, 'body', action, 'text')
+    found.read = found.read ?? point
+  }
+
+  for (const opname of SLOT_WRITERS) {
+    for (const point of livePoints(opmap, opname)) {
+      if ('raw' !== point?.rb?.kind) continue
+      const action = actionOf(point)
+      const binary = true === point.rb.binary
+      const found = binary && ('' !== action || null != slots['']) ?
+        way(slots, 'slot', action, 'bytes') :
+        way(bodies, 'body', action, binary ? 'bytes' : 'text')
+      if (null == found.write) {
+        found.write = point
+        found.writeop = opname
+        found.content = binary ? 'bytes' : found.content
+      }
+    }
+  }
+
+  return [
+    ...sortedKeys(slots).map((action) => slots[action]),
+    ...sortedKeys(bodies).map((action) => bodies[action]),
+  ]
+}
+
+
+function binaryFields(point: any): string[] {
+  const body = point?.rb
+  if ('multipart' !== body?.kind && 'form' !== body?.kind) return []
+  return (body.fields ?? []).filter((field: any) => true === field?.binary)
+    .map((field: any) => String(field.name))
+}
+
+
+// The points other than the plain create whose multipart or form body carries a file.
+function fieldPoints(opmap: any, create: any): { opname: OpName, point: any }[] {
+  return SLOT_WRITERS.flatMap((opname) => livePoints(opmap, opname)
+    .filter((point) => point !== create && 0 < binaryFields(point).length)
+    .map((point) => ({ opname, point })))
+}
+
+
+// A file flow exercises what moves bytes or text; a session's append is its dialect's.
+function hasFileSteps(ent: ModelEntity): boolean {
+  if (null != ent.session) return false
+  const opmap: any = ent.op ?? {}
+  const create = null == opmap.create ? undefined : plainPoint(opmap.create.points)
+  return 0 < fileWays(ent).length || 0 < fieldPoints(opmap, create).length ||
+    (null != create && false !== create.a && 0 < binaryFields(create).length)
+}
+
+
+// Create the record, move each file and text body in and out of it, remove it.
+// A write needs the record the flow created; a read without a write before it
+// checks only that content arrives.
+function fileSteps(opmap: any, flow: ModelEntityFlow, ent: ModelEntity, ref: string) {
+  const ways = fileWays(ent)
+  let seed = 0
+  let tf = 0
+
+  // A transfer names the record as its own operation does.
+  const transfer = (opname: OpName, point: any, f: ModelFlowFile[], on: boolean) => {
+    const step: ModelEntityFlowStep = {
+      o: opname, i: { ref, suffix: '_tf' + (tf++) }, m: {}, d: {}, s: [], v: [], f,
+    }
+    each(point.g?.params, (param: any) => {
+      if (isEntityIdParam(point, param, opname)) {
+        step.m.id = ent.name + '01'
+      }
+      else {
+        step.m[param.n] = param.n.replace(/_id/, '') + '01'
+      }
+    })
+    if (!on) step.a = false
+    flow.step.push(step)
+  }
+
+  const put = (via: ModelFlowFile['via'], action: string, content: ModelFlowFile['content'],
+    size: number, field?: string): ModelFlowFile => ({
+      via, action, ...(null == field ? {} : { field }), dir: 'put', content, size, seed: ++seed,
+    })
+
+  // A read compares with what the flow wrote, when it wrote content of that kind.
+  const get = (way: FileWay, written?: ModelFlowFile) => {
+    const content = 'slot' === way.via ? 'bytes' : 'text'
+    transfer('load', way.read, [{
+      via: way.via, action: way.action, dir: 'get', content,
+      ...(content !== written?.content ? {} : { size: written.size, seed: written.seed }),
+    }], true)
+  }
+
+  const sizeOf = (point: any, content: FileWay['content']) => {
+    const max = point?.bn?.max
+    const size = 'text' === content ? FILE_TEXT : FILE_BYTES
+    return Number.isSafeInteger(max) && 0 <= max && max < size ? max : size
+  }
+
+  const slotRead = (name: string) =>
+    ways.find((way) => 'slot' === way.via && name === way.action && null != way.read)
+
+  let created = false
+  const create = null == opmap.create ? undefined : plainPoint(opmap.create.points)
+  const atCreate = ways.find((way) => null != create && create === way.write)
+
+  if (null != create) {
+    // An action is no plain create: the flow cannot make its record with one.
+    const action = actionOf(create)
+    created = '' === action && (null == create.rs || 'json' === create.rs.kind)
+    const step: ModelEntityFlowStep = { o: 'create', i: { ref }, m: {}, d: {}, s: [], v: [] }
+    fillCreateMatch(opmap, create, step, {})
+
+    // The create's own raw body, whichever point its way prefers as writer.
+    const binary = true === create.rb?.binary
+    const own = 'raw' !== create.rb?.kind ? undefined : ways.find((way) => action === way.action &&
+      way.via === (binary && ('' !== action || null != slotRead('')) ? 'slot' : 'body'))
+    const content = binary ? 'bytes' : 'text'
+    const f = null != own ? [put(own.via, action, content, sizeOf(create, content))] :
+      binaryFields(create).map((field) => put('field', action, 'bytes', FILE_BYTES, field))
+    if (0 < f.length) step.f = f
+    if (!created || f.some((file) => (file.size ?? 0) < 1)) step.a = false
+    created = created && false !== step.a
+    flow.step.push(step)
+
+    for (const file of f) {
+      const way = null != own ? (null == own.read ? undefined : own) : slotRead(file.field as string)
+      if (null != way) get(way, created ? file : undefined)
+    }
+  }
+
+  for (const { opname, point } of fieldPoints(opmap, create)) {
+    const f = binaryFields(point).map((field) => put('field', actionOf(point), 'bytes', FILE_BYTES, field))
+    transfer(opname, point, f, created)
+    for (const file of f) {
+      const way = slotRead(file.field as string)
+      if (null != way) get(way, created ? file : undefined)
+    }
+  }
+
+  for (const way of ways) {
+    if (way === atCreate) continue
+    let written: ModelFlowFile | undefined
+    if (null != way.write) {
+      const file = put(way.via, way.action, way.content, sizeOf(way.write, way.content))
+      const on = created && 0 < (file.size ?? 0)
+      transfer(way.writeop as OpName, way.write, [file], on)
+      written = on ? file : undefined
+    }
+    if (null != way.read) get(way, written)
+  }
+
+  if (null != opmap.create) {
+    removeStep(opmap, flow, ent, { input: { ref, suffix: '_rm0' }, active: created })
+  }
+}
+
+
+export {
+  fileContent,
+  flowstepTransform,
+  hasFileSteps,
+}
+

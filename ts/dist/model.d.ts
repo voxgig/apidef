@@ -214,5 +214,15 @@ type ModelEntityFlowStep = {
     d: Record<string, any>;
     s: ModelEntityFlowStepSpec[];
     v: ModelEntityFlowStepValidator[];
+    f?: ModelFlowFile[];
 };
-export type { OpName, ArgKind, PointKind, ModelGraphql, ModelGraphqlVar, ModelGraphqlPage, NamesCluster, Model, ModelEntityRelations, ModelOpMap, ModelFieldOp, ModelField, ModelArg, ModelBinary, ModelSession, ModelPoint, ModelPage, ModelPathSegment, BodyKind, ModelBodyField, ModelBody, ModelOp, ModelEntity, ModelEntityFlow, ModelEntityFlowStep, ModelEntityFlowStepInput, ModelEntityFlowStepValidator, ModelEntityFlowStepSpec, };
+type ModelFlowFile = {
+    via: 'slot' | 'field' | 'body';
+    action: string;
+    field?: string;
+    dir: 'put' | 'get';
+    content: 'bytes' | 'text';
+    size?: number;
+    seed?: number;
+};
+export type { OpName, ArgKind, PointKind, ModelGraphql, ModelGraphqlVar, ModelGraphqlPage, NamesCluster, Model, ModelEntityRelations, ModelOpMap, ModelFieldOp, ModelField, ModelArg, ModelBinary, ModelSession, ModelPoint, ModelPage, ModelPathSegment, BodyKind, ModelBodyField, ModelBody, ModelOp, ModelEntity, ModelEntityFlow, ModelEntityFlowStep, ModelEntityFlowStepInput, ModelEntityFlowStepValidator, ModelEntityFlowStepSpec, ModelFlowFile, };

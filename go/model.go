@@ -141,4 +141,16 @@ type ModelEntityFlowStep struct {
 	Data   map[string]any   `json:"d,omitempty"`
 	Spec   []map[string]any `json:"s,omitempty"`
 	Valid  []map[string]any `json:"v,omitempty"`
+	File   []*ModelFlowFile `json:"f,omitempty"`
+}
+
+// ModelFlowFile is content a file flow step moves, described by a length and a seed.
+type ModelFlowFile struct {
+	Via     string `json:"via"`
+	Action  string `json:"action"`
+	Field   string `json:"field,omitempty"`
+	Dir     string `json:"dir"`
+	Content string `json:"content"`
+	Size    *int   `json:"size,omitempty"`
+	Seed    *int   `json:"seed,omitempty"`
 }

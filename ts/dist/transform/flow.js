@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.flowTransform = void 0;
 const jostraca_1 = require("jostraca");
 const utility_1 = require("../utility");
+const flowstep_1 = require("./flowstep");
 const types_1 = require("../types");
 const flowTransform = async function (ctx) {
     const { apimodel, guide } = ctx;
@@ -21,6 +22,16 @@ const flowTransform = async function (ctx) {
         };
         kit.flow[basicflow.name] = basicflow;
         msg += basicflow.name + ' ';
+        if ((0, flowstep_1.hasFileSteps)(modelent)) {
+            const fileflow = {
+                name: 'File' + (0, utility_1.nom)(modelent, 'Name') + 'Flow',
+                entity: entname,
+                kind: 'file',
+                step: [],
+            };
+            kit.flow[fileflow.name] = fileflow;
+            msg += fileflow.name + ' ';
+        }
     });
     return { ok: true, msg };
 };

@@ -1,0 +1,8 @@
+content	size	seed	expected
+bytes	8	0	000007070e0e1515
+bytes	6	250	fafa01010808
+bytes	1	9	09
+bytes	0	3	
+text	6	0	"  ''.."
+text	4	94	"~~%%"
+text	3	95	"\n\n&"

@@ -16,6 +16,13 @@ const fileSlotDef = "file-slot-def.json"
 
 func buildFileSlot(t *testing.T, entry string) (map[string]any, string) {
 	t.Helper()
+	kit, base := buildFileSlotKit(t, entry)
+	entities, _ := kit["entity"].(map[string]any)
+	return entities, base
+}
+
+func buildFileSlotKit(t *testing.T, entry string) (map[string]any, string) {
+	t.Helper()
 	dir := t.TempDir()
 	folder := filepath.Join(dir, "model")
 	if err := os.MkdirAll(filepath.Join(folder, "guide"), 0755); err != nil {
@@ -52,8 +59,7 @@ func buildFileSlot(t *testing.T, entry string) (map[string]any, string) {
 		t.Fatal(err)
 	}
 	kit, _ := res.ApiModel["main"].(map[string]any)["kit"].(map[string]any)
-	entities, _ := kit["entity"].(map[string]any)
-	return entities, string(base)
+	return kit, string(base)
 }
 
 func fileSlotPoint(entities map[string]any, entity string, method string, path string) map[string]any {
@@ -183,4 +189,42 @@ func TestFileSlotSessionGuide(t *testing.T) {
 	fileSlotExpect(t, "slot session", fileSlotSession(slot, "upload"), map[string]any{
 		"dialect": "tus", "append": "update", "offset": "load",
 		"slot": map[string]any{"entity": "track", "action": "audio"}})
+}
+
+func TestFileSlotFileFlows(t *testing.T) {
+	kit, _ := buildFileSlotKit(t, "guide: {}")
+	flows, _ := kit["flow"].(map[string]any)
+	audio := func(dir string) []any {
+		return []any{map[string]any{"via": "slot", "action": "audio", "dir": dir,
+			"content": "bytes", "size": 512, "seed": 1}}
+	}
+	fileSlotExpect(t, "track flow", flows["FileTrackFlow"], map[string]any{
+		"name": "FileTrackFlow", "entity": "track", "kind": "file", "step": []any{
+			map[string]any{"o": "create", "i": map[string]any{"ref": "track_ref01"}},
+			map[string]any{"o": "update", "i": map[string]any{"ref": "track_ref01", "suffix": "_tf0"},
+				"m": map[string]any{"id": "track01"}, "f": audio("put")},
+			map[string]any{"o": "load", "i": map[string]any{"ref": "track_ref01", "suffix": "_tf1"},
+				"m": map[string]any{"id": "track01"}, "f": audio("get")},
+		}})
+	lyric, _ := flows["FileTrackLyricFlow"].(map[string]any)
+	files := []any{}
+	for _, step := range lyric["step"].([]any) {
+		files = append(files, step.(map[string]any)["f"])
+	}
+	fileSlotExpect(t, "lyric flow", files, []any{[]any{
+		map[string]any{"via": "body", "action": "", "dir": "get", "content": "text"}}})
+	names := []string{}
+	for _, name := range sortedKeys(flows) {
+		if regexp.MustCompile(`^File`).MatchString(name) {
+			names = append(names, name)
+		}
+	}
+	fileSlotExpect(t, "file flows", names, []string{"FilePartFlow", "FileTrackFlow", "FileTrackLyricFlow"})
+
+	off, _ := buildFileSlotKit(t, `guide: entity: track: path: "/tracks/{track_id}/audio": active: false`)
+	offFlows, _ := off["flow"].(map[string]any)
+	fileSlotExpect(t, "off flow", offFlows["FileTrackFlow"], nil)
+	if offFlows["BasicTrackFlow"] == nil {
+		t.Error("off build lost BasicTrackFlow")
+	}
 }

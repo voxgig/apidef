@@ -70,6 +70,17 @@ main: kit: type: type({ # Reusable model types.
     i: {} # Inputs for references and generated test variables.
     s: [] # Mutation specifications applied during the step.
     v: [] # Assertions checked after the step.
+    f?: [ &: %flow-file ] # Content a file flow's step moves.
+  }
+
+  %flow-file: { # Content one step of a file flow sends or reads, described and never carried.
+    via: 'slot' | 'field' | 'body' # A binary slot's handle, a multipart or form field, or the raw body on the operation.
+    action: string # Action of the slot or point, or empty for the plain point.
+    field?: string # Field of the multipart or form body that holds the bytes.
+    dir: 'put' | 'get' # Whether the step sends the content or reads it.
+    content: 'bytes' | 'text' # Rule that generates the content.
+    size?: number # Length of the generated content; a read without it checks only that content arrives.
+    seed?: number # Seed of the generated content.
   }
 
   %op-points: { # One implementation of an operation.

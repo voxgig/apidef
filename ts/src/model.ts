@@ -289,6 +289,19 @@ type ModelEntityFlowStep = {
   d: Record<string, any>
   s: ModelEntityFlowStepSpec[]
   v: ModelEntityFlowStepValidator[]
+  f?: ModelFlowFile[]
+}
+
+
+// Content a file flow step moves, described by a length and a seed.
+type ModelFlowFile = {
+  via: 'slot' | 'field' | 'body'
+  action: string
+  field?: string
+  dir: 'put' | 'get'
+  content: 'bytes' | 'text'
+  size?: number
+  seed?: number
 }
 
 
@@ -321,4 +334,5 @@ export type {
   ModelEntityFlowStepInput,
   ModelEntityFlowStepValidator,
   ModelEntityFlowStepSpec,
+  ModelFlowFile,
 }

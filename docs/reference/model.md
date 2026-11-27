@@ -564,7 +564,7 @@ A flow is an ordered, assertable exercise of an entity.
 |-------|------|---------|
 | `name` / `key$` | `string` | flow name (e.g. `BasicPlanetFlow`) |
 | `entity` | `string` | the entity it exercises |
-| `kind` | `string` | `'basic'` for the generated CRUD round-trip |
+| `kind` | `string` | `'basic'` for the generated CRUD round-trip, `'file'` for the file round-trip |
 | `param` | `object` | flow-level parameters |
 | `step` | `ModelEntityFlowStep[]` | the ordered steps |
 | `active` | `boolean` | included in output |
@@ -572,7 +572,7 @@ A flow is an ordered, assertable exercise of an entity.
 ### `ModelEntityFlowStep`
 
 Flow steps use `%flow-step`, declared in `main.kit.type`. All step attributes
-are required; `a` defaults to `true`.
+but `f` are required; `a` defaults to `true`.
 
 | field | type | meaning |
 |-------|------|---------|
@@ -583,6 +583,7 @@ are required; `a` defaults to `true`.
 | `v` | `array` | assertions to run afterward (e.g. `ItemExists`, `TextFieldMark`) |
 | `s` | `array` | mutation specs applied during the step |
 | `a` | `boolean` | included in output |
+| `f` | `ModelFlowFile[]?` | the content a file flow's step moves |
 
 A basic flow writes its steps in this order, each only where the entity has
 the operation: `create`, `list`, `update`, `patch`, `load`, `remove`, and a
@@ -610,6 +611,109 @@ is off, the remove step is off too, so a flow never removes a record it did
 not create, and the list after the remove is off whenever the remove is. The
 load step checks no mark when the update or patch step is off and neither is
 on.
+
+### File flows
+
+An entity whose operations move bytes or a text body gets a second flow,
+`File<Name>Flow`, with `kind: 'file'`, beside its basic flow. The basic flow
+keeps its steps as they were, so a generator that reads only
+`Basic<Name>Flow` produces the same tests from a model with file flows as from
+one without. A session entity, one with `session`, gets no file flow: its
+append belongs to its dialect.
+
+Content travels three ways:
+
+| `via` | where the content goes | `action` and `field` |
+|-------|------------------------|----------------------|
+| `slot` | a binary slot's handle: a point whose `rs` or `rb` is raw and binary | `action` names the slot, empty for the unnamed slot |
+| `field` | a field of a multipart or form request body that the model marks binary | `action` names the point's action, empty for the plain point; `field` names the field |
+| `body` | the raw body of the operation: text, as `$body`, or bytes the plain point sends where the entity has no unnamed slot | `action` names the point's action, empty for the plain point |
+
+Slots follow the rule a generator applies: an action whose `load` point
+answers raw bytes is read by `load`, and the first of its `update`, `patch` and
+`create` points that sends raw bytes writes it. The plain `load` answering
+bytes makes the unnamed slot, and only then does a plain point that sends
+bytes write it. A text read is a `load`, and its write is the first of the same
+three operations.
+
+A file flow writes its steps in this order:
+
+1. `create`, on the plain point. A multipart or form body there sends each
+   binary field, and a raw body there sends its own content, even where a
+   later `update` or `patch` is the slot's or body's writer. The step is off
+   when the create answers anything but JSON, and when the entity's only
+   create is an action: its content keeps that action, and the step stays in
+   the flow, switched off.
+2. A read of each slot a binary field of that create names, and of the slot
+   or body the create wrote.
+3. Each other `create`, `update` or `patch` point with a binary field of a
+   multipart or form body, followed by a read of each slot a field names.
+4. For each slot, by action, then for each body, by action: the write, then
+   the read.
+5. `remove`, when the entity has both `remove` and `create`, and on only when
+   the create step is.
+
+A step that writes is on only when the flow's own create made the record. A
+read compares with the content the flow wrote before it. Where nothing was
+written, such as a read-only slot or a derived text body, the read has no
+`size` and checks only that content arrives, with a positive length. Every
+step fills `m` the way its own operation names a record: a `create` keeps
+the parent parameters of its collection, and the rest read the last path
+parameter as the record's own. `i.suffix` is `_tf` followed by the step's
+position among the transfers.
+
+### `ModelFlowFile`
+
+| field | type | meaning |
+|-------|------|---------|
+| `via` | `'slot' \| 'field' \| 'body'` | how the content travels |
+| `action` | `string` | the slot or the point's action, empty for the plain point |
+| `field` | `string?` | the multipart or form field holding the bytes |
+| `dir` | `'put' \| 'get'` | whether the step sends the content or reads it |
+| `content` | `'bytes' \| 'text'` | the rule that generates the content |
+| `size` | `number?` | the length of the content |
+| `seed` | `number?` | the seed of the content |
+
+The model never carries content: a step describes it by `size` and `seed`,
+and a generator computes it. The content at position `i`, counting from zero,
+is built from
+
+```text
+k = (seed + 7 * floor(i / 2)) mod n
+```
+
+For `bytes`, `n` is 256 and the byte is `k`. For `text`, `n` is 96 and the
+character is the code point `32 + k`, or a line feed where `k` is 95, so text
+is printable ASCII and line feeds. Each value appears twice in a row, and every
+value appears within 512 bytes or 192 characters. A write sends 512 bytes or
+192 characters, or the point's `bn.max` when that is smaller, and a write of
+nothing is off. Each write in a flow takes the next seed, starting at 1. At
+full length the bytes hold `00 00`, `FF FF`, a carriage return pair, a line feed pair, a
+quote pair, and a hyphen pair, and the text holds a line feed pair, a quote
+pair, and a hyphen pair. `test/flow-file-content.tsv` pins the rule and
+`test/flow-file-step.tsv` pins the steps, in both ports.
+
+The guide switches a file step as it switches a basic one: a path or an
+operation that is off reaches no flow. The model switches a whole file flow
+off with `main: kit: flow: File<Name>Flow: active: false`.
+
+```jsonic
+# show: PUT and GET /api/show/{show_id}/artwork, image/png bytes;
+# GET /api/show/{show_id}/feed, application/rss+xml text
+flow: FileShowFlow: {
+  entity: show, kind: file
+  step: [
+    { o: create, i: { ref: show_ref01 } }
+    { o: update, m: { id: show01 }, i: { ref: show_ref01, suffix: _tf0 }
+      f: [ { via: slot, action: artwork, dir: put, content: bytes, size: 512, seed: 1 } ] }
+    { o: load, m: { id: show01 }, i: { ref: show_ref01, suffix: _tf1 }
+      f: [ { via: slot, action: artwork, dir: get, content: bytes, size: 512, seed: 1 } ] }
+    { o: load, m: { id: show01 }, i: { ref: show_ref01, suffix: _tf2 }
+      f: [ { via: body, action: feed, dir: get, content: text } ] }
+    { o: remove, m: { id: show01 }, i: { ref: show_ref01, suffix: _rm0 } }
+  ]
+}
+```
 
 ## Worked example (abridged)
 

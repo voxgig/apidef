@@ -1,11 +1,13 @@
 package apidef
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"os"
 	"path/filepath"
 	"reflect"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -60,6 +62,22 @@ func TestFlowStepJSONAttributes(t *testing.T) {
 	}
 	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("flow JSON mismatch: got %#v, want %#v", actual, expected)
+	}
+}
+
+func TestFlowStepFileRoundTrip(t *testing.T) {
+	source := `{"o":"load","f":[{"via":"slot","action":"","dir":"put","content":"bytes","size":0,"seed":1},` +
+		`{"via":"field","action":"","field":"audio","dir":"get","content":"bytes"}]}`
+	var step ModelEntityFlowStep
+	if err := json.Unmarshal([]byte(source), &step); err != nil {
+		t.Fatal(err)
+	}
+	data, err := json.Marshal(step)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(data) != source {
+		t.Fatalf("file step changed: got %s, want %s", data, source)
 	}
 }
 
@@ -340,9 +358,141 @@ func flowTestPoint(spec any) map[string]any {
 	for _, key := range []string{"rb", "rs"} {
 		if kind, ok := desc[key].(string); ok {
 			point[key] = map[string]any{"kind": kind}
+		} else if body, ok := desc[key].(map[string]any); ok {
+			point[key] = body
 		}
 	}
+	if bn, ok := desc["bn"].(map[string]any); ok {
+		point["bn"] = bn
+	}
+	if active, ok := desc["a"].(bool); ok {
+		point["a"] = active
+	}
 	return point
+}
+
+// Mirrors the TS `tsv-flow-file-step` suite: an entity's file flow, from its
+// routes, or null when it gets none.
+func TestTsvFlowFileStep(t *testing.T) {
+	rows := loadTsv(t, "flow-file-step")
+	if len(rows) == 0 {
+		t.Fatal("no flow-file-step rows loaded")
+	}
+	for _, row := range rows {
+		t.Run(row["name"], func(t *testing.T) {
+			var ops map[string][]any
+			var extra map[string]any
+			var want any
+			unmarshalCol(t, row, "ops", &ops)
+			unmarshalCol(t, row, "entity", &extra)
+			unmarshalCol(t, row, "expected", &want)
+
+			opmap := map[string]any{}
+			for name, specs := range ops {
+				points := []any{}
+				for _, spec := range specs {
+					points = append(points, flowTestPoint(spec))
+				}
+				opmap[name] = map[string]any{"name": name, "points": points}
+			}
+			ent := map[string]any{"name": "thing", "fields": map[string]any{}, "op": opmap}
+			for key, value := range extra {
+				ent[key] = value
+			}
+			flows := map[string]any{}
+			ctx := &ApiDefContext{
+				ApiModel: map[string]any{"main": map[string]any{KIT: map[string]any{
+					"entity": map[string]any{"thing": ent},
+					"flow":   flows,
+				}}},
+				Guide: map[string]any{"entity": map[string]any{"thing": map[string]any{}}},
+			}
+			if _, err := FlowTransform(ctx); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := FlowstepTransform(ctx); err != nil {
+				t.Fatal(err)
+			}
+
+			names := sortedKeys(flows)
+			wantNames := []string{"BasicThingFlow"}
+			if want != nil {
+				wantNames = append(wantNames, "FileThingFlow")
+			}
+			if !reflect.DeepEqual(names, wantNames) {
+				t.Fatalf("flows = %v, want %v", names, wantNames)
+			}
+
+			var got any
+			if flow, ok := flows["FileThingFlow"].(map[string]any); ok {
+				if flow["entity"] != "thing" || flow["kind"] != "file" {
+					t.Errorf("flow entity %v kind %v", flow["entity"], flow["kind"])
+				}
+				shown := []any{}
+				for _, s := range flow["step"].([]any) {
+					step := s.(map[string]any)
+					entry := map[string]any{"o": step["o"]}
+					if false == step["a"] {
+						entry["a"] = false
+					}
+					if m := step["m"].(map[string]any); len(m) > 0 {
+						entry["m"] = m
+					}
+					if f, ok := step["f"]; ok {
+						entry["f"] = f
+					}
+					shown = append(shown, entry)
+				}
+				got = shown
+			}
+			if !jsonEqual(got, want) {
+				gotJSON, _ := json.Marshal(got)
+				t.Errorf("steps\ngot  %s\nwant %s", gotJSON, row["expected"])
+			}
+		})
+	}
+}
+
+func TestTsvFlowFileContent(t *testing.T) {
+	rows := loadTsv(t, "flow-file-content")
+	if len(rows) == 0 {
+		t.Fatal("no flow-file-content rows loaded")
+	}
+	for _, row := range rows {
+		t.Run(row["content"]+" "+row["size"]+" "+row["seed"], func(t *testing.T) {
+			size, _ := strconv.Atoi(row["size"])
+			seed, _ := strconv.Atoi(row["seed"])
+			out := FileContent(row["content"], size, seed)
+			got := hex.EncodeToString(out)
+			if row["content"] == "text" {
+				var quoted strings.Builder
+				enc := json.NewEncoder(&quoted)
+				enc.SetEscapeHTML(false)
+				if err := enc.Encode(string(out)); err != nil {
+					t.Fatal(err)
+				}
+				got = strings.TrimSuffix(quoted.String(), "\n")
+			}
+			if got != row["expected"] {
+				t.Errorf("content = %s, want %s", got, row["expected"])
+			}
+		})
+	}
+}
+
+func TestFlowFileContentCarriesEncoderBreakers(t *testing.T) {
+	bytes := FileContent("bytes", 512, 1)
+	for _, pair := range []string{"\x00\x00", "\xff\xff", "\r\r", "\n\n", `""`, "--"} {
+		if !strings.Contains(string(bytes), pair) {
+			t.Errorf("bytes lack %q", pair)
+		}
+	}
+	text := string(FileContent("text", 192, 1))
+	for _, part := range []string{"\n\n", `""`, "--"} {
+		if !strings.Contains(text, part) {
+			t.Errorf("text lacks %q", part)
+		}
+	}
 }
 
 func hasTextFieldMark(valid any) bool {

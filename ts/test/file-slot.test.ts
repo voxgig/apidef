@@ -149,4 +149,28 @@ describe('file-slot', () => {
       { dialect: 'tus', append: 'update', offset: 'load', slot: { entity: 'track', action: 'audio' } })
   })
 
+
+  test('file-flows', async () => {
+    const { bres } = await build('guide: {}\n')
+    const flow = bres.apimodel.main.kit.flow
+    const audio = { via: 'slot', action: 'audio', content: 'bytes', size: 512, seed: 1 }
+    assert.deepStrictEqual(flow.FileTrackFlow, {
+      name: 'FileTrackFlow', entity: 'track', kind: 'file', step: [
+        { o: 'create', i: { ref: 'track_ref01' } },
+        { o: 'update', i: { ref: 'track_ref01', suffix: '_tf0' }, m: { id: 'track01' },
+          f: [{ ...audio, dir: 'put' }] },
+        { o: 'load', i: { ref: 'track_ref01', suffix: '_tf1' }, m: { id: 'track01' },
+          f: [{ ...audio, dir: 'get' }] },
+      ],
+    })
+    assert.deepStrictEqual(flow.FileTrackLyricFlow.step.map((step: any) => step.f),
+      [[{ via: 'body', action: '', dir: 'get', content: 'text' }]])
+    assert.deepStrictEqual(Object.keys(flow).filter((name) => name.startsWith('File')).sort(),
+      ['FilePartFlow', 'FileTrackFlow', 'FileTrackLyricFlow'])
+
+    const off = (await build('guide: entity: track: path: "/tracks/{track_id}/audio": active: false\n')).bres
+    assert.strictEqual(off.apimodel.main.kit.flow.FileTrackFlow, undefined)
+    assert.ok(null != off.apimodel.main.kit.flow.BasicTrackFlow)
+  })
+
 })
