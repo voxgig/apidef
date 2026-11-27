@@ -26,6 +26,11 @@ const overlayHead = "@\"@voxgig/apidef/model/guide.aontu\"\n" +
 
 func stageOverlay(t *testing.T, entry *string) string {
 	t.Helper()
+	return stageOverlayDef(t, overlayDef, entry)
+}
+
+func stageOverlayDef(t *testing.T, defName string, entry *string) string {
+	t.Helper()
 	dir := t.TempDir()
 	folder := filepath.Join(dir, "model")
 	if err := os.MkdirAll(filepath.Join(folder, "guide"), 0755); err != nil {
@@ -34,11 +39,11 @@ func stageOverlay(t *testing.T, entry *string) string {
 	if err := os.MkdirAll(filepath.Join(dir, "def"), 0755); err != nil {
 		t.Fatal(err)
 	}
-	def, err := os.ReadFile(filepath.Join("..", "ts", "test", "def", overlayDef))
+	def, err := os.ReadFile(filepath.Join("..", "ts", "test", "def", defName))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(dir, "def", overlayDef), def, 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "def", defName), def, 0644); err != nil {
 		t.Fatal(err)
 	}
 	if entry != nil {
@@ -102,13 +107,17 @@ func runOverlayFailing(t *testing.T, folder string) (*ApiDefResult, error) {
 }
 
 func runOverlay(folder string) (*ApiDefResult, error) {
+	return runOverlayDef(folder, overlayDef)
+}
+
+func runOverlayDef(folder string, defName string) (*ApiDefResult, error) {
 	ad := NewApiDef(ApiDefOptions{
 		Folder:    folder,
 		OutPrefix: overlayPrefix,
 		Strategy:  "heuristic01",
 	})
 	return ad.Generate(map[string]any{
-		"model": map[string]any{"name": "solar", "def": overlayDef},
+		"model": map[string]any{"name": "solar", "def": defName},
 		"build": map[string]any{"spec": map[string]any{"base": folder}},
 		"ctrl": map[string]any{"step": map[string]any{
 			"parse": true, "guide": true, "transformers": true,
@@ -154,6 +163,40 @@ func TestGuideOverlayCustomizationsHonoured(t *testing.T) {
 	}
 	if got := overlayOps(t, res, "planet"); got != "create,list,load,update" {
 		t.Errorf("planet ops = %s, want create,list,load,update", got)
+	}
+}
+
+func TestGuideOverlayWithdrawnActionRedeclared(t *testing.T) {
+	const defName = "verb-word-def.json"
+	actions := func(entry string) []any {
+		t.Helper()
+		res, err := runOverlayDef(stageOverlayDef(t, defName, overlayEntry(entry)), defName)
+		if err != nil || !res.OK {
+			t.Fatalf("generate failed: %v", err)
+		}
+		ent, _ := overlayEntities(t, res)["export"].(map[string]any)
+		ops, _ := ent["op"].(map[string]any)
+		got := []any{}
+		for _, opname := range sortedKeys(ops) {
+			op, _ := ops[opname].(map[string]any)
+			points, _ := op["points"].([]any)
+			for _, p := range points {
+				point, _ := p.(map[string]any)
+				if point["o"] != "/api/export" {
+					continue
+				}
+				q, _ := point["q"].(map[string]any)
+				got = append(got, q["$action"])
+			}
+		}
+		return got
+	}
+	if got := actions(`guide: {}`); !reflect.DeepEqual(got, []any{nil, nil}) {
+		t.Errorf("plain $action = %v, want [<nil> <nil>]", got)
+	}
+	declared := actions(`guide: entity: export: path: "/api/export": action: "export": {}`)
+	if !reflect.DeepEqual(declared, []any{"export", "export"}) {
+		t.Errorf("declared $action = %v, want [export export]", declared)
 	}
 }
 

@@ -19,7 +19,7 @@ function isEntityIdParam(point: any, param: any, opname?: string): boolean {
     const camel = lcf(camelify(param.n))
     if ('id' === renameMap[camel]) return true
   }
-  if ('update' === opname || 'load' === opname || 'remove' === opname) {
+  if ('update' === opname || 'patch' === opname || 'load' === opname || 'remove' === opname) {
     const segments: any[] = point?.s || []
     let last: string | null = null
     for (const s of segments) {
@@ -70,21 +70,10 @@ const flowstepTransform: Transform = async function(
     listStep(opmap, flow, ent,
       { valid: [{ apply: 'ItemExists', def: { ref: ref01 } }] })
 
+    // The patch writes the update's mark, so the load reads back one mark.
     const mark01 = 'Mark01-' + ref01
-    const firsttf = firstTextField(ent, opmap.update)
-    updateStep(opmap, flow, ent,
-      {
-        input: {
-          ref: ref01,
-          textfield: firsttf?.n,
-          suffix: '_up0',
-          srcdatavar: ref01 + '_data'
-        },
-        spec: [{
-          apply: 'TextFieldMark',
-          def: { mark: mark01 }
-        }]
-      })
+    updateStep(opmap, flow, ent, markArgs(ent, opmap.update, ref01, '_up0', mark01))
+    patchStep(opmap, flow, ent, markArgs(ent, opmap.patch, ref01, '_pt0', mark01))
 
     loadStep(opmap, flow, ent,
       {
@@ -93,23 +82,27 @@ const flowstepTransform: Transform = async function(
           suffix: '_dt0',
           srcdatavar: ref01 + '_data'
         },
-        valid: [{
+        valid: markOff(flow) ? [] : [{
           apply: 'TextFieldMark',
           def: { mark: mark01 }
         }]
       })
 
+    // A remove runs only on the record the flow's own create made.
+    const created = stepOn(flow, 'create')
+
     removeStep(opmap, flow, ent, {
-      input: { ref: ref01, suffix: '_rm0' }
+      input: { ref: ref01, suffix: '_rm0' },
+      active: created,
     })
 
     // The "removed item is gone" verify LIST only makes sense after a real
-    // remove step, which is now gated on create. Gate the verify on create
-    // too, so create-less flows stay read-only.
+    // remove step, so it follows that step on or off.
     if (null != opmap.remove && null != opmap.create) {
       listStep(opmap, flow, ent, {
         input: { suffix: '_rt0' },
-        valid: [{ apply: 'ItemNotExists', def: { ref: ref01 } }]
+        valid: [{ apply: 'ItemNotExists', def: { ref: ref01 } }],
+        active: stepOn(flow, 'remove'),
       })
     }
 
@@ -125,8 +118,10 @@ type MakeFlowStep =
 
 
 
-function newFlowStep(opname: OpName, args: Record<string, any>): ModelEntityFlowStep {
-  return {
+// A basic step moves a JSON record; a point whose request or response body is
+// anything else waits, switched off, for steps that move files.
+function newFlowStep(opname: OpName, args: Record<string, any>, point: any): ModelEntityFlowStep {
+  const step: ModelEntityFlowStep = {
     o: opname,
     i: args.input ?? {},
     m: args.match ?? {},
@@ -134,6 +129,34 @@ function newFlowStep(opname: OpName, args: Record<string, any>): ModelEntityFlow
     s: args.spec ?? [],
     v: args.valid ?? [],
   }
+  if (false === args.active || !recordPoint(point)) {
+    step.a = false
+  }
+  return step
+}
+
+
+function recordPoint(point: any): boolean {
+  return [point?.rb, point?.rs].every((body: any) => null == body || 'json' === body.kind)
+}
+
+
+function stepOn(flow: ModelEntityFlow, opname: OpName): boolean {
+  const step = flow.step.find((step: ModelEntityFlowStep) => opname === step.o)
+  return null != step && false !== step.a
+}
+
+
+function stepOff(flow: ModelEntityFlow, opname: OpName): boolean {
+  const step = flow.step.find((step: ModelEntityFlowStep) => opname === step.o)
+  return false === step?.a
+}
+
+
+// The load checks no mark when the update or patch step is off and neither is on.
+function markOff(flow: ModelEntityFlow): boolean {
+  return (stepOff(flow, 'update') || stepOff(flow, 'patch')) &&
+    !stepOn(flow, 'update') && !stepOn(flow, 'patch')
 }
 
 
@@ -177,7 +200,7 @@ const createStep: MakeFlowStep = (
 ) => {
   if (null != opmap.create) {
     const point = plainPoint(opmap.create.points)
-    const step = newFlowStep('create', args)
+    const step = newFlowStep('create', args, point)
 
     each(point.g.params, (param: any) => {
       if ('id' === param.n) {
@@ -200,7 +223,7 @@ const createStep: MakeFlowStep = (
 
 
 function seedRelatedOpParams(opmap: any, createPoint: any, step: ModelEntityFlowStep) {
-  const otherOps = ['list', 'load', 'update', 'remove']
+  const otherOps = ['list', 'load', 'update', 'patch', 'remove']
   for (const opname of otherOps) {
     const op = opmap[opname]
     if (!op?.points) continue
@@ -227,7 +250,7 @@ const listStep: MakeFlowStep = (
 ) => {
   if (null != opmap.list) {
     const point = plainPoint(opmap.list.points)
-    const step = newFlowStep('list', args)
+    const step = newFlowStep('list', args, point)
 
     each(point.g.params, (param: any) => {
       if ('id' === param.n) {
@@ -245,26 +268,54 @@ const listStep: MakeFlowStep = (
 }
 
 
-const updateStep: MakeFlowStep = (
-  opmap: any,
-  flow: ModelEntityFlow,
+function changeStep(opname: 'update' | 'patch'): MakeFlowStep {
+  return (
+    opmap: any,
+    flow: ModelEntityFlow,
+    ent: ModelEntity,
+    args: Record<string, any>
+  ) => {
+    if (null != opmap[opname]) {
+      const point = plainPoint(opmap[opname].points)
+      const step = newFlowStep(opname, args, point)
+
+      each(point.g.params, (param: any) => {
+        if (isEntityIdParam(point, param, opname)) {
+          // Entity's own id — supplied at test time via the loaded/created
+          // entity's id field, not as a separate body parameter. Skip.
+          return
+        }
+        step.d[param.n] = args.input?.[param.n] ?? param.n.replace(/_id/, '') + '01'
+      })
+
+      flow.step.push(step)
+    }
+  }
+}
+
+
+const updateStep = changeStep('update')
+const patchStep = changeStep('patch')
+
+
+function markArgs(
   ent: ModelEntity,
-  args: Record<string, any>
-) => {
-  if (null != opmap.update) {
-    const point = plainPoint(opmap.update.points)
-    const step = newFlowStep('update', args)
-
-    each(point.g.params, (param: any) => {
-      if (isEntityIdParam(point, param, 'update')) {
-        // Entity's own id — supplied at test time via the loaded/created
-        // entity's id field, not as a separate body parameter. Skip.
-        return
-      }
-      step.d[param.n] = args.input?.[param.n] ?? param.n.replace(/_id/, '') + '01'
-    })
-
-    flow.step.push(step)
+  op: ModelOp | undefined,
+  ref: string,
+  suffix: string,
+  mark: string
+): Record<string, any> {
+  return {
+    input: {
+      ref,
+      textfield: firstTextField(ent, op)?.n,
+      suffix,
+      srcdatavar: ref + '_data',
+    },
+    spec: [{
+      apply: 'TextFieldMark',
+      def: { mark },
+    }],
   }
 }
 
@@ -277,7 +328,7 @@ const loadStep: MakeFlowStep = (
 ) => {
   if (null != opmap.load) {
     const point = plainPoint(opmap.load.points)
-    const step = newFlowStep('load', args)
+    const step = newFlowStep('load', args, point)
 
     each(point.g.params, (param: any) => {
       if (isEntityIdParam(point, param, 'load')) {
@@ -305,7 +356,7 @@ const removeStep: MakeFlowStep = (
   // live mode and makes no sense as a self-contained CRUD test.
   if (null != opmap.remove && null != opmap.create) {
     const point = plainPoint(opmap.remove.points)
-    const step = newFlowStep('remove', args)
+    const step = newFlowStep('remove', args, point)
 
     each(point.g.params, (param: any) => {
       if (isEntityIdParam(point, param, 'remove')) {

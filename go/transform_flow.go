@@ -70,7 +70,7 @@ func FlowstepTransform(ctx *ApiDefContext) (*TransformResult, error) {
 		if hasCreate {
 			point := plainPoint(createOp)
 			input := map[string]any{"ref": ref01}
-			step := newFlowStep("create", map[string]any{"input": input})
+			step := newFlowStep("create", map[string]any{"input": input}, point)
 			fillCollectionMatch(step, point, input)
 			seedRelatedOpParams(opmap, step)
 			steps = append(steps, step)
@@ -79,36 +79,23 @@ func FlowstepTransform(ctx *ApiDefContext) (*TransformResult, error) {
 		// listStep — gated on list op
 		listOp, hasList := opmap["list"].(map[string]any)
 		if hasList {
+			point := plainPoint(listOp)
 			step := newFlowStep("list", map[string]any{
 				"valid": []any{map[string]any{
 					"apply": "ItemExists",
 					"def":   map[string]any{"ref": ref01},
 				}},
-			})
-			fillCollectionMatch(step, plainPoint(listOp), nil)
+			}, point)
+			fillCollectionMatch(step, point, nil)
 			steps = append(steps, step)
 		}
 
-		// updateStep — gated on update op
+		// The patch writes the update's mark, so the load reads back one mark.
 		if updateOp, ok := opmap["update"].(map[string]any); ok {
-			point := plainPoint(updateOp)
-			input := map[string]any{
-				"ref":        ref01,
-				"suffix":     "_up0",
-				"srcdatavar": ref01 + "_data",
-			}
-			if firstTF := firstTextField(ent, updateOp); firstTF != "" {
-				input["textfield"] = firstTF
-			}
-			step := newFlowStep("update", map[string]any{
-				"input": input,
-				"spec": []any{map[string]any{
-					"apply": "TextFieldMark",
-					"def":   map[string]any{"mark": mark01},
-				}},
-			})
-			fillStepDataFromParams(step, point, input)
-			steps = append(steps, step)
+			steps = append(steps, changeStep("update", updateOp, ent, ref01, "_up0", mark01))
+		}
+		if patchOp, ok := opmap["patch"].(map[string]any); ok {
+			steps = append(steps, changeStep("patch", patchOp, ent, ref01, "_pt0", mark01))
 		}
 
 		// loadStep — gated on load op
@@ -119,13 +106,17 @@ func FlowstepTransform(ctx *ApiDefContext) (*TransformResult, error) {
 				"suffix":     "_dt0",
 				"srcdatavar": ref01 + "_data",
 			}
-			step := newFlowStep("load", map[string]any{
-				"input": input,
-				"valid": []any{map[string]any{
+			valid := []any{}
+			if !markOff(steps) {
+				valid = append(valid, map[string]any{
 					"apply": "TextFieldMark",
 					"def":   map[string]any{"mark": mark01},
-				}},
-			})
+				})
+			}
+			step := newFlowStep("load", map[string]any{
+				"input": input,
+				"valid": valid,
+			}, point)
 			fillItemMatch(step, point, input, "load", entname)
 			steps = append(steps, step)
 		}
@@ -133,27 +124,31 @@ func FlowstepTransform(ctx *ApiDefContext) (*TransformResult, error) {
 		// removeStep and the post-remove listStep — gated on remove and
 		// create, since a flow removes only what it created
 		if removeOp, ok := opmap["remove"].(map[string]any); ok && hasCreate {
+			created := stepOn(steps, "create")
 			point := plainPoint(removeOp)
 			input := map[string]any{
 				"ref":    ref01,
 				"suffix": "_rm0",
 			}
 			step := newFlowStep("remove", map[string]any{
-				"input": input,
-			})
+				"input":  input,
+				"active": created,
+			}, point)
 			fillItemMatch(step, point, input, "remove", entname)
 			steps = append(steps, step)
 
 			if hasList {
 				listInput := map[string]any{"suffix": "_rt0"}
+				listPoint := plainPoint(listOp)
 				listStep := newFlowStep("list", map[string]any{
 					"input": listInput,
 					"valid": []any{map[string]any{
 						"apply": "ItemNotExists",
 						"def":   map[string]any{"ref": ref01},
 					}},
-				})
-				fillCollectionMatch(listStep, plainPoint(listOp), listInput)
+					"active": stepOn(steps, "remove"),
+				}, listPoint)
+				fillCollectionMatch(listStep, listPoint, listInput)
 				steps = append(steps, listStep)
 			}
 		}
@@ -165,14 +160,17 @@ func FlowstepTransform(ctx *ApiDefContext) (*TransformResult, error) {
 	return &TransformResult{OK: true, Msg: msg}, nil
 }
 
-func newFlowStep(opname string, args map[string]any) map[string]any {
+// newFlowStep mirrors ts/src/transform/flowstep.ts: a basic step moves a JSON
+// record; a point whose request or response body is anything else waits,
+// switched off, for steps that move files.
+func newFlowStep(opname string, args map[string]any, point map[string]any) map[string]any {
 	get := func(k string, def any) any {
 		if v, ok := args[k]; ok && v != nil {
 			return v
 		}
 		return def
 	}
-	return map[string]any{
+	step := map[string]any{
 		"o": opname,
 		"i": get("input", map[string]any{}),
 		"m": get("match", map[string]any{}),
@@ -180,6 +178,45 @@ func newFlowStep(opname string, args map[string]any) map[string]any {
 		"s": get("spec", []any{}),
 		"v": get("valid", []any{}),
 	}
+	if false == args["active"] || !recordPoint(point) {
+		step["a"] = false
+	}
+	return step
+}
+
+func recordPoint(point map[string]any) bool {
+	for _, key := range []string{"rb", "rs"} {
+		if body, ok := point[key].(map[string]any); ok && body["kind"] != "json" {
+			return false
+		}
+	}
+	return true
+}
+
+func flowStepOf(steps []any, opname string) map[string]any {
+	for _, s := range steps {
+		if step, _ := s.(map[string]any); step["o"] == opname {
+			return step
+		}
+	}
+	return nil
+}
+
+func stepOn(steps []any, opname string) bool {
+	step := flowStepOf(steps, opname)
+	return step != nil && step["a"] != false
+}
+
+func stepOff(steps []any, opname string) bool {
+	step := flowStepOf(steps, opname)
+	return step != nil && step["a"] == false
+}
+
+// markOff mirrors ts/src/transform/flowstep.ts: the load checks no mark when
+// the update or patch step is off and neither is on.
+func markOff(steps []any) bool {
+	return (stepOff(steps, "update") || stepOff(steps, "patch")) &&
+		!stepOn(steps, "update") && !stepOn(steps, "patch")
 }
 
 // plainPoint mirrors ts/src/transform/flowstep.ts.
@@ -238,12 +275,35 @@ func fillItemMatch(step, point, input map[string]any, opname, entname string) {
 	}
 }
 
-// fillStepDataFromParams fills an update step's data. The entity's own id is
-// left out: the test takes it from the entity the flow created.
-func fillStepDataFromParams(step, point, input map[string]any) {
+// changeStep mirrors the update and patch steps of
+// ts/src/transform/flowstep.ts: the step marks its text field.
+func changeStep(opname string, op, ent map[string]any, ref, suffix, mark string) map[string]any {
+	input := map[string]any{
+		"ref":        ref,
+		"suffix":     suffix,
+		"srcdatavar": ref + "_data",
+	}
+	if firstTF := firstTextField(ent, op); firstTF != "" {
+		input["textfield"] = firstTF
+	}
+	point := plainPoint(op)
+	step := newFlowStep(opname, map[string]any{
+		"input": input,
+		"spec": []any{map[string]any{
+			"apply": "TextFieldMark",
+			"def":   map[string]any{"mark": mark},
+		}},
+	}, point)
+	fillStepDataFromParams(step, point, input, opname)
+	return step
+}
+
+// fillStepDataFromParams fills an update or patch step's data. The entity's
+// own id is left out: the test takes it from the entity the flow created.
+func fillStepDataFromParams(step, point, input map[string]any, opname string) {
 	data := step["d"].(map[string]any)
 	for _, pm := range pointParams(point) {
-		if isEntityIdParam(point, pm, "update") {
+		if isEntityIdParam(point, pm, opname) {
 			continue
 		}
 		name, _ := pm["n"].(string)
@@ -255,7 +315,7 @@ func fillStepDataFromParams(step, point, input map[string]any) {
 // operations take, so they reach the entity it creates.
 func seedRelatedOpParams(opmap, step map[string]any) {
 	match := step["m"].(map[string]any)
-	for _, opname := range []string{"list", "load", "update", "remove"} {
+	for _, opname := range []string{"list", "load", "update", "patch", "remove"} {
 		op, _ := opmap[opname].(map[string]any)
 		points, _ := op["points"].([]any)
 		for _, pt := range points {
@@ -287,7 +347,7 @@ func isEntityIdParam(point, param map[string]any, opname string) bool {
 			return true
 		}
 	}
-	if opname == "update" || opname == "load" || opname == "remove" {
+	if opname == "update" || opname == "patch" || opname == "load" || opname == "remove" {
 		last := ""
 		for _, seg := range pointSegmentMaps(point) {
 			if v, ok := seg["var"].(string); ok {
@@ -343,11 +403,11 @@ func lookupInput(input map[string]any, name string) (any, bool) {
 
 // firstTextField mirrors TS firstTextField — returns the name of the
 // first string field, nullable or not, on the entity that is not the id, not
-// readOnly and not a param of the update. The flow writes this field and then
+// readOnly and not a param of the operation. The flow writes this field and then
 // asserts the mark comes back, so a field the client may not send fails the step.
-func firstTextField(ent, updateOp map[string]any) string {
+func firstTextField(ent, op map[string]any) string {
 	paramNames := map[string]bool{}
-	points, _ := updateOp["points"].([]any)
+	points, _ := op["points"].([]any)
 	for _, pt := range points {
 		point, _ := pt.(map[string]any)
 		for _, pm := range pointParams(point) {

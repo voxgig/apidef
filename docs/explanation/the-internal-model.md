@@ -133,14 +133,15 @@ has no `bf`, unless the guide names a JSON media type for it. The rules are in t
 ## Flows are executable expectations
 
 Beyond the static shape, apidef emits **flows**: ordered sequences of
-operations that exercise an entity — create → list (expect present) → update →
-load (expect the update) → remove → list (expect absent). A flow is a
-machine-readable integration test of the generated SDK:
+operations that exercise an entity — create → list (expect present) → update
+→ patch (where the entity has one) → load (expect the change) → remove → list
+(expect absent). A flow is a machine-readable integration test of the
+generated SDK:
 
 ```
 flow.BasicPlanetFlow
   └─ step[]
-       ├─ op            create / list / update / load / remove
+       ├─ op            create / list / update / patch / load / remove
        ├─ input/data    what to send
        ├─ match         which instance
        └─ valid         what to assert afterwards

@@ -2693,6 +2693,10 @@ func buildEntity(data map[string]any, entval any) {
 	entityMap[entname] = guideEntity
 }
 
+func isVersionPart(part string) bool {
+	return versionTagRE.MatchString(strings.ToLower(part))
+}
+
 // entityPathMatch_tpte handles the t/p/t/ path pattern.
 // The noun the shape's literal gives: the literal before a custom method's
 // colon, or the noun before the literal when it is a verb, as `/message/send`
@@ -2712,8 +2716,20 @@ func pathNoun(pm *PathMatchResult, parts []string, why *[]string) string {
 	if custom != nil || (isVerbWord(parts[at]) && !keyedBy(next, name)) {
 		for i := at - 1; 0 <= i; i-- {
 			if !isParam(parts[i]) && !numberPartRE.MatchString(parts[i]) {
-				// A version segment ends the base path, so no noun precedes the verb.
-				if versionTagRE.MatchString(strings.ToLower(parts[i])) {
+				// The path's first version segment ends its base path, so no noun
+				// precedes the verb; a later one, as Conan's `v1` under GitLab's
+				// `/api/v4`, versions a sub-API and is skipped.
+				if isVersionPart(parts[i]) {
+					nested := false
+					for _, earlier := range parts[:i] {
+						if isVersionPart(earlier) {
+							nested = true
+							break
+						}
+					}
+					if nested {
+						continue
+					}
 					break
 				}
 				*why = append(*why, "noun-before-verb="+parts[i])

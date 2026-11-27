@@ -444,6 +444,18 @@ partial-placeholder-def.json	GET /owners.json	owner	true	load
 partial-placeholder-def.json	GET /totals.json	total	true	load				
 partial-placeholder-def.json	GET /{owner}.json	thing	true	load				
 partial-placeholder-def.json	GET /{owner}/groups.json	group	true	load				
+patch-flow-def.json	DELETE /notebooks/{notebook_id}/pages/{page_id}	page	true	remove		page_id->id		
+patch-flow-def.json	DELETE /notes/{note_id}	note	true	remove		note_id->id		
+patch-flow-def.json	GET /notebooks/{notebook_id}/pages	page	true	list				
+patch-flow-def.json	GET /notebooks/{notebook_id}/pages/{page_id}	page	true	load		page_id->id		
+patch-flow-def.json	GET /notes	note	true	list				
+patch-flow-def.json	GET /notes/{note_id}	note	true	load		note_id->id		
+patch-flow-def.json	PATCH /notebooks/{notebook_id}/pages/{page_id}	page	true	patch		page_id->id		
+patch-flow-def.json	PATCH /notes/{note_id}	note	true	patch		note_id->id		
+patch-flow-def.json	POST /notebooks/{notebook_id}/pages	page	true	create				
+patch-flow-def.json	POST /notes	note	true	create				
+patch-flow-def.json	PUT /notebooks/{notebook_id}/pages/{page_id}	page	true	update		page_id->id		
+patch-flow-def.json	PUT /notes/{note_id}	note	true	update		note_id->id		
 path-extension-def.json	GET /gadgets	gadget	true	list				
 path-extension-def.json	GET /gadgets/{gadgetId}/parts	part	true	load		gadgetId->gadget_id		0/path/report<response
 path-extension-def.json	GET /widgets	widget	true	list				
@@ -795,12 +807,17 @@ verb-result-def.json	GET /farms/{farmId}/croptypes/{code}	croptype	true	load		co
 verb-result-def.json	GET /tasks	task	true	list				
 verb-result-def.json	GET /tasks/{id}	task	true	load				
 verb-result-def.json	POST /tasks/{id}/cancel	task	true	create	cancel			
+verb-word-def.json	GET /api/export	export	true	list				0/response/api<path
+verb-word-def.json	GET /api/export/{exportId}	export	true	load		exportId->id		
 verb-word-def.json	GET /books	book	true	list				
 verb-word-def.json	GET /books/autocomplete	book	true	list	autocomplete			
 verb-word-def.json	GET /books/contains	book	true	list	contains			
 verb-word-def.json	GET /messages/{messageId}	message	true	load		messageId->id		
 verb-word-def.json	GET /queues/{queueId}	queue	true	load		queueId->id		
 verb-word-def.json	GET /uploads/{uploadId}	upload	true	load		uploadId->id		
+verb-word-def.json	POST /api/export	export	true	create				0/response/api<path
+verb-word-def.json	POST /api/export/{exportId}/upload	export	true	create	upload	exportId->id		
+verb-word-def.json	POST /books/upload	book	true	create	upload			
 verb-word-def.json	POST /queues/{queueId}/reorder	queue	true	create	reorder	queueId->id		
 verb-word-def.json	POST /queues/{queueId}/shuffle	queue	true	create	shuffle	queueId->id		
 verb-word-def.json	POST /uploads/{uploadId}/finish	upload	true	create	finish	uploadId->id		
@@ -816,6 +833,7 @@ version-actions-def.json	POST /v1/things	thing	true	create	v1
 version-actions-def.json	POST /v2/things	thing	true	create				
 version-actions-def.json	POST /v2/things/{id}/actions/archive	thing	true	create	archive_v2			0/response/action<path
 version-actions-def.json	POST /v3/things/{id}/actions/archive	thing	true	create	archive			0/response/action<path
+version-verb-def.json	GET /api/v3/packages/conan/v1/ping	conan	true	load				
 version-verb-def.json	GET /api/v3/search	search	true	load				
 version-verb-def.json	GET /api/v3/stories/{story_id}	story	true	load		story_id->id		
 version-verb-def.json	POST /api/v3/stories/search	story	true	list	search			

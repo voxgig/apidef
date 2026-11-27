@@ -1588,6 +1588,9 @@ function isVerbWord(part) {
 function keyedBy(next, name) {
     return null != next && isParam(next) && (0, utility_1.paramNoun)((0, utility_1.paramOf)(next)) === name;
 }
+function isVersionPart(part) {
+    return VERSION_TAG_RE.test(part.toLowerCase());
+}
 // The noun the shape's literal gives: the literal before a custom method's
 // colon, or the noun before the literal when it is a verb, as `/message/send`
 // names message.
@@ -1603,8 +1606,13 @@ function pathNoun(pm, parts, why) {
     if (null != custom || (isVerbWord(parts[at]) && !keyedBy(parts[at + 1], name))) {
         for (let i = at - 1; 0 <= i; i--) {
             if (!isParam(parts[i]) && !NUMBER_PART_RE.test(parts[i])) {
-                // A version segment ends the base path, so no noun precedes the verb.
-                if (VERSION_TAG_RE.test(parts[i].toLowerCase())) {
+                // The path's first version segment ends its base path, so no noun
+                // precedes the verb; a later one, as Conan's `v1` under GitLab's
+                // `/api/v4`, versions a sub-API and is skipped.
+                if (isVersionPart(parts[i])) {
+                    if (parts.slice(0, i).some(isVersionPart)) {
+                        continue;
+                    }
                     break;
                 }
                 why.push('noun-before-verb=' + parts[i]);

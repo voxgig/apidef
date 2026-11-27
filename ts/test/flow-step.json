@@ -61,6 +61,23 @@
           }
         ]
       },
+      "patch": {
+        "name": "patch",
+        "points": [
+          {
+            "g": {
+              "params": [
+                {
+                  "n": "account_id",
+                  "k": "param",
+                  "r": true,
+                  "t": "`$STRING`"
+                }
+              ]
+            }
+          }
+        ]
+      },
       "load": {
         "name": "load",
         "points": [
@@ -133,6 +150,28 @@
         "ref": "widget_ref01",
         "textfield": "name",
         "suffix": "_up0",
+        "srcdatavar": "widget_ref01_data"
+      },
+      "m": {},
+      "d": {
+        "account_id": "account01"
+      },
+      "s": [
+        {
+          "apply": "TextFieldMark",
+          "def": {
+            "mark": "Mark01-widget_ref01"
+          }
+        }
+      ],
+      "v": []
+    },
+    {
+      "o": "patch",
+      "i": {
+        "ref": "widget_ref01",
+        "textfield": "name",
+        "suffix": "_pt0",
         "srcdatavar": "widget_ref01_data"
       },
       "m": {},

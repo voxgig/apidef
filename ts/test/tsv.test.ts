@@ -1988,7 +1988,8 @@ describe('tsv-body-guide', () => {
 // A point from its route: the placeholders are its params, in the order the
 // model sorts them, unless the row lists them.
 function flowPoint(spec: any) {
-  const { path, params, rename, action } = 'string' === typeof spec ? { path: spec } as any : spec
+  const { path, params, rename, action, rb, rs } =
+    'string' === typeof spec ? { path: spec } as any : spec
   const s = path.split('/').filter((part: string) => '' !== part).map((part: string) =>
     part.startsWith('{') ? { var: part.slice(1, -1) } : { lit: part })
   const names = params ?? s.filter((seg: any) => null != seg.var).map((seg: any) => seg.var).sort()
@@ -1997,6 +1998,8 @@ function flowPoint(spec: any) {
     g: { params: names.map((n: string) => ({ n, k: 'param', r: true, t: '`$STRING`' })) },
     ...(null == rename ? {} : { r: { param: rename } }),
     ...(null == action ? {} : { q: { exist: [], $action: action } }),
+    ...(null == rb ? {} : { rb: { kind: rb } }),
+    ...(null == rs ? {} : { rs: { kind: rs } }),
   }
 }
 
@@ -2021,10 +2024,13 @@ describe('tsv-flow-step', () => {
         log: { debug: () => undefined },
       } as any)
       assert.deepStrictEqual(flow.step.map((step: any) => ({
+        ...(false === step.a ? { a: false } : {}),
         o: step.o,
         ...(0 < Object.keys(step.m).length ? { m: step.m } : {}),
         ...(0 < Object.keys(step.d).length ? { d: step.d } : {}),
         ...(null == step.i.textfield ? {} : { tf: step.i.textfield }),
+        ...('load' === step.o && !step.v.some((v: any) => 'TextFieldMark' === v.apply) ?
+          { mark: false } : {}),
       })), JSON.parse(row.expected))
     })
   }

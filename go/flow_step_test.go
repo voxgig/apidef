@@ -3,7 +3,9 @@ package apidef
 import (
 	"encoding/json"
 	"os"
+	"path/filepath"
 	"reflect"
+	"sort"
 	"strings"
 	"testing"
 )
@@ -126,6 +128,9 @@ func TestTsvFlowStep(t *testing.T) {
 			for _, s := range steps {
 				step := s.(map[string]any)
 				shown := map[string]any{"o": step["o"]}
+				if false == step["a"] {
+					shown["a"] = false
+				}
 				if m := step["m"].(map[string]any); len(m) > 0 {
 					shown["m"] = m
 				}
@@ -134,6 +139,9 @@ func TestTsvFlowStep(t *testing.T) {
 				}
 				if tf, ok := step["i"].(map[string]any)["textfield"]; ok {
 					shown["tf"] = tf
+				}
+				if step["o"] == "load" && !hasTextFieldMark(step["v"]) {
+					shown["mark"] = false
 				}
 				got = append(got, shown)
 			}
@@ -199,6 +207,97 @@ func TestTsvFlowTextField(t *testing.T) {
 	}
 }
 
+// Mirrors the TS `flow-patch` case.
+func TestFlowPatchStep(t *testing.T) {
+	const def = "patch-flow-def.json"
+	dir := t.TempDir()
+	folder := stageGuideEntry(t, filepath.Join(dir, "model"), "")
+	src, err := os.ReadFile(filepath.Join("..", "ts", "test", "def", def))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(dir, "def"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "def", def), src, 0644); err != nil {
+		t.Fatal(err)
+	}
+	res, err := NewApiDef(ApiDefOptions{Folder: folder, Strategy: "heuristic01"}).Generate(map[string]any{
+		"model": map[string]any{"name": "patch-flow", "def": def},
+		"build": map[string]any{"spec": map[string]any{"base": folder}},
+		"ctrl": map[string]any{"step": map[string]any{
+			"parse": true, "guide": true, "transformers": true,
+			"builders": false, "generate": false,
+		}},
+	})
+	if err != nil || res == nil || !res.OK {
+		t.Fatalf("generate failed: err=%v res=%+v", err, res)
+	}
+
+	var kit struct {
+		Entity map[string]struct {
+			Op map[string]struct {
+				Points []struct {
+					M string `json:"m"`
+				} `json:"points"`
+			} `json:"op"`
+		} `json:"entity"`
+		Flow map[string]struct {
+			Step []map[string]any `json:"step"`
+		} `json:"flow"`
+	}
+	data, err := json.Marshal(res.ApiModel["main"].(map[string]any)[KIT])
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal(data, &kit); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, name := range []string{"note", "page"} {
+		ops := kit.Entity[name].Op
+		names := []string{}
+		for opname := range ops {
+			names = append(names, opname)
+		}
+		sort.Strings(names)
+		if got := strings.Join(names, ","); got != "create,list,load,patch,remove,update" {
+			t.Errorf("%s ops = %s", name, got)
+		}
+		for opname, method := range map[string]string{"update": "PUT", "patch": "PATCH"} {
+			points := ops[opname].Points
+			if len(points) != 1 || points[0].M != method {
+				t.Errorf("%s %s points = %v, want one %s", name, opname, points, method)
+			}
+		}
+	}
+
+	for name, want := range map[string]string{
+		"BasicNoteFlow": `{"i":{"ref":"note_ref01","srcdatavar":"note_ref01_data","suffix":"_pt0","textfield":"body"},` +
+			`"o":"patch","s":[{"apply":"TextFieldMark","def":{"mark":"Mark01-note_ref01"}}]}`,
+		"BasicPageFlow": `{"d":{"notebook_id":"notebook01"},` +
+			`"i":{"ref":"page_ref01","srcdatavar":"page_ref01_data","suffix":"_pt0","textfield":"heading"},` +
+			`"o":"patch","s":[{"apply":"TextFieldMark","def":{"mark":"Mark01-page_ref01"}}]}`,
+	} {
+		steps := kit.Flow[name].Step
+		ops := []string{}
+		for _, step := range steps {
+			ops = append(ops, step["o"].(string))
+		}
+		if got := strings.Join(ops, ","); got != "create,list,update,patch,load,remove,list" {
+			t.Fatalf("%s steps = %s", name, got)
+		}
+		var wantStep any
+		if err := json.Unmarshal([]byte(want), &wantStep); err != nil {
+			t.Fatal(err)
+		}
+		if !jsonEqual(steps[3], wantStep) {
+			gotJSON, _ := json.Marshal(steps[3])
+			t.Errorf("%s patch step\ngot  %s\nwant %s", name, gotJSON, want)
+		}
+	}
+}
+
 // flowTestPoint builds a point from its route as tsv.test.ts does: the
 // placeholders are its params, sorted, unless the row lists them.
 func flowTestPoint(spec any) map[string]any {
@@ -238,5 +337,20 @@ func flowTestPoint(spec any) map[string]any {
 	if action, ok := desc["action"].(string); ok {
 		point["q"] = map[string]any{"exist": []any{}, "$action": action}
 	}
+	for _, key := range []string{"rb", "rs"} {
+		if kind, ok := desc[key].(string); ok {
+			point[key] = map[string]any{"kind": kind}
+		}
+	}
 	return point
+}
+
+func hasTextFieldMark(valid any) bool {
+	list, _ := valid.([]any)
+	for _, v := range list {
+		if m, _ := v.(map[string]any); m["apply"] == "TextFieldMark" {
+			return true
+		}
+	}
+	return false
 }

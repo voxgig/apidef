@@ -524,13 +524,32 @@ are required; `a` defaults to `true`.
 | `s` | `array` | mutation specs applied during the step |
 | `a` | `boolean` | included in output |
 
-The update step names the field it marks in `i.textfield`: the first field
-by name whose type is a string, `` `$STRING` `` alone or with `` `$NULL` ``,
-that a client may send and that holds no file. It is never a parameter of the
-update, and never a field that holds the record's identity: `id`, the
-identity's `field`, a composite part, or the record field a part is read
-from. Without such a field the step marks none. `test/flow-textfield.tsv`
-and `test/flow-step.tsv` pin each case.
+A basic flow writes its steps in this order, each only where the entity has
+the operation: `create`, `list`, `update`, `patch`, `load`, `remove`, and a
+closing `list`. The `remove` step and the closing `list` also need a
+`create`. The `patch` step mirrors the `update` step: the route's parameters
+go in `d`, all but the one that names the record, and it writes the same
+mark, with the suffix `_pt0` where the update has `_up0`. An entity keeps a `patch` operation only beside an
+`update` with a plain point. Otherwise its `PATCH` becomes `update`. The
+routes of `ts/test/def/patch-flow-def.json` take both methods, and their
+flows carry both steps.
+
+The update and patch steps each name the field they mark in `i.textfield`:
+the first field by name whose type is a string, `` `$STRING` `` alone or
+with `` `$NULL` ``, that a client may send and that holds no file. It is
+never a parameter of that operation, and never a field that holds the
+record's identity: `id`, the identity's `field`, a composite part, or the
+record field a part is read from. Without such a field the step marks none.
+`test/flow-textfield.tsv` and `test/flow-step.tsv` pin each case, and
+`ts/test/flow-step.json` pins every step whole.
+
+A basic flow sets `a: false` on a step whose point sends or answers a body
+that is not JSON, such as a raw, multipart, or form body. The step reads the
+point its call reaches, the last point with no action. When the create step
+is off, the remove step is off too, so a flow never removes a record it did
+not create, and the list after the remove is off whenever the remove is. The
+load step checks no mark when the update or patch step is off and neither is
+on.
 
 ## Worked example (abridged)
 
