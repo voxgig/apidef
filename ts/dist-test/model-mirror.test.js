@@ -38,6 +38,16 @@ const MODEL_FILES = ['apidef.aontu', 'guide.aontu'];
             { a: true, o: 'list', m: {}, d: {}, i: {}, s: [], v: [] }, step,
         ]);
     });
+    (0, node_test_1.test)('a file flow step keeps the content it describes', () => {
+        const f = [
+            { via: 'field', action: '', field: 'audio', dir: 'put', content: 'bytes', size: 512, seed: 1 },
+            { via: 'body', action: 'feed', dir: 'get', content: 'text' },
+        ];
+        const flow = (file) => new aontu_1.Aontu().generate((0, node_fs_1.readFileSync)(node_path_1.default.join(REPO, 'model', 'apidef.aontu'), 'utf8') + '\n' +
+            'main:kit:flow:FileWidgetFlow:' + JSON.stringify({ step: [{ o: 'create', f: file }] }));
+        node_assert_1.default.deepStrictEqual(flow(f).main.kit.flow.FileWidgetFlow.step, [{ a: true, o: 'create', m: {}, d: {}, i: {}, s: [], v: [], f }]);
+        node_assert_1.default.throws(() => flow([{ ...f[0], via: 'path' }]), /via/);
+    });
     (0, node_test_1.test)('op-points and point-args aliases apply compact keys and defaults', () => {
         const point = {
             m: 'GET', o: '/widgets/{id}', s: [{ var: 'id' }],

@@ -34,6 +34,17 @@ func FlowTransform(ctx *ApiDefContext) (*TransformResult, error) {
 
 		flowMap[flowName] = basicflow
 		msg += flowName + " "
+
+		if hasFileSteps(modelent) {
+			fileName := "File" + Nom(entNameMap, "Name") + "Flow"
+			flowMap[fileName] = map[string]any{
+				"name":   fileName,
+				"entity": entname,
+				"kind":   "file",
+				"step":   []any{},
+			}
+			msg += fileName + " "
+		}
 	}
 
 	return &TransformResult{OK: true, Msg: msg}, nil
@@ -62,6 +73,12 @@ func FlowstepTransform(ctx *ApiDefContext) (*TransformResult, error) {
 		opmap, _ := ent["op"].(map[string]any)
 		ref01 := entname + "_ref01"
 		mark01 := "Mark01-" + ref01
+
+		if flowData["kind"] == "file" {
+			flowData["step"] = fileSteps(opmap, entname, ent, ref01)
+			msg += flowname + " "
+			continue
+		}
 
 		var steps []any
 
@@ -471,4 +488,356 @@ func identityFields(ent map[string]any) map[string]bool {
 		}
 	}
 	return out
+}
+
+// The content rule is stated with the flow model in docs/reference/model.md.
+const (
+	fileBytes = 512
+	fileText  = 192
+)
+
+// slotWriters mirrors ts/src/transform/flowstep.ts.
+var slotWriters = []string{"update", "patch", "create"}
+
+type fileWay struct {
+	via     string
+	action  string
+	content string
+	read    map[string]any
+	write   map[string]any
+	writeop string
+}
+
+// FileContent generates the content a file flow step describes.
+func FileContent(content string, size, seed int) []byte {
+	n := 256
+	if content == "text" {
+		n = 96
+	}
+	out := make([]byte, size)
+	for i := range out {
+		k := (seed + 7*(i/2)) % n
+		switch {
+		case content != "text":
+			out[i] = byte(k)
+		case k == 95:
+			out[i] = '\n'
+		default:
+			out[i] = byte(32 + k)
+		}
+	}
+	return out
+}
+
+func livePoints(opmap map[string]any, opname string) []map[string]any {
+	op, _ := opmap[opname].(map[string]any)
+	points, _ := op["points"].([]any)
+	out := []map[string]any{}
+	for _, p := range points {
+		if point, _ := p.(map[string]any); point != nil && point["a"] != false {
+			out = append(out, point)
+		}
+	}
+	return out
+}
+
+func actionOf(point map[string]any) string {
+	q, _ := point["q"].(map[string]any)
+	if action, ok := q["$action"]; ok && action != nil {
+		return fmt.Sprint(action)
+	}
+	return ""
+}
+
+func rawBody(point map[string]any, side string) (map[string]any, bool) {
+	body, _ := point[side].(map[string]any)
+	return body, body != nil && body["kind"] == "raw"
+}
+
+// fileWays mirrors ts/src/transform/flowstep.ts.
+func fileWays(ent map[string]any) []*fileWay {
+	opmap, _ := ent["op"].(map[string]any)
+	slots := map[string]any{}
+	bodies := map[string]any{}
+	way := func(into map[string]any, via, action, content string) *fileWay {
+		if found, ok := into[action].(*fileWay); ok {
+			return found
+		}
+		found := &fileWay{via: via, action: action, content: content}
+		into[action] = found
+		return found
+	}
+
+	for _, point := range livePoints(opmap, "load") {
+		body, raw := rawBody(point, "rs")
+		if !raw {
+			continue
+		}
+		action := actionOf(point)
+		var found *fileWay
+		if body["binary"] == true {
+			found = way(slots, "slot", action, "bytes")
+		} else {
+			found = way(bodies, "body", action, "text")
+		}
+		if found.read == nil {
+			found.read = point
+		}
+	}
+
+	for _, opname := range slotWriters {
+		for _, point := range livePoints(opmap, opname) {
+			body, raw := rawBody(point, "rb")
+			if !raw {
+				continue
+			}
+			action := actionOf(point)
+			binary := body["binary"] == true
+			var found *fileWay
+			if _, unnamed := slots[""]; binary && (action != "" || unnamed) {
+				found = way(slots, "slot", action, "bytes")
+			} else if binary {
+				found = way(bodies, "body", action, "bytes")
+			} else {
+				found = way(bodies, "body", action, "text")
+			}
+			if found.write == nil {
+				found.write = point
+				found.writeop = opname
+				if binary {
+					found.content = "bytes"
+				}
+			}
+		}
+	}
+
+	out := []*fileWay{}
+	for _, action := range sortedKeys(slots) {
+		out = append(out, slots[action].(*fileWay))
+	}
+	for _, action := range sortedKeys(bodies) {
+		out = append(out, bodies[action].(*fileWay))
+	}
+	return out
+}
+
+func binaryFields(point map[string]any) []string {
+	body, _ := point["rb"].(map[string]any)
+	if body == nil || (body["kind"] != "multipart" && body["kind"] != "form") {
+		return nil
+	}
+	fields, _ := body["fields"].([]any)
+	out := []string{}
+	for _, f := range fields {
+		if field, _ := f.(map[string]any); field != nil && field["binary"] == true {
+			out = append(out, fmt.Sprint(field["name"]))
+		}
+	}
+	return out
+}
+
+type fieldPoint struct {
+	opname string
+	point  map[string]any
+}
+
+// fieldPoints mirrors ts/src/transform/flowstep.ts: the points other than
+// the plain create whose multipart or form body carries a file.
+func fieldPoints(opmap, create map[string]any) []fieldPoint {
+	out := []fieldPoint{}
+	for _, opname := range slotWriters {
+		for _, point := range livePoints(opmap, opname) {
+			if !samePoint(point, create) && len(binaryFields(point)) > 0 {
+				out = append(out, fieldPoint{opname, point})
+			}
+		}
+	}
+	return out
+}
+
+func plainCreate(opmap map[string]any) map[string]any {
+	if create, ok := opmap["create"].(map[string]any); ok {
+		return plainPoint(create)
+	}
+	return nil
+}
+
+// hasFileSteps mirrors ts/src/transform/flowstep.ts: a session's append is
+// its dialect's.
+func hasFileSteps(ent map[string]any) bool {
+	if ent["session"] != nil {
+		return false
+	}
+	opmap, _ := ent["op"].(map[string]any)
+	create := plainCreate(opmap)
+	return len(fileWays(ent)) > 0 || len(fieldPoints(opmap, create)) > 0 ||
+		(create != nil && create["a"] != false && len(binaryFields(create)) > 0)
+}
+
+// fileSteps mirrors ts/src/transform/flowstep.ts.
+func fileSteps(opmap map[string]any, entname string, ent map[string]any, ref string) []any {
+	ways := fileWays(ent)
+	steps := []any{}
+	seed := 0
+	tf := 0
+
+	transfer := func(opname string, point map[string]any, f []any, on bool) {
+		step := map[string]any{
+			"o": opname, "i": map[string]any{"ref": ref, "suffix": fmt.Sprintf("_tf%d", tf)},
+			"m": map[string]any{}, "d": map[string]any{}, "s": []any{}, "v": []any{}, "f": f,
+		}
+		tf++
+		fillItemMatch(step, point, nil, "load", entname)
+		if !on {
+			step["a"] = false
+		}
+		steps = append(steps, step)
+	}
+
+	put := func(via, action, content string, size int, field string) map[string]any {
+		seed++
+		file := map[string]any{"via": via, "action": action, "dir": "put", "content": content,
+			"size": size, "seed": seed}
+		if field != "" {
+			file["field"] = field
+		}
+		return file
+	}
+
+	get := func(way *fileWay, written map[string]any) {
+		content := "text"
+		if way.via == "slot" {
+			content = "bytes"
+		}
+		file := map[string]any{"via": way.via, "action": way.action, "dir": "get", "content": content}
+		if written != nil && written["content"] == content {
+			file["size"] = written["size"]
+			file["seed"] = written["seed"]
+		}
+		transfer("load", way.read, []any{file}, true)
+	}
+
+	sizeOf := func(point map[string]any, content string) int {
+		size := fileBytes
+		if content == "text" {
+			size = fileText
+		}
+		bn, _ := point["bn"].(map[string]any)
+		if max, ok := boundOf(bn["max"]); ok && max < size {
+			return max
+		}
+		return size
+	}
+
+	slotRead := func(name string) *fileWay {
+		for _, way := range ways {
+			if way.via == "slot" && way.action == name && way.read != nil {
+				return way
+			}
+		}
+		return nil
+	}
+
+	created := false
+	create := plainCreate(opmap)
+	var atCreate *fileWay
+	for _, way := range ways {
+		if create != nil && way.write != nil && samePoint(way.write, create) {
+			atCreate = way
+			break
+		}
+	}
+
+	if create != nil {
+		rs, _ := create["rs"].(map[string]any)
+		created = rs == nil || rs["kind"] == "json"
+		step := map[string]any{
+			"o": "create", "i": map[string]any{"ref": ref},
+			"m": map[string]any{}, "d": map[string]any{}, "s": []any{}, "v": []any{},
+		}
+		fillCollectionMatch(step, create, map[string]any{})
+		seedRelatedOpParams(opmap, step)
+		f := []any{}
+		if atCreate != nil {
+			f = append(f, put(atCreate.via, atCreate.action, atCreate.content,
+				sizeOf(create, atCreate.content), ""))
+		} else {
+			for _, field := range binaryFields(create) {
+				f = append(f, put("field", "", "bytes", fileBytes, field))
+			}
+		}
+		if len(f) > 0 {
+			step["f"] = f
+		}
+		for _, file := range f {
+			if file.(map[string]any)["size"].(int) < 1 {
+				created = false
+			}
+		}
+		if !created {
+			step["a"] = false
+		}
+		steps = append(steps, step)
+
+		for _, file := range f {
+			var way *fileWay
+			if atCreate != nil {
+				if atCreate.read != nil {
+					way = atCreate
+				}
+			} else {
+				way = slotRead(fmt.Sprint(file.(map[string]any)["field"]))
+			}
+			if way != nil {
+				get(way, writtenIf(created, file))
+			}
+		}
+	}
+
+	for _, fp := range fieldPoints(opmap, create) {
+		f := []any{}
+		for _, field := range binaryFields(fp.point) {
+			f = append(f, put("field", actionOf(fp.point), "bytes", fileBytes, field))
+		}
+		transfer(fp.opname, fp.point, f, created)
+		for _, file := range f {
+			if way := slotRead(fmt.Sprint(file.(map[string]any)["field"])); way != nil {
+				get(way, writtenIf(created, file))
+			}
+		}
+	}
+
+	for _, way := range ways {
+		if way == atCreate {
+			continue
+		}
+		var written map[string]any
+		if way.write != nil {
+			file := put(way.via, way.action, way.content, sizeOf(way.write, way.content), "")
+			on := created && file["size"].(int) > 0
+			transfer(way.writeop, way.write, []any{file}, on)
+			written = writtenIf(on, file)
+		}
+		if way.read != nil {
+			get(way, written)
+		}
+	}
+
+	if removeOp, ok := opmap["remove"].(map[string]any); ok && create != nil {
+		point := plainPoint(removeOp)
+		input := map[string]any{"ref": ref, "suffix": "_rm0"}
+		step := newFlowStep("remove", map[string]any{"input": input, "active": created}, point)
+		fillItemMatch(step, point, input, "remove", entname)
+		steps = append(steps, step)
+	}
+
+	return steps
+}
+
+func writtenIf(on bool, file any) map[string]any {
+	if !on {
+		return nil
+	}
+	written, _ := file.(map[string]any)
+	return written
 }

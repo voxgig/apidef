@@ -1,6 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.flowstepTransform = void 0;
+exports.fileContent = fileContent;
+exports.hasFileSteps = hasFileSteps;
 const jostraca_1 = require("jostraca");
 const struct_1 = require("@voxgig/struct");
 const utility_1 = require("../utility");
@@ -35,6 +37,11 @@ const flowstepTransform = async function (ctx) {
         const ent = kit.entity[flow.entity];
         const opmap = ent.op;
         const ref01 = ent.name + '_ref01';
+        if ('file' === flow.kind) {
+            fileSteps(opmap, flow, ent, ref01);
+            msg += flowname + ' ';
+            return;
+        }
         createStep(opmap, flow, ent, { input: { ref: ref01 } });
         listStep(opmap, flow, ent, { valid: [{ apply: 'ItemExists', def: { ref: ref01 } }] });
         // The patch writes the update's mark, so the load reads back one mark.
@@ -136,22 +143,25 @@ const createStep = (opmap, flow, ent, args) => {
     if (null != opmap.create) {
         const point = plainPoint(opmap.create.points);
         const step = newFlowStep('create', args, point);
-        (0, jostraca_1.each)(point.g.params, (param) => {
-            if ('id' === param.n) {
-                const origName = originalSnakeNameOfRenamedId(point);
-                if (origName) {
-                    step.m[origName] = args.input?.[origName] ?? origName.replace(/_id/, '') + '01';
-                }
-                // If there's no rename-from, this is genuinely the entity's id — skip
-                // (the create call generates it).
-                return;
-            }
-            step.m[param.n] = args.input?.[param.n] ?? param.n.replace(/_id/, '') + '01';
-        });
-        seedRelatedOpParams(opmap, point, step);
+        fillCreateMatch(opmap, point, step, args);
         flow.step.push(step);
     }
 };
+function fillCreateMatch(opmap, point, step, args) {
+    (0, jostraca_1.each)(point.g.params, (param) => {
+        if ('id' === param.n) {
+            const origName = originalSnakeNameOfRenamedId(point);
+            if (origName) {
+                step.m[origName] = args.input?.[origName] ?? origName.replace(/_id/, '') + '01';
+            }
+            // If there's no rename-from, this is genuinely the entity's id — skip
+            // (the create call generates it).
+            return;
+        }
+        step.m[param.n] = args.input?.[param.n] ?? param.n.replace(/_id/, '') + '01';
+    });
+    seedRelatedOpParams(opmap, point, step);
+}
 function seedRelatedOpParams(opmap, createPoint, step) {
     const otherOps = ['list', 'load', 'update', 'patch', 'remove'];
     for (const opname of otherOps) {
@@ -301,5 +311,171 @@ function identityFields(ent) {
         }
     }
     return out;
+}
+// Content is described, never carried; docs/reference/model.md states the rule.
+const FILE_BYTES = 512;
+const FILE_TEXT = 192;
+// The ops that write a slot, in the order the generator chooses among them.
+const SLOT_WRITERS = ['update', 'patch', 'create'];
+function fileContent(content, size, seed) {
+    const n = 'text' === content ? 96 : 256;
+    const ks = Array.from({ length: size }, (_, i) => (seed + 7 * Math.floor(i / 2)) % n);
+    return 'text' === content ?
+        ks.map((k) => 95 === k ? '\n' : String.fromCharCode(32 + k)).join('') :
+        Uint8Array.from(ks);
+}
+function livePoints(opmap, opname) {
+    return (opmap?.[opname]?.points ?? []).filter((point) => false !== point?.a);
+}
+function actionOf(point) {
+    return null == point?.q?.$action ? '' : String(point.q.$action);
+}
+// Slots as sdkgen derives them, then the raw bodies no slot takes: text, and
+// bytes the plain point sends where the entity has no unnamed slot.
+function fileWays(ent) {
+    const opmap = ent.op ?? {};
+    const slots = {};
+    const bodies = {};
+    const way = (into, via, action, content) => (into[action] = into[action] ?? { via, action, content });
+    for (const point of livePoints(opmap, 'load')) {
+        if ('raw' !== point?.rs?.kind)
+            continue;
+        const action = actionOf(point);
+        const found = true === point.rs.binary ?
+            way(slots, 'slot', action, 'bytes') : way(bodies, 'body', action, 'text');
+        found.read = found.read ?? point;
+    }
+    for (const opname of SLOT_WRITERS) {
+        for (const point of livePoints(opmap, opname)) {
+            if ('raw' !== point?.rb?.kind)
+                continue;
+            const action = actionOf(point);
+            const binary = true === point.rb.binary;
+            const found = binary && ('' !== action || null != slots['']) ?
+                way(slots, 'slot', action, 'bytes') :
+                way(bodies, 'body', action, binary ? 'bytes' : 'text');
+            if (null == found.write) {
+                found.write = point;
+                found.writeop = opname;
+                found.content = binary ? 'bytes' : found.content;
+            }
+        }
+    }
+    return [
+        ...(0, utility_1.sortedKeys)(slots).map((action) => slots[action]),
+        ...(0, utility_1.sortedKeys)(bodies).map((action) => bodies[action]),
+    ];
+}
+function binaryFields(point) {
+    const body = point?.rb;
+    if ('multipart' !== body?.kind && 'form' !== body?.kind)
+        return [];
+    return (body.fields ?? []).filter((field) => true === field?.binary)
+        .map((field) => String(field.name));
+}
+// The points other than the plain create whose multipart or form body carries a file.
+function fieldPoints(opmap, create) {
+    return SLOT_WRITERS.flatMap((opname) => livePoints(opmap, opname)
+        .filter((point) => point !== create && 0 < binaryFields(point).length)
+        .map((point) => ({ opname, point })));
+}
+// A file flow exercises what moves bytes or text; a session's append is its dialect's.
+function hasFileSteps(ent) {
+    if (null != ent.session)
+        return false;
+    const opmap = ent.op ?? {};
+    const create = null == opmap.create ? undefined : plainPoint(opmap.create.points);
+    return 0 < fileWays(ent).length || 0 < fieldPoints(opmap, create).length ||
+        (null != create && false !== create.a && 0 < binaryFields(create).length);
+}
+// Create the record, move each file and text body in and out of it, remove it.
+// A write needs the record the flow created; a read without a write before it
+// checks only that content arrives.
+function fileSteps(opmap, flow, ent, ref) {
+    const ways = fileWays(ent);
+    let seed = 0;
+    let tf = 0;
+    // A transfer addresses the record the way a load does.
+    const transfer = (opname, point, f, on) => {
+        const step = {
+            o: opname, i: { ref, suffix: '_tf' + (tf++) }, m: {}, d: {}, s: [], v: [], f,
+        };
+        (0, jostraca_1.each)(point.g?.params, (param) => {
+            if (isEntityIdParam(point, param, 'load')) {
+                step.m.id = ent.name + '01';
+            }
+            else {
+                step.m[param.n] = param.n.replace(/_id/, '') + '01';
+            }
+        });
+        if (!on)
+            step.a = false;
+        flow.step.push(step);
+    };
+    const put = (via, action, content, size, field) => ({
+        via, action, ...(null == field ? {} : { field }), dir: 'put', content, size, seed: ++seed,
+    });
+    // A read compares with what the flow wrote, when it wrote content of that kind.
+    const get = (way, written) => {
+        const content = 'slot' === way.via ? 'bytes' : 'text';
+        transfer('load', way.read, [{
+                via: way.via, action: way.action, dir: 'get', content,
+                ...(content !== written?.content ? {} : { size: written.size, seed: written.seed }),
+            }], true);
+    };
+    const sizeOf = (point, content) => {
+        const max = point?.bn?.max;
+        const size = 'text' === content ? FILE_TEXT : FILE_BYTES;
+        return Number.isSafeInteger(max) && 0 <= max && max < size ? max : size;
+    };
+    const slotRead = (name) => ways.find((way) => 'slot' === way.via && name === way.action && null != way.read);
+    let created = false;
+    const create = null == opmap.create ? undefined : plainPoint(opmap.create.points);
+    const atCreate = ways.find((way) => null != create && create === way.write);
+    if (null != create) {
+        created = null == create.rs || 'json' === create.rs.kind;
+        const step = { o: 'create', i: { ref }, m: {}, d: {}, s: [], v: [] };
+        fillCreateMatch(opmap, create, step, {});
+        const f = null != atCreate ?
+            [put(atCreate.via, atCreate.action, atCreate.content, sizeOf(create, atCreate.content))] :
+            binaryFields(create).map((field) => put('field', '', 'bytes', FILE_BYTES, field));
+        if (0 < f.length)
+            step.f = f;
+        if (!created || f.some((file) => (file.size ?? 0) < 1))
+            step.a = false;
+        created = created && false !== step.a;
+        flow.step.push(step);
+        for (const file of f) {
+            const way = null != atCreate ? (null == atCreate.read ? undefined : atCreate) :
+                slotRead(file.field);
+            if (null != way)
+                get(way, created ? file : undefined);
+        }
+    }
+    for (const { opname, point } of fieldPoints(opmap, create)) {
+        const f = binaryFields(point).map((field) => put('field', actionOf(point), 'bytes', FILE_BYTES, field));
+        transfer(opname, point, f, created);
+        for (const file of f) {
+            const way = slotRead(file.field);
+            if (null != way)
+                get(way, created ? file : undefined);
+        }
+    }
+    for (const way of ways) {
+        if (way === atCreate)
+            continue;
+        let written;
+        if (null != way.write) {
+            const file = put(way.via, way.action, way.content, sizeOf(way.write, way.content));
+            const on = created && 0 < (file.size ?? 0);
+            transfer(way.writeop, way.write, [file], on);
+            written = on ? file : undefined;
+        }
+        if (null != way.read)
+            get(way, written);
+    }
+    if (null != opmap.create) {
+        removeStep(opmap, flow, ent, { input: { ref, suffix: '_rm0' }, active: created });
+    }
 }
 //# sourceMappingURL=flowstep.js.map
