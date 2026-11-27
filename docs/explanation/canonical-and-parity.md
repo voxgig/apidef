@@ -25,7 +25,7 @@ more correct, the fix belongs in TypeScript first; Go follows.
 
 ## How parity is enforced
 
-Three mechanisms keep the two implementations in step:
+Four mechanisms keep the two implementations in step:
 
 ### 1. Shared TSV fixtures
 
@@ -50,6 +50,19 @@ Most Go source files carry comments pointing at the exact TypeScript code they
 track, e.g. `// Mirrors src/transform/field.ts:117-144`. When you touch either
 side, keep these references accurate — they are the map a reviewer uses to
 check that the port still matches.
+
+### 4. The route table
+
+[`test/def-routes.tsv`](../../test/def-routes.tsv) holds the guide's reading
+of every route of every OpenAPI definition in `ts/test/def/`: its entity,
+whether it is active, its operation, actions, renames, and transform.
+`ts/test/def-routes.test.ts` and `go/def_routes_test.go` each build their own
+guide for those definitions and compare it with the table, so a change to how
+the guide reads a route fails the build in whichever port it was not made in.
+`make def-routes` rewrites the table from the TypeScript guide after a
+deliberate change. The check began as a comparison of two guide strategies,
+and why it outlived them is told in
+[Why the guide is a chain of rules](./why-the-guide-is-rules.md).
 
 Where the two languages genuinely cannot behave identically (Go maps are
 unordered, JavaScript object keys are insertion-ordered, etc.), the Go code

@@ -133,6 +133,7 @@ out
 
 # Build warnings
 apidef-warnings.txt
+apidef-near-misses.txt
 
 # Build output (standalone executables)
 ts/cmd/build/

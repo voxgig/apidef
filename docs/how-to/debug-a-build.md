@@ -27,6 +27,23 @@ warnings is reported as a *partial* build in the logs. The same list is the
 const warnings = result.ctx?.warn?.history ?? []
 ```
 
+## Find the routes decided narrowly
+
+A route whose path, response or body names something other than the entity
+the guide chose is a near miss. Build with `why: { show: true }` and apidef
+writes them to **`apidef-near-misses.txt`** in the working directory, the
+narrowest first; the same list is `result.ctx.nearmiss` on any build:
+
+```js
+const build = await ApiDef.makeBuild({ folder, why: { show: true } })
+const result = await build(model, buildSpec, {})
+for (const miss of result.ctx?.nearmiss ?? []) console.log(miss.margin, miss.route, miss.entity)
+```
+
+Start at the lines with a negative margin, where a rule overrode the route's
+own evidence. [Near misses](../reference/guide.md#near-misses) gives the
+format and what each source is.
+
 ## Turn on debug output
 
 Pass `debug` (a level string, or `true`):

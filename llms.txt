@@ -38,6 +38,7 @@ apidef has two implementations: the canonical TypeScript build under `ts/`
 - [Classification heuristics](./docs/explanation/classification-heuristics.md): how paths become entities/ops/actions
 - [The internal model](./docs/explanation/the-internal-model.md): why entities/ops/points/flows are shaped as they are
 - [Canonical build & parity port](./docs/explanation/canonical-and-parity.md): TS is canonical, Go mirrors it
+- [Why the guide is rules](./docs/explanation/why-the-guide-is-rules.md): the guide's decision order, and what a hand-weighted network showed
 
 ## Source
 - [ts/src/apidef.ts](./ts/src/apidef.ts): pipeline entry point

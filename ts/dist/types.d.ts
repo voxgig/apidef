@@ -594,6 +594,17 @@ type ApiDefContext = {
     metrics: Metrics;
     work: Record<string, any>;
     resolved?: ResolvedSpec;
+    nearmiss?: NearMissEntry[];
+};
+type NearMissEntry = {
+    route: string;
+    entity: string;
+    margin: number;
+    support: string[];
+    alternatives: {
+        name: string;
+        sources: string[];
+    }[];
 };
 type Warner = {
     history: ({
@@ -673,6 +684,6 @@ type GuidePathOp = {
     };
 };
 export { KIT, OpenControlShape, OpenModelShape, OpenBuildShape, };
-export type { Guide, GuideMetrics, GuideEntity, GuidePath, GuidePathAction, GuideRenameParam, GuidePathOp, KitModel, MethodName, TypeName, Log, FsUtil, ApiDefOptions, DefKind, ApiDefAuthOption, ApiDefResult, Control, Model, Build, ApiModel, ApiDefContext, Warner, Metrics, };
+export type { Guide, GuideMetrics, GuideEntity, GuidePath, GuidePathAction, GuideRenameParam, GuidePathOp, NearMissEntry, KitModel, MethodName, TypeName, Log, FsUtil, ApiDefOptions, DefKind, ApiDefAuthOption, ApiDefResult, Control, Model, Build, ApiModel, ApiDefContext, Warner, Metrics, };
 export type { CmpDesc, BasicMethodDesc, MethodDesc, MethodEntityDesc, EntityDesc, EntityPathDesc, PathDesc, OpDesc, } from './desc';
 export type { OpName, ModelEntityRelations, ModelOpMap, ModelFieldOp, ModelField, ModelArg, ModelPoint, ModelOp, ModelEntity, } from './model';

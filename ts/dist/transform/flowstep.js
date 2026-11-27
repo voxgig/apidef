@@ -13,7 +13,7 @@ function isEntityIdParam(point, param, opname) {
         if ('id' === renameMap[camel])
             return true;
     }
-    if ('update' === opname || 'load' === opname || 'remove' === opname) {
+    if ('update' === opname || 'patch' === opname || 'load' === opname || 'remove' === opname) {
         const segments = point?.s || [];
         let last = null;
         for (const s of segments) {
@@ -37,28 +37,17 @@ const flowstepTransform = async function (ctx) {
         const ref01 = ent.name + '_ref01';
         createStep(opmap, flow, ent, { input: { ref: ref01 } });
         listStep(opmap, flow, ent, { valid: [{ apply: 'ItemExists', def: { ref: ref01 } }] });
+        // The patch writes the update's mark, so the load reads back one mark.
         const mark01 = 'Mark01-' + ref01;
-        const firsttf = firstTextField(ent, opmap.update);
-        updateStep(opmap, flow, ent, {
-            input: {
-                ref: ref01,
-                textfield: firsttf?.n,
-                suffix: '_up0',
-                srcdatavar: ref01 + '_data'
-            },
-            spec: [{
-                    apply: 'TextFieldMark',
-                    def: { mark: mark01 }
-                }]
-        });
-        // A switched-off update writes no mark for the load to find.
+        updateStep(opmap, flow, ent, markArgs(ent, opmap.update, ref01, '_up0', mark01));
+        patchStep(opmap, flow, ent, markArgs(ent, opmap.patch, ref01, '_pt0', mark01));
         loadStep(opmap, flow, ent, {
             input: {
                 ref: ref01,
                 suffix: '_dt0',
                 srcdatavar: ref01 + '_data'
             },
-            valid: stepOff(flow, 'update') ? [] : [{
+            valid: markOff(flow) ? [] : [{
                     apply: 'TextFieldMark',
                     def: { mark: mark01 }
                 }]
@@ -110,6 +99,11 @@ function stepOff(flow, opname) {
     const step = flow.step.find((step) => opname === step.o);
     return false === step?.a;
 }
+// The load checks no mark when the update or patch step is off and neither is on.
+function markOff(flow) {
+    return (stepOff(flow, 'update') || stepOff(flow, 'patch')) &&
+        !stepOn(flow, 'update') && !stepOn(flow, 'patch');
+}
 // A step calls the op without an action, so it reads the point that call
 // reaches: the last plain point, the most generic as points sort the most
 // specific first.
@@ -159,7 +153,7 @@ const createStep = (opmap, flow, ent, args) => {
     }
 };
 function seedRelatedOpParams(opmap, createPoint, step) {
-    const otherOps = ['list', 'load', 'update', 'remove'];
+    const otherOps = ['list', 'load', 'update', 'patch', 'remove'];
     for (const opname of otherOps) {
         const op = opmap[opname];
         if (!op?.points)
@@ -198,21 +192,39 @@ const listStep = (opmap, flow, ent, args) => {
         flow.step.push(step);
     }
 };
-const updateStep = (opmap, flow, ent, args) => {
-    if (null != opmap.update) {
-        const point = plainPoint(opmap.update.points);
-        const step = newFlowStep('update', args, point);
-        (0, jostraca_1.each)(point.g.params, (param) => {
-            if (isEntityIdParam(point, param, 'update')) {
-                // Entity's own id — supplied at test time via the loaded/created
-                // entity's id field, not as a separate body parameter. Skip.
-                return;
-            }
-            step.d[param.n] = args.input?.[param.n] ?? param.n.replace(/_id/, '') + '01';
-        });
-        flow.step.push(step);
-    }
-};
+function changeStep(opname) {
+    return (opmap, flow, ent, args) => {
+        if (null != opmap[opname]) {
+            const point = plainPoint(opmap[opname].points);
+            const step = newFlowStep(opname, args, point);
+            (0, jostraca_1.each)(point.g.params, (param) => {
+                if (isEntityIdParam(point, param, opname)) {
+                    // Entity's own id — supplied at test time via the loaded/created
+                    // entity's id field, not as a separate body parameter. Skip.
+                    return;
+                }
+                step.d[param.n] = args.input?.[param.n] ?? param.n.replace(/_id/, '') + '01';
+            });
+            flow.step.push(step);
+        }
+    };
+}
+const updateStep = changeStep('update');
+const patchStep = changeStep('patch');
+function markArgs(ent, op, ref, suffix, mark) {
+    return {
+        input: {
+            ref,
+            textfield: firstTextField(ent, op)?.n,
+            suffix,
+            srcdatavar: ref + '_data',
+        },
+        spec: [{
+                apply: 'TextFieldMark',
+                def: { mark },
+            }],
+    };
+}
 const loadStep = (opmap, flow, ent, args) => {
     if (null != opmap.load) {
         const point = plainPoint(opmap.load.points);

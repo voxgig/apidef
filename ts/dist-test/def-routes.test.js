@@ -49,7 +49,8 @@ const util_1 = require("@voxgig/util");
 const apidef_1 = require("../dist/apidef");
 const DEFDIR = Path.join(__dirname, '..', 'test', 'def');
 const TABLE = Path.join(__dirname, '..', '..', 'test', 'def-routes.tsv');
-const COLUMNS = ['def', 'route', 'entity', 'active', 'op', 'actions', 'renames', 'transform'];
+const COLUMNS = ['def', 'route', 'entity', 'active', 'op', 'actions', 'renames', 'transform',
+    'nearmiss'];
 const UPDATE = '1' === process.env.UPDATE_DEF_ROUTES;
 const SILENT = (0, util_1.Pino)({ level: 'silent' });
 const staged = [];
@@ -112,6 +113,11 @@ async function routes(def) {
         }
     }, {});
     node_assert_1.default.strictEqual(bres.ok, true, def + ': ' + String(bres.err?.message));
+    const near = {};
+    for (const miss of bres.ctx.nearmiss ?? []) {
+        near[miss.route] = [String(miss.margin), miss.support.join('+'),
+            miss.alternatives.map((alt) => alt.name + '<' + alt.sources.join('+')).join(' ')].join('/');
+    }
     const rows = [];
     for (const [ename, ent] of Object.entries(bres.guide.entity ?? {})) {
         for (const [path, gp] of Object.entries(ent.path ?? {})) {
@@ -122,7 +128,8 @@ async function routes(def) {
             for (const [opname, op] of Object.entries(gp.op ?? {})) {
                 const transform = canonical(op.transform ?? {});
                 rows.push([def, op.method + ' ' + path, ename, false === ent.active ? 'false' : 'true',
-                    opname, actions, renames, 0 === Object.keys(transform).length ? '' : JSON.stringify(transform)]);
+                    opname, actions, renames, 0 === Object.keys(transform).length ? '' : JSON.stringify(transform),
+                    near[op.method + ' ' + path] ?? '']);
             }
         }
     }

@@ -46,6 +46,7 @@ it does.
 - [How path classification works](./explanation/classification-heuristics.md)
 - [The internal model, and why it exists](./explanation/the-internal-model.md)
 - [The canonical TypeScript build and the Go parity port](./explanation/canonical-and-parity.md)
+- [Why the guide is a chain of rules](./explanation/why-the-guide-is-rules.md)
 
 ---
 

@@ -28,6 +28,9 @@ exports.isParam = isParam;
 exports.canonizeField = canonizeField;
 exports.fieldName = fieldName;
 exports.canonizeCmpName = canonizeCmpName;
+exports.nearMiss = nearMiss;
+exports.nearMissText = nearMissText;
+exports.sameName = sameName;
 exports.cmpRefName = cmpRefName;
 exports.stripSchemaNamespace = stripSchemaNamespace;
 exports.sanitizeSlug = sanitizeSlug;
@@ -1122,6 +1125,70 @@ function stripToolAffixes(name) {
     const at = name.lastIndexOf('__');
     const bare = 0 < at && at + 2 < name.length ? name.slice(at + 2) : name;
     return bare.match(TOOL_SUFFIX_RE)?.[1] ?? bare;
+}
+// One name's words as a run of the other's, so a qualified name agrees with
+// its bare noun, and an abbreviation agrees with the word it opens.
+function sameName(a, b) {
+    const same = (x, y) => x === y ||
+        (2 < Math.min(x.length, y.length) && (x.startsWith(y) || y.startsWith(x)));
+    const within = (inner, outer) => {
+        for (let i = 0; i + inner.length <= outer.length; i++) {
+            if (inner.every((word, j) => same(word, outer[i + j]))) {
+                return true;
+            }
+        }
+        return false;
+    };
+    const as = a.split('_');
+    const bs = b.split('_');
+    return within(as, bs) || within(bs, as);
+}
+// The names a route's evidence gives against the entity chosen for it, less
+// those its actions already carry. The margin is the sources behind the
+// entity less those behind only the strongest alternative, so below zero the
+// rules overrode the evidence. A tag only backs the entity: as a rival it is
+// the module a route sits in, which the path outranks by rule.
+function nearMiss(entity, evidence, actions = []) {
+    const named = evidence.filter(([, name]) => '' !== name);
+    const sources = (name) => named.filter(([, other]) => sameName(other, name)).map(([source]) => source);
+    const names = [...new Set(named
+            .filter(([source]) => 'tag' !== source)
+            .map(([, name]) => name))]
+        .filter((name) => !sameName(name, entity) &&
+        !actions.some((action) => sameName(name, action)));
+    if (0 === names.length) {
+        return null;
+    }
+    const support = sources(entity);
+    const alternatives = names
+        .map((name) => ({ name, sources: sources(name).filter((src) => !support.includes(src)) }))
+        .filter((alternative) => 0 < alternative.sources.length)
+        .sort((a, b) => b.sources.length - a.sources.length ||
+        (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+    if (0 === alternatives.length) {
+        return null;
+    }
+    return { margin: support.length - alternatives[0].sources.length, support, alternatives };
+}
+const NEAR_MISS_HEADER = [
+    '# Routes whose own evidence names something other than the entity the guide',
+    '# gave them, closest first. Columns: margin, route, entity (its sources),',
+    '# alternatives (their sources). The margin is the sources behind the entity',
+    '# less those behind only the strongest alternative.',
+];
+// The near-miss report, one tab-separated line per route.
+function nearMissText(entries) {
+    const named = (name, sources) => 0 === sources.length ? name : name + ' (' + sources.join(', ') + ')';
+    return [
+        ...NEAR_MISS_HEADER,
+        ...entries.map((entry) => [
+            String(entry.margin),
+            entry.route,
+            named(entry.entity, entry.support),
+            entry.alternatives.map((alt) => named(alt.name, alt.sources)).join('; '),
+        ].join('\t')),
+        '',
+    ].join('\n');
 }
 const READ_METHODS = ['GET', 'QUERY', 'HEAD', 'OPTIONS'];
 exports.READ_METHODS = READ_METHODS;

@@ -13,7 +13,7 @@ import (
 	jostraca "github.com/jostraca/jostraca/go"
 )
 
-const VERSION = "0.30.1"
+const VERSION = "0.31.0"
 
 // ApiDef creates a new API definition generator with the given options.
 func NewApiDef(opts ApiDefOptions) *apiDefInstance {
@@ -165,6 +165,9 @@ func (a *apiDefInstance) Generate(spec map[string]any) (*ApiDefResult, error) {
 	}
 
 	ctx.Guide, _ = guideModel["guide"].(map[string]any)
+	if a.opts.Why != nil && a.opts.Why.Show && ctx.NearMiss != nil {
+		WriteFileWarn(warn, "./apidef-near-misses.txt", NearMissText(ctx.NearMiss))
+	}
 	steps = append(steps, "guide")
 
 	// Step: transformers

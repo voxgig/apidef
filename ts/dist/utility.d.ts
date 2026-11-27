@@ -52,6 +52,20 @@ declare function canonizeField(s: string): string;
 declare function fieldName(prop: string): string;
 declare function stripSchemaNamespace(name: string): string;
 declare function canonizeCmpName(orig: string): string;
+declare function sameName(a: string, b: string): boolean;
+type NearMiss = {
+    margin: number;
+    support: string[];
+    alternatives: {
+        name: string;
+        sources: string[];
+    }[];
+};
+declare function nearMiss(entity: string, evidence: [string, string][], actions?: string[]): NearMiss | null;
+declare function nearMissText(entries: ({
+    route: string;
+    entity: string;
+} & NearMiss)[]): string;
 declare const READ_METHODS: string[];
 declare const CMP_REF_RE: RegExp;
 declare function cmpRefName(xref: string): string;
@@ -98,7 +112,7 @@ declare function getModelPath(model: any, path: string, flags?: {
     required?: boolean;
     only_active?: boolean;
 }): any;
-export type { PathMatch };
+export type { PathMatch, NearMiss, };
 declare function collapseScalarAllOf(property: any): any;
 declare function isEntityWrapperProp(propSchema: any): boolean;
 declare function itemEnvelopeKey(schema: any, names: string[]): string | null;
@@ -130,4 +144,4 @@ declare function bodyRequestTransform(schema: any, names: string[]): any;
 declare function firstSentence(text: string): string;
 declare function paramKey(param: any): string | undefined;
 declare function routeParams(pathItem: any, op: any): any[];
-export { paramKey, routeParams, bodyRequestTransform, nom, getdlog, loadFile, formatJsonSrc, depluralize, pluralize, setCustomPlurals, clearCustomPlurals, find, capture, pathMatch, makeWarner, formatJSONIC, validator, isFileType, nonNullType, VALID_CANON, CANON_ONE, canonize, isParam, canonizeField, fieldName, canonizeCmpName, CMP_REF_RE, cmpRefName, READ_METHODS, stripSchemaNamespace, sanitizeSlug, slugToPascalCase, transliterate, cleanComponentName, wrapperOf, literalName, paramOf, paramNoun, guideActive, authExchangeOp, specSecuredByDefault, ensureMinEntityName, inferFieldType, normalizeFieldName, canonizeParam, paramName, humanTitle, foldName, prefixLeadingDigit, guardPrototypeName, guideParts, guidePath, selectorParts, selectorPath, stripOperationVerb, debugpath, debugpathOn, findPathsWithPrefix, writeFileSyncWarn, removeLegacyAon, warnOnError, relativizePath, getModelPath, sortedKeys, jsonContent, responseSchema, rangeResponse, cmpNamespace, stripNamespace, wordBreaks, PARAM_NOUN_SUFFIX_RE, sortedEntries, collapseScalarAllOf, isEntityWrapperProp, itemEnvelopeKey, itemEnvelopeTransform, itemEnvelopeOf, envelopeProp, strictEnvelopeProp, recordLists, singleEnvelope, envelopeItemRef, composedEnvelopeProp, pageRecords, pageTransform, PAGE_ROLES, answersPage, listingProps, answersRecordMap, propIsList, mergedProperties, closedBodyTransform, requestWrapperOf, untaggedUnionBranches, scanUntaggedUnion, firstSentence, resplitFromCmp, };
+export { paramKey, routeParams, bodyRequestTransform, nom, getdlog, loadFile, formatJsonSrc, depluralize, pluralize, setCustomPlurals, clearCustomPlurals, find, capture, pathMatch, makeWarner, formatJSONIC, validator, isFileType, nonNullType, VALID_CANON, CANON_ONE, canonize, isParam, canonizeField, fieldName, canonizeCmpName, nearMiss, nearMissText, sameName, CMP_REF_RE, cmpRefName, READ_METHODS, stripSchemaNamespace, sanitizeSlug, slugToPascalCase, transliterate, cleanComponentName, wrapperOf, literalName, paramOf, paramNoun, guideActive, authExchangeOp, specSecuredByDefault, ensureMinEntityName, inferFieldType, normalizeFieldName, canonizeParam, paramName, humanTitle, foldName, prefixLeadingDigit, guardPrototypeName, guideParts, guidePath, selectorParts, selectorPath, stripOperationVerb, debugpath, debugpathOn, findPathsWithPrefix, writeFileSyncWarn, removeLegacyAon, warnOnError, relativizePath, getModelPath, sortedKeys, jsonContent, responseSchema, rangeResponse, cmpNamespace, stripNamespace, wordBreaks, PARAM_NOUN_SUFFIX_RE, sortedEntries, collapseScalarAllOf, isEntityWrapperProp, itemEnvelopeKey, itemEnvelopeTransform, itemEnvelopeOf, envelopeProp, strictEnvelopeProp, recordLists, singleEnvelope, envelopeItemRef, composedEnvelopeProp, pageRecords, pageTransform, PAGE_ROLES, answersPage, listingProps, answersRecordMap, propIsList, mergedProperties, closedBodyTransform, requestWrapperOf, untaggedUnionBranches, scanUntaggedUnion, firstSentence, resplitFromCmp, };

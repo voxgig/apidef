@@ -60,6 +60,7 @@ import {
   sanitizeSlug,
   slugToPascalCase,
   writeFileSyncWarn,
+  nearMissText,
   removeLegacyAon,
   relativizePath,
   getModelPath,
@@ -261,6 +262,10 @@ function ApiDef(opts: ApiDefOptions) {
       }
 
       ctx.guide = guideModel.guide
+
+      if (opts.why?.show && null != ctx.nearmiss) {
+        writeFileSyncWarn(warn, fs, './apidef-near-misses.txt', nearMissText(ctx.nearmiss))
+      }
 
       steps.push('guide')
 

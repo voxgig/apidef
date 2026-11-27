@@ -387,6 +387,27 @@ function loadTsv(name, dir = SHARED_TSV_DIR) {
         });
     }
 });
+(0, node_test_1.describe)('tsv-same-name', () => {
+    for (const row of loadTsv('same-name')) {
+        (0, node_test_1.test)(`sameName(${row.a}, ${row.b})`, () => {
+            node_assert_1.default.strictEqual((0, utility_1.sameName)(row.a, row.b), 'true' === row.expected);
+        });
+    }
+});
+(0, node_test_1.describe)('tsv-near-miss', () => {
+    for (const row of loadTsv('near-miss')) {
+        (0, node_test_1.test)(`nearMiss(${row.entity}, ${row.evidence})`, () => {
+            node_assert_1.default.deepStrictEqual((0, utility_1.nearMiss)(row.entity, JSON.parse(row.evidence), JSON.parse(row.actions)), JSON.parse(row.expected));
+        });
+    }
+});
+(0, node_test_1.describe)('tsv-near-miss-text', () => {
+    for (const row of loadTsv('near-miss-text')) {
+        (0, node_test_1.test)(`nearMissText(${row.entries.slice(0, 40)})`, () => {
+            node_assert_1.default.strictEqual((0, utility_1.nearMissText)(JSON.parse(row.entries)), JSON.parse(row.expected));
+        });
+    }
+});
 (0, node_test_1.describe)('tsv-operation-verb', () => {
     for (const row of loadTsv('operation-verb')) {
         (0, node_test_1.test)(`stripOperationVerb(canonize(${row.input}))`, () => {
