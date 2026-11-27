@@ -130,6 +130,25 @@
           }
         }
       }
+    },
+    "/devices/v2/add-device": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddDeviceRequestSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "added"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -209,6 +228,17 @@
         "type": "object",
         "properties": {
           "name": {
+            "type": "string"
+          }
+        }
+      },
+      "AddDeviceRequestSchema": {
+        "type": "object",
+        "properties": {
+          "serial": {
+            "type": "string"
+          },
+          "model": {
             "type": "string"
           }
         }

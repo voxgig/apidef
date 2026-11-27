@@ -109,6 +109,7 @@ func TestRulings(t *testing.T) {
 				"POST /keys/{keyName}/requestTicket": "ticket create",
 				"GET /account":                       "account load",
 				"POST /account":                      "account create",
+				"POST /devices/v2/add-device":        "add_device create",
 			},
 		},
 		{
@@ -585,13 +586,15 @@ func TestRulings(t *testing.T) {
 		{
 			def: "verb-noun-def.json",
 			expect: map[string]string{
-				"GET /account":           "account load",
-				"GET /c/{id}/show":       "category load",
-				"GET /shows":             "show list",
-				"GET /shows/{id}":        "show load",
-				"GET /tokens":            "token list",
-				"POST /account/2/verify": "account create verify",
-				"POST /tokens/authorize": "token create authorize",
+				"GET /account":                    "account load",
+				"GET /c/{id}/show":                "category load",
+				"GET /shows":                      "show list",
+				"GET /shows/{id}":                 "show load",
+				"GET /tokens":                     "token list",
+				"POST /account/2/verify":          "account create verify",
+				"POST /tokens/authorize":          "token create authorize",
+				"GET /users/{userId}":             "user load",
+				"PUT /users/{userId}/avatar/pick": "user update avatar_pick",
 			},
 		},
 		{

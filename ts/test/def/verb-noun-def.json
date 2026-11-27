@@ -160,6 +160,51 @@
      }
     }
    }
+  },
+  "/users/{userId}": {
+   "get": {
+    "parameters": [
+     {
+      "name": "userId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/User"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/users/{userId}/avatar/pick": {
+   "put": {
+    "parameters": [
+     {
+      "name": "userId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "picked"
+     }
+    }
+   }
   }
  },
  "components": {
@@ -204,6 +249,17 @@
       "type": "string"
      },
      "email": {
+      "type": "string"
+     }
+    }
+   },
+   "User": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "name": {
       "type": "string"
      }
     }
