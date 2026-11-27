@@ -567,6 +567,7 @@ export type {
   ModelEntityFlowStepInput,
   ModelEntityFlowStepValidator,
   ModelEntityFlowStepSpec,
+  ModelFlowFile,
 } from './model'
 
 

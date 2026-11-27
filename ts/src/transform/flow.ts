@@ -9,6 +9,8 @@ import {
   guideActive,
 } from '../utility'
 
+import { hasFileSteps } from './flowstep'
+
 import { KIT } from '../types'
 
 import type { KitModel } from '../types'
@@ -50,6 +52,17 @@ const flowTransform: Transform = async function(
     kit.flow[basicflow.name] = basicflow
 
     msg += basicflow.name + ' '
+
+    if (hasFileSteps(modelent)) {
+      const fileflow: ModelEntityFlow = {
+        name: 'File' + nom(modelent, 'Name') + 'Flow',
+        entity: entname,
+        kind: 'file',
+        step: [],
+      }
+      kit.flow[fileflow.name] = fileflow
+      msg += fileflow.name + ' '
+    }
   })
 
   return { ok: true, msg }

@@ -93,7 +93,7 @@ Thirteen passes run in this fixed order; each is a file under
 | 8 | `select` | each point's `select` — `exist[]` identifiers and `$action` markers |
 | 9 | `field` | each entity's `fields[]` from request/response schemas, with inferred types and per-op `req` overrides |
 | 10 | `casecollide` | for a pair the guide stage could not merge, drops an entity without operations whose name differs only by case from one with them, since both would generate to one file, and warns when both carry operations |
-| 11 | `flow` | basic CRUD `flow` definitions per entity |
+| 11 | `flow` | basic CRUD `flow` definitions per entity, and a file flow for each entity that moves files or text bodies |
 | 12 | `flowstep` | the ordered `step[]` of each flow |
 | 13 | `clean` | prune inactive nodes and finalize the model |
 

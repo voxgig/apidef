@@ -47,6 +47,20 @@ describe('model-mirror', () => {
   })
 
 
+  test('a file flow step keeps the content it describes', () => {
+    const f = [
+      { via: 'field', action: '', field: 'audio', dir: 'put', content: 'bytes', size: 512, seed: 1 },
+      { via: 'body', action: 'feed', dir: 'get', content: 'text' },
+    ]
+    const flow = (file: any) => new Aontu().generate(
+      readFileSync(Path.join(REPO, 'model', 'apidef.aontu'), 'utf8') + '\n' +
+      'main:kit:flow:FileWidgetFlow:' + JSON.stringify({ step: [{ o: 'create', f: file }] }))
+    assert.deepStrictEqual(flow(f).main.kit.flow.FileWidgetFlow.step,
+      [{ a: true, o: 'create', m: {}, d: {}, i: {}, s: [], v: [], f }])
+    assert.throws(() => flow([{ ...f[0], via: 'path' }]), /via/)
+  })
+
+
   test('op-points and point-args aliases apply compact keys and defaults', () => {
     const point = {
       m: 'GET', o: '/widgets/{id}', s: [{ var: 'id' }],

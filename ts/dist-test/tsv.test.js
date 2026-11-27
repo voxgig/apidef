@@ -63,6 +63,7 @@ const yamlalias_1 = require("../dist/yamlalias");
 const refcount_1 = require("../dist/refcount");
 const clean_1 = require("../dist/transform/clean");
 const flowstep_1 = require("../dist/transform/flowstep");
+const flow_1 = require("../dist/transform/flow");
 const transform_1 = require("../dist/transform");
 const SHARED_TSV_DIR = Path.join(__dirname, '..', '..', 'test');
 const TS_ONLY_TSV_DIR = Path.join(__dirname, '..', 'test');
@@ -1660,7 +1661,7 @@ function permutations(items) {
 // A point from its route: the placeholders are its params, in the order the
 // model sorts them, unless the row lists them.
 function flowPoint(spec) {
-    const { path, params, rename, action, rb, rs } = 'string' === typeof spec ? { path: spec } : spec;
+    const { path, params, rename, action, rb, rs, bn, a } = 'string' === typeof spec ? { path: spec } : spec;
     const s = path.split('/').filter((part) => '' !== part).map((part) => part.startsWith('{') ? { var: part.slice(1, -1) } : { lit: part });
     const names = params ?? s.filter((seg) => null != seg.var).map((seg) => seg.var).sort();
     return {
@@ -1668,8 +1669,10 @@ function flowPoint(spec) {
         g: { params: names.map((n) => ({ n, k: 'param', r: true, t: '`$STRING`' })) },
         ...(null == rename ? {} : { r: { param: rename } }),
         ...(null == action ? {} : { q: { exist: [], $action: action } }),
-        ...(null == rb ? {} : { rb: { kind: rb } }),
-        ...(null == rs ? {} : { rs: { kind: rs } }),
+        ...(null == rb ? {} : { rb: 'string' === typeof rb ? { kind: rb } : rb }),
+        ...(null == rs ? {} : { rs: 'string' === typeof rs ? { kind: rs } : rs }),
+        ...(null == bn ? {} : { bn }),
+        ...(null == a ? {} : { a }),
     };
 }
 (0, node_test_1.describe)('tsv-flow-step', () => {
@@ -1700,6 +1703,58 @@ function flowPoint(spec) {
             })), JSON.parse(row.expected));
         });
     }
+});
+// An entity's file flow, from its routes: null when it gets none.
+(0, node_test_1.describe)('tsv-flow-file-step', () => {
+    const rows = loadTsv('flow-file-step');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(row.name, async () => {
+            const op = Object.fromEntries(Object.entries(JSON.parse(row.ops)).map(([name, points]) => [name, { name, points: points.map(flowPoint) }]));
+            const kit = {
+                entity: { thing: { name: 'thing', fields: {}, op, ...JSON.parse(row.entity) } },
+                flow: {},
+            };
+            const ctx = {
+                apimodel: { main: { kit } },
+                guide: { entity: { thing: {} } },
+                log: { debug: () => undefined },
+            };
+            await (0, flow_1.flowTransform)(ctx);
+            await (0, flowstep_1.flowstepTransform)(ctx);
+            node_assert_1.default.deepStrictEqual(Object.keys(kit.flow).sort(), ['BasicThingFlow', ...('null' === row.expected ? [] : ['FileThingFlow'])]);
+            const flow = kit.flow.FileThingFlow;
+            node_assert_1.default.deepStrictEqual(null == flow ? null : flow.step.map((step) => ({
+                ...(false === step.a ? { a: false } : {}),
+                o: step.o,
+                ...(0 < Object.keys(step.m).length ? { m: step.m } : {}),
+                ...(null == step.f ? {} : { f: step.f }),
+            })), JSON.parse(row.expected));
+            if (null != flow) {
+                node_assert_1.default.deepStrictEqual([flow.entity, flow.kind], ['thing', 'file']);
+            }
+        });
+    }
+});
+(0, node_test_1.describe)('tsv-flow-file-content', () => {
+    const rows = loadTsv('flow-file-content');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(`${row.content} ${row.size} ${row.seed}`, () => {
+            const out = (0, flowstep_1.fileContent)(row.content, Number(row.size), Number(row.seed));
+            node_assert_1.default.strictEqual('text' === row.content ? JSON.stringify(out) : Buffer.from(out).toString('hex'), row.expected);
+        });
+    }
+    (0, node_test_1.test)('carries what breaks a naive encoder', () => {
+        const bytes = Buffer.from((0, flowstep_1.fileContent)('bytes', 512, 1));
+        for (const hex of ['0000', 'ffff', '0d0d', '0a0a', '2222', '2d2d']) {
+            node_assert_1.default.ok(bytes.toString('hex').match(new RegExp('^(..)*' + hex)), hex);
+        }
+        const text = (0, flowstep_1.fileContent)('text', 192, 1);
+        for (const part of ['\n\n', '""', '--']) {
+            node_assert_1.default.ok(text.includes(part), JSON.stringify(part));
+        }
+    });
 });
 (0, node_test_1.describe)('tsv-flow-textfield', () => {
     const rows = loadTsv('flow-textfield');

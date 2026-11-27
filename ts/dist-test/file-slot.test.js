@@ -143,5 +143,24 @@ function headers(p) {
         const slot = (await build('guide: entity: upload: session: slot: { entity: "track", action: "audio" }\n')).bres;
         node_assert_1.default.deepStrictEqual(slot.apimodel.main.kit.entity.upload.session, { dialect: 'tus', append: 'update', offset: 'load', slot: { entity: 'track', action: 'audio' } });
     });
+    (0, node_test_1.test)('file-flows', async () => {
+        const { bres } = await build('guide: {}\n');
+        const flow = bres.apimodel.main.kit.flow;
+        const audio = { via: 'slot', action: 'audio', content: 'bytes', size: 512, seed: 1 };
+        node_assert_1.default.deepStrictEqual(flow.FileTrackFlow, {
+            name: 'FileTrackFlow', entity: 'track', kind: 'file', step: [
+                { o: 'create', i: { ref: 'track_ref01' } },
+                { o: 'update', i: { ref: 'track_ref01', suffix: '_tf0' }, m: { id: 'track01' },
+                    f: [{ ...audio, dir: 'put' }] },
+                { o: 'load', i: { ref: 'track_ref01', suffix: '_tf1' }, m: { id: 'track01' },
+                    f: [{ ...audio, dir: 'get' }] },
+            ],
+        });
+        node_assert_1.default.deepStrictEqual(flow.FileTrackLyricFlow.step.map((step) => step.f), [[{ via: 'body', action: '', dir: 'get', content: 'text' }]]);
+        node_assert_1.default.deepStrictEqual(Object.keys(flow).filter((name) => name.startsWith('File')).sort(), ['FilePartFlow', 'FileTrackFlow', 'FileTrackLyricFlow']);
+        const off = (await build('guide: entity: track: path: "/tracks/{track_id}/audio": active: false\n')).bres;
+        node_assert_1.default.strictEqual(off.apimodel.main.kit.flow.FileTrackFlow, undefined);
+        node_assert_1.default.ok(null != off.apimodel.main.kit.flow.BasicTrackFlow);
+    });
 });
 //# sourceMappingURL=file-slot.test.js.map
