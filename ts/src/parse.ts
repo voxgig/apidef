@@ -85,8 +85,9 @@ async function parseOpenAPI(source: any, _meta?: any) {
 
   try {
     // The reader's size limit is for a process of unknown memory; this one
-    // has always read whatever it was given.
-    parsed = readOpenAPI(source, { duplicates: 'merge', maxBytes: Infinity })
+    // has always read whatever it was given. The reading is named, so that
+    // the reader's default can change without moving what is read here.
+    parsed = readOpenAPI(source, { duplicates: 'merge', maxBytes: Infinity, reading: 'base' })
   }
   catch (err: any) {
     const code = err?.code

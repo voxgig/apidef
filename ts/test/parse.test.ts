@@ -198,6 +198,18 @@ paths:
   })
 
 
+  test('reads yes as a boolean and 1_000 as a number', async () => {
+    const p0 = await parse('OpenAPI', `openapi: 3.0.0
+info: {title: T, version: '1'}
+paths: {}
+x-flag: yes
+x-count: 1_000
+`, { file: 'f0' })
+    assert.strictEqual(p0['x-flag'], true)
+    assert.strictEqual(p0['x-count'], 1000)
+  })
+
+
   test('resolves repeated $ref with x-ref preserved', async () => {
     const pm0 = { file: 'f0' }
     const mkop = () => ({
