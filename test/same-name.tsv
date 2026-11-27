@@ -1,0 +1,14 @@
+a	b	expected
+contact	student_contact	true
+student_contact	contact	true
+org	organization	true
+repo	repository	true
+distro	distribution	false
+caption	subtitle	false
+pet	pet	true
+id	identity	false
+user_badge	badge	true
+geo_status	status	true
+at	attestation	false
+order	orders	true
+team_member	member_team	false

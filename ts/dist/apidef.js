@@ -217,6 +217,9 @@ function ApiDef(opts) {
                 throw new Error('Unable to build guide.');
             }
             ctx.guide = guideModel.guide;
+            if (opts.why?.show && null != ctx.nearmiss) {
+                (0, utility_1.writeFileSyncWarn)(warn, fs, './apidef-near-misses.txt', (0, utility_1.nearMissText)(ctx.nearmiss));
+            }
             steps.push('guide');
             // Step: transformers (transform spec and guide into core structures).
             // Early stops return the model built so far: `ctrl.step.generate = false`

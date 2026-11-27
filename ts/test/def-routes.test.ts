@@ -18,7 +18,8 @@ import { ApiDef } from '../dist/apidef'
 
 const DEFDIR = Path.join(__dirname, '..', 'test', 'def')
 const TABLE = Path.join(__dirname, '..', '..', 'test', 'def-routes.tsv')
-const COLUMNS = ['def', 'route', 'entity', 'active', 'op', 'actions', 'renames', 'transform']
+const COLUMNS = ['def', 'route', 'entity', 'active', 'op', 'actions', 'renames', 'transform',
+  'nearmiss']
 const UPDATE = '1' === process.env.UPDATE_DEF_ROUTES
 
 const SILENT = Pino({ level: 'silent' })
@@ -93,6 +94,12 @@ async function routes(def: string): Promise<string[][]> {
   }, {})
   assert.strictEqual(bres.ok, true, def + ': ' + String(bres.err?.message))
 
+  const near: Record<string, string> = {}
+  for (const miss of bres.ctx.nearmiss ?? []) {
+    near[miss.route] = [String(miss.margin), miss.support.join('+'),
+      miss.alternatives.map((alt: any) => alt.name + '<' + alt.sources.join('+')).join(' ')].join('/')
+  }
+
   const rows: string[][] = []
   for (const [ename, ent] of Object.entries(bres.guide.entity ?? {}) as [string, any][]) {
     for (const [path, gp] of Object.entries(ent.path ?? {}) as [string, any][]) {
@@ -103,7 +110,8 @@ async function routes(def: string): Promise<string[][]> {
       for (const [opname, op] of Object.entries(gp.op ?? {}) as [string, any][]) {
         const transform = canonical(op.transform ?? {})
         rows.push([def, op.method + ' ' + path, ename, false === ent.active ? 'false' : 'true',
-          opname, actions, renames, 0 === Object.keys(transform).length ? '' : JSON.stringify(transform)])
+          opname, actions, renames, 0 === Object.keys(transform).length ? '' : JSON.stringify(transform),
+          near[op.method + ' ' + path] ?? ''])
       }
     }
   }

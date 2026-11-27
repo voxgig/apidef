@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -81,6 +82,15 @@ func defRoutes(t *testing.T, def string) map[string]string {
 	if err != nil || res == nil || !res.OK {
 		t.Fatalf("%s: generate failed: err=%v", def, err)
 	}
+	near := map[string]string{}
+	for _, miss := range res.Ctx.NearMiss {
+		alts := []string{}
+		for _, alt := range miss.Alternatives {
+			alts = append(alts, alt.Name+"<"+strings.Join(alt.Sources, "+"))
+		}
+		near[miss.Route] = strings.Join([]string{strconv.Itoa(miss.Margin),
+			strings.Join(miss.Support, "+"), strings.Join(alts, " ")}, "/")
+	}
 	out := map[string]string{}
 	entities, _ := res.Guide["entity"].(map[string]any)
 	for _, ename := range sortedKeys(entities) {
@@ -109,6 +119,7 @@ func defRoutes(t *testing.T, def string) map[string]string {
 				out[safeStr(op["method"])+" "+path] = strings.Join([]string{
 					ename, active, opname, strings.Join(sortedKeys(actions), ","),
 					strings.Join(renames, ","), defRouteTransform(op["transform"]),
+					near[safeStr(op["method"])+" "+path],
 				}, "\t")
 			}
 		}
@@ -125,6 +136,7 @@ func TestDefRoutes(t *testing.T) {
 		}
 		table[def][row["route"]] = strings.Join([]string{
 			row["entity"], row["active"], row["op"], row["actions"], row["renames"], row["transform"],
+			row["nearmiss"],
 		}, "\t")
 	}
 

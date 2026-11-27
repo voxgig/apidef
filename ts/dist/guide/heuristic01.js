@@ -203,6 +203,7 @@ async function heuristic01(ctx) {
         nameEntityParams(entity);
     }
     (0, entity_1.separateSharedPoints)(guide, ctx.def, ctx.log);
+    ctx.nearmiss = nearMisses(result.data, guide);
     const metrics = guide.metrics;
     const entities = Object.values(guide.entity);
     const entityCount = entities.length;
@@ -2281,6 +2282,56 @@ function commandName(data, mdesc, pm, parts, why) {
         why.push(('body' === source.from ? 'command=' : 'command-opid=') + source.name);
     }
     return source?.name ?? null;
+}
+// The names a route's own evidence gives, source by source: its path's noun
+// unless too short to name, the record it answers with, the tag it was named
+// from, and its command body when no record answers.
+function routeEvidence(data, mdesc) {
+    const evidence = [];
+    const parts = data.work.pathmap[mdesc.path]?.parts ?? [];
+    const pm = matchEntityPath(parts);
+    if (null != pm && !shortLiteral(pm, parts)) {
+        evidence.push(['path', pathNoun(pm, parts, [])]);
+    }
+    const ment = mdesc.MethodEntity;
+    const tagged = 'tag' === ment?.ref;
+    const response = (tagged ? ment.rescmp : ment?.cmp) || null;
+    if (null != response) {
+        evidence.push(['response', response]);
+    }
+    if (tagged) {
+        evidence.push(['tag', ment.cmp]);
+    }
+    const body = null == response ? commandBodyName(data, mdesc) : null;
+    if (null != body) {
+        evidence.push(['body', body]);
+    }
+    return evidence.map(([source, name]) => [source, (0, utility_2.depluralize)((0, utility_2.canonize)(name))]);
+}
+// Every route whose evidence names something other than the entity the guide
+// gave it, the closest contests first.
+function nearMisses(data, guide) {
+    const chosen = Object.create(null);
+    for (const [entname, entity] of (0, utility_2.sortedEntries)(guide.entity)) {
+        for (const [pathStr, gpath] of (0, utility_2.sortedEntries)(entity.path ?? {})) {
+            for (const op of Object.values(gpath.op ?? {})) {
+                chosen[op.method + ' ' + pathStr] =
+                    { entity: entname, actions: (0, utility_2.sortedKeys)(gpath.action ?? {}) };
+            }
+        }
+    }
+    const entries = [];
+    for (const mdesc of data.work.methods) {
+        const route = mdesc.method + ' ' + mdesc.path;
+        const entity = chosen[route]?.entity;
+        const miss = null == entity ? null :
+            (0, utility_2.nearMiss)(entity, routeEvidence(data, mdesc), chosen[route].actions);
+        if (null != miss) {
+            entries.push({ route, entity, ...miss });
+        }
+    }
+    return entries.sort((a, b) => a.margin - b.margin ||
+        (a.route < b.route ? -1 : a.route > b.route ? 1 : 0));
 }
 // What names a command: its body component, else, when no response component
 // names it either, the object of its operationId.

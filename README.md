@@ -65,7 +65,8 @@ The documentation lives in [`docs/`](./docs/README.md):
 - **Explanation** — [architecture](./docs/explanation/architecture.md) ·
   [classification heuristics](./docs/explanation/classification-heuristics.md) ·
   [the internal model](./docs/explanation/the-internal-model.md) ·
-  [canonical build & parity port](./docs/explanation/canonical-and-parity.md)
+  [canonical build & parity port](./docs/explanation/canonical-and-parity.md) ·
+  [why the guide is rules](./docs/explanation/why-the-guide-is-rules.md)
 
 ## Two implementations
 
