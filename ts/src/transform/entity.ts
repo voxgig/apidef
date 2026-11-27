@@ -233,6 +233,12 @@ function mergeCollectionPaths(
     }
   }
 
+  for (const [pathStr, owner] of Object.entries(owned)) {
+    if (null != owner && owner.item) {
+      withdrawOwnCollectionAction(entities[owner.ename], owner.ename, pathStr)
+    }
+  }
+
   // With no path left it names nothing guide.aontu could switch back on.
   for (const ename of emptied) {
     delete entities[ename]
@@ -490,6 +496,20 @@ function movePath(entity: any, targetEntity: any, pathStr: string) {
 function onlyBeneath(entity: any, root: string): boolean {
   return Object.keys(entity?.path ?? {}).map(guidePath).every((pathStr: string) =>
     root === pathStr || pathStr.startsWith(root + '/'))
+}
+
+
+// A collection literal that is also a verb word, as `/api/upload` over
+// `/api/upload/{upload_id}`, was read as an action named for the entity it
+// keys; it is that entity's collection, so the action is withdrawn.
+function withdrawOwnCollectionAction(entity: any, ename: string, pathStr: string) {
+  const pathDesc = entity?.path?.[pathStr]
+  const last = guidePath(pathStr).split('/').pop() as string
+  if (null == pathDesc?.action?.[ename] || canonize(last) !== ename) {
+    return
+  }
+  delete pathDesc.action[ename]
+  pathDesc.why_path = [...(pathDesc.why_path ?? []), 'own-collection=' + ename]
 }
 
 

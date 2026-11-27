@@ -583,7 +583,10 @@ word (`GadgetsApi`) is dropped, and a trailing verb, or the verb after a
 custom method's colon, names the noun before it whatever it answers with,
 and becomes an action, unless the path's first version segment comes first,
 as in `/api/v3/search`, where the verb names the route; a later version
-segment, as in `/api/v4/packages/conan/v1/ping`, is skipped. A literal opening with a verb word is a verb on the
+segment, as in `/api/v4/packages/conan/v1/ping`, is skipped. Nor does it
+become one where the path is the collection of an item route keyed beneath
+it, as `/api/upload` is beside `/api/upload/{upload_id}`: there the verb
+names the entity and no action. A literal opening with a verb word is a verb on the
 nearest resource up the path, a plural collection of its own between the
 key and the verb or else the key's resource, and the action is named for
 the literals after that resource, the verb in its own spelling. A literal

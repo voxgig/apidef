@@ -648,7 +648,10 @@ from it: `POST /notices/{noticeId}/retract{format}` is `retract` on
 `GET /shops/{owner}/{shop}/{orderNum}`, which answers an `OrderDetail`, so
 `cancel` is an action on `order_detail`. With no item route at the last key,
 the verb acts on the noun before the keys. A verb word followed by a key named for it is a noun:
-`/lines/{lineId}/stop/{stopId}` reads a `stop`.
+`/lines/{lineId}/stop/{stopId}` reads a `stop`. So is a verb word that ends a
+collection path with an item route keyed beneath it: beside
+`/api/upload/{upload_id}`, `POST /api/upload` creates an `upload` and calls no
+action, while `POST /api/thing/{id}/upload` stays the action `upload`.
 
 A literal that opens with a verb word and continues is a verb as well, on
 the nearest resource up the path. `POST /s/{shelf}/lockLendingPolicy`

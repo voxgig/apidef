@@ -70,7 +70,7 @@ func FlowstepTransform(ctx *ApiDefContext) (*TransformResult, error) {
 		if hasCreate {
 			point := plainPoint(createOp)
 			input := map[string]any{"ref": ref01}
-			step := newFlowStep("create", map[string]any{"input": input})
+			step := newFlowStep("create", map[string]any{"input": input}, point)
 			fillCollectionMatch(step, point, input)
 			seedRelatedOpParams(opmap, step)
 			steps = append(steps, step)
@@ -79,13 +79,14 @@ func FlowstepTransform(ctx *ApiDefContext) (*TransformResult, error) {
 		// listStep — gated on list op
 		listOp, hasList := opmap["list"].(map[string]any)
 		if hasList {
+			point := plainPoint(listOp)
 			step := newFlowStep("list", map[string]any{
 				"valid": []any{map[string]any{
 					"apply": "ItemExists",
 					"def":   map[string]any{"ref": ref01},
 				}},
-			})
-			fillCollectionMatch(step, plainPoint(listOp), nil)
+			}, point)
+			fillCollectionMatch(step, point, nil)
 			steps = append(steps, step)
 		}
 
@@ -106,7 +107,7 @@ func FlowstepTransform(ctx *ApiDefContext) (*TransformResult, error) {
 					"apply": "TextFieldMark",
 					"def":   map[string]any{"mark": mark01},
 				}},
-			})
+			}, point)
 			fillStepDataFromParams(step, point, input)
 			steps = append(steps, step)
 		}
@@ -119,13 +120,18 @@ func FlowstepTransform(ctx *ApiDefContext) (*TransformResult, error) {
 				"suffix":     "_dt0",
 				"srcdatavar": ref01 + "_data",
 			}
-			step := newFlowStep("load", map[string]any{
-				"input": input,
-				"valid": []any{map[string]any{
+			// A switched-off update writes no mark for the load to find.
+			valid := []any{}
+			if !stepOff(steps, "update") {
+				valid = append(valid, map[string]any{
 					"apply": "TextFieldMark",
 					"def":   map[string]any{"mark": mark01},
-				}},
-			})
+				})
+			}
+			step := newFlowStep("load", map[string]any{
+				"input": input,
+				"valid": valid,
+			}, point)
 			fillItemMatch(step, point, input, "load", entname)
 			steps = append(steps, step)
 		}
@@ -133,27 +139,31 @@ func FlowstepTransform(ctx *ApiDefContext) (*TransformResult, error) {
 		// removeStep and the post-remove listStep — gated on remove and
 		// create, since a flow removes only what it created
 		if removeOp, ok := opmap["remove"].(map[string]any); ok && hasCreate {
+			created := stepOn(steps, "create")
 			point := plainPoint(removeOp)
 			input := map[string]any{
 				"ref":    ref01,
 				"suffix": "_rm0",
 			}
 			step := newFlowStep("remove", map[string]any{
-				"input": input,
-			})
+				"input":  input,
+				"active": created,
+			}, point)
 			fillItemMatch(step, point, input, "remove", entname)
 			steps = append(steps, step)
 
 			if hasList {
 				listInput := map[string]any{"suffix": "_rt0"}
+				listPoint := plainPoint(listOp)
 				listStep := newFlowStep("list", map[string]any{
 					"input": listInput,
 					"valid": []any{map[string]any{
 						"apply": "ItemNotExists",
 						"def":   map[string]any{"ref": ref01},
 					}},
-				})
-				fillCollectionMatch(listStep, plainPoint(listOp), listInput)
+					"active": stepOn(steps, "remove"),
+				}, listPoint)
+				fillCollectionMatch(listStep, listPoint, listInput)
 				steps = append(steps, listStep)
 			}
 		}
@@ -165,14 +175,17 @@ func FlowstepTransform(ctx *ApiDefContext) (*TransformResult, error) {
 	return &TransformResult{OK: true, Msg: msg}, nil
 }
 
-func newFlowStep(opname string, args map[string]any) map[string]any {
+// newFlowStep mirrors ts/src/transform/flowstep.ts: a basic step moves a JSON
+// record; a point whose request or response body is anything else waits,
+// switched off, for steps that move files.
+func newFlowStep(opname string, args map[string]any, point map[string]any) map[string]any {
 	get := func(k string, def any) any {
 		if v, ok := args[k]; ok && v != nil {
 			return v
 		}
 		return def
 	}
-	return map[string]any{
+	step := map[string]any{
 		"o": opname,
 		"i": get("input", map[string]any{}),
 		"m": get("match", map[string]any{}),
@@ -180,6 +193,38 @@ func newFlowStep(opname string, args map[string]any) map[string]any {
 		"s": get("spec", []any{}),
 		"v": get("valid", []any{}),
 	}
+	if false == args["active"] || !recordPoint(point) {
+		step["a"] = false
+	}
+	return step
+}
+
+func recordPoint(point map[string]any) bool {
+	for _, key := range []string{"rb", "rs"} {
+		if body, ok := point[key].(map[string]any); ok && body["kind"] != "json" {
+			return false
+		}
+	}
+	return true
+}
+
+func flowStepOf(steps []any, opname string) map[string]any {
+	for _, s := range steps {
+		if step, _ := s.(map[string]any); step["o"] == opname {
+			return step
+		}
+	}
+	return nil
+}
+
+func stepOn(steps []any, opname string) bool {
+	step := flowStepOf(steps, opname)
+	return step != nil && step["a"] != false
+}
+
+func stepOff(steps []any, opname string) bool {
+	step := flowStepOf(steps, opname)
+	return step != nil && step["a"] == false
 }
 
 // plainPoint mirrors ts/src/transform/flowstep.ts.
