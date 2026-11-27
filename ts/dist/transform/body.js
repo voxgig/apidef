@@ -525,7 +525,8 @@ function requestMedia(def, method, path) {
     return (requestOffers(def, method, path) ?? []).map((offer) => offer.media);
 }
 // A binary body's declared size bounds: its schema's maxLength, and the maximum
-// of a Content-Length the request or a success response declares beside it.
+// of a Content-Length declared beside it, by the request or by the response
+// that offers it.
 function binaryBounds(def, method, path) {
     const pathdef = def?.paths?.[path];
     const opdef = pathdef?.[String(method).toLowerCase()];
@@ -533,15 +534,19 @@ function binaryBounds(def, method, path) {
         return [];
     }
     const swagger = null != def.swagger;
+    const responses = isMap(opdef.responses) ? opdef.responses : {};
+    const headersOf = (status) => Object.entries(isMap(responses[status]?.headers) ? responses[status].headers : {})
+        .map(([name, header]) => [name, swagger ? header : header?.schema]);
+    const swaggerStatus = (0, utility_1.sortedKeys)(responses).find((code) => SUCCESS_RE.test(code) && null != responses[code]?.schema);
     const sides = [
         [requestOffers(def, method, path) ?? [], (0, utility_1.routeParams)(pathdef, opdef)
                 .filter((param) => isMap(param) && 'header' === param.in)
                 .map((param) => [param.name, swagger ? param : param.schema])],
-        [swagger ? swaggerResponseOffers(def, opdef) : openapiResponseOffers(opdef),
-            (0, utility_1.sortedKeys)(isMap(opdef.responses) ? opdef.responses : {})
-                .filter((status) => SUCCESS_RE.test(status))
-                .flatMap((status) => Object.entries(opdef.responses[status]?.headers ?? {})
-                .map(([name, header]) => [name, swagger ? header : header?.schema]))],
+        ...(swagger ?
+            (null == swaggerStatus ? [] : [[swaggerResponseOffers(def, opdef), headersOf(swaggerStatus)]]) :
+            (0, utility_1.sortedKeys)(responses).filter((status) => SUCCESS_RE.test(status))
+                .map((status) => [openapiResponseOffers({ responses: { [status]: responses[status] } }),
+                headersOf(status)])),
     ];
     const bounds = [];
     for (const [offers, headers] of sides) {

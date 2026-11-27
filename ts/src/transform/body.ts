@@ -685,7 +685,8 @@ function requestMedia(def: any, method: string, path: string): string[] {
 
 
 // A binary body's declared size bounds: its schema's maxLength, and the maximum
-// of a Content-Length the request or a success response declares beside it.
+// of a Content-Length declared beside it, by the request or by the response
+// that offers it.
 function binaryBounds(def: any, method: string, path: string): number[] {
   const pathdef = def?.paths?.[path]
   const opdef = pathdef?.[String(method).toLowerCase()]
@@ -693,15 +694,22 @@ function binaryBounds(def: any, method: string, path: string): number[] {
     return []
   }
   const swagger = null != def.swagger
-  const sides: [Offer[], any[]][] = [
+  const responses = isMap(opdef.responses) ? opdef.responses : {}
+  const headersOf = (status: string): [string, any][] =>
+    Object.entries(isMap(responses[status]?.headers) ? responses[status].headers : {})
+      .map(([name, header]: [string, any]) => [name, swagger ? header : header?.schema])
+  const swaggerStatus = sortedKeys(responses).find((code) =>
+    SUCCESS_RE.test(code) && null != responses[code]?.schema)
+
+  const sides: [Offer[], [string, any][]][] = [
     [requestOffers(def, method, path) ?? [], routeParams(pathdef, opdef)
       .filter((param: any) => isMap(param) && 'header' === param.in)
       .map((param: any) => [param.name, swagger ? param : param.schema])],
-    [swagger ? swaggerResponseOffers(def, opdef) : openapiResponseOffers(opdef),
-      sortedKeys(isMap(opdef.responses) ? opdef.responses : {})
-        .filter((status) => SUCCESS_RE.test(status))
-        .flatMap((status) => Object.entries(opdef.responses[status]?.headers ?? {})
-          .map(([name, header]: [string, any]) => [name, swagger ? header : header?.schema]))],
+    ...(swagger ?
+      (null == swaggerStatus ? [] : [[swaggerResponseOffers(def, opdef), headersOf(swaggerStatus)]]) :
+      sortedKeys(responses).filter((status) => SUCCESS_RE.test(status))
+        .map((status) => [openapiResponseOffers({ responses: { [status]: responses[status] } }),
+          headersOf(status)])) as [Offer[], [string, any][]][],
   ]
   const bounds: number[] = []
   for (const [offers, headers] of sides) {
@@ -710,8 +718,8 @@ function binaryBounds(def: any, method: string, path: string): number[] {
       continue
     }
     bounds.push(...binary.map((offer) => offer.schema?.maxLength))
-    bounds.push(...headers.filter(([name]: [any]) => 'content-length' === String(name).toLowerCase())
-      .map(([, schema]: [any, any]) => schema?.maximum))
+    bounds.push(...headers.filter(([name]) => 'content-length' === String(name).toLowerCase())
+      .map(([, schema]) => schema?.maximum))
   }
   return bounds.filter((bound) => Number.isSafeInteger(bound) && 0 <= bound)
 }

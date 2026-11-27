@@ -1168,7 +1168,8 @@ func requestMedia(def map[string]any, method string, path string) []string {
 }
 
 // binaryBounds mirrors ts/src/transform/body.ts: a binary body's schema
-// maxLength, and the maximum of a Content-Length declared beside it.
+// maxLength, and the maximum of a Content-Length declared beside it, by the
+// request or by the response that offers it.
 func binaryBounds(def map[string]any, method string, path string) []int {
 	paths, _ := def["paths"].(map[string]any)
 	pathdef, _ := paths[path].(map[string]any)
@@ -1184,7 +1185,21 @@ func binaryBounds(def map[string]any, method string, path string) []int {
 		}
 		return hm["schema"]
 	}
+	responses, _ := opdef["responses"].(map[string]any)
+	headersOf := func(status string) [][2]any {
+		response, _ := responses[status].(map[string]any)
+		headers, _ := response["headers"].(map[string]any)
+		out := [][2]any{}
+		for _, name := range sortedKeys(headers) {
+			out = append(out, [2]any{name, headerSchema(headers[name])})
+		}
+		return out
+	}
 
+	type side struct {
+		offers  []bodyOffer
+		headers [][2]any
+	}
 	requestOffered, _ := requestOffers(def, method, path)
 	requestHeaders := [][2]any{}
 	for _, param := range routeParams(pathdef, opdef) {
@@ -1193,31 +1208,26 @@ func binaryBounds(def map[string]any, method string, path string) []int {
 			requestHeaders = append(requestHeaders, [2]any{pm["name"], headerSchema(pm)})
 		}
 	}
-
-	responseOffered := openapiResponseOffers(opdef)
-	if swagger {
-		responseOffered = swaggerResponseOffers(def, opdef)
-	}
-	responseHeaders := [][2]any{}
-	responses, _ := opdef["responses"].(map[string]any)
+	sides := []side{{requestOffered, requestHeaders}}
 	for _, status := range sortedKeys(responses) {
 		if !successRE.MatchString(status) {
 			continue
 		}
-		response, _ := responses[status].(map[string]any)
-		headers, _ := response["headers"].(map[string]any)
-		for _, name := range sortedKeys(headers) {
-			responseHeaders = append(responseHeaders, [2]any{name, headerSchema(headers[name])})
+		if swagger {
+			if response, _ := responses[status].(map[string]any); response["schema"] != nil {
+				sides = append(sides, side{swaggerResponseOffers(def, opdef), headersOf(status)})
+				break
+			}
+			continue
 		}
+		one := map[string]any{"responses": map[string]any{status: responses[status]}}
+		sides = append(sides, side{openapiResponseOffers(one), headersOf(status)})
 	}
 
 	bounds := []int{}
-	for _, side := range []struct {
-		offers  []bodyOffer
-		headers [][2]any
-	}{{requestOffered, requestHeaders}, {responseOffered, responseHeaders}} {
+	for _, s := range sides {
 		binary := false
-		for _, offer := range side.offers {
+		for _, offer := range s.offers {
 			if describeBody(offer)["binary"] != true {
 				continue
 			}
@@ -1230,7 +1240,7 @@ func binaryBounds(def map[string]any, method string, path string) []int {
 		if !binary {
 			continue
 		}
-		for _, header := range side.headers {
+		for _, header := range s.headers {
 			if strings.ToLower(safeStr(header[0])) != "content-length" {
 				continue
 			}
