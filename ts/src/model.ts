@@ -84,6 +84,7 @@ type ModelField = {
 
 // `ex` holds an advertised parameter example or schema default.
 type ModelArg = {
+  a?: boolean
   n: string
   or?: string
   t: any
@@ -196,6 +197,23 @@ type ModelPoint = {
   // false for none, as aontu drops an optional key holding an empty list.
   bf?: string[] | false
   rs?: ModelBody
+  bn?: ModelBinary
+}
+
+
+// What a binary point's slot declares beside its bytes.
+type ModelBinary = {
+  field?: string
+  head?: boolean
+  max?: number
+}
+
+
+type ModelSession = {
+  dialect: string
+  append: string
+  offset?: string
+  slot?: { entity: string, action: string }
 }
 
 
@@ -219,6 +237,7 @@ type ModelEntity = {
     from?: Record<string, string>
   }
   relations: ModelEntityRelations
+  session?: ModelSession
 }
 
 
@@ -287,6 +306,8 @@ export type {
   ModelFieldOp,
   ModelField,
   ModelArg,
+  ModelBinary,
+  ModelSession,
   ModelPoint,
   ModelPage,
   ModelPathSegment,

@@ -163,7 +163,7 @@ const graphqlTransform = async function (ctx) {
                         (hasSuccess ? ' success' : '') + ' }';
                     respath = 'body.data.' + rootfield + '.' + ret.unwrap;
                 }
-                const actionName = Object.keys(gfield?.action ?? {})[0];
+                const actionName = Object.keys((0, utility_1.activeActions)(gfield?.action))[0];
                 const docname = pascal(entname) + pascal(opname) +
                     (null != actionName ? pascal(actionName) : '');
                 mpoint.k = 'graphql';

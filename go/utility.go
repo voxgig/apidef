@@ -243,14 +243,18 @@ func Depluralize(word string) string {
 		return word[:len(word)-2]
 	}
 
-	// A trailing s after a digit is part of a numeronym (k8s), not a plural.
+	// A trailing s after a digit is part of a numeronym (k8s), not a plural,
+	// and a vowelless last word ending in s is an initialism (sms).
 	if strings.HasSuffix(lower, "s") && !strings.HasSuffix(lower, "ss") &&
-		!strings.HasSuffix(lower, "us") && !numeronymRE.MatchString(lower) && len(word) > 3 {
+		!strings.HasSuffix(lower, "us") && !numeronymRE.MatchString(lower) &&
+		!initialismRE.MatchString(lower) && len(word) > 3 {
 		return word[:len(word)-1]
 	}
 
 	return word
 }
+
+var initialismRE = regexp.MustCompile(`(^|[^a-z])[b-df-hj-np-tv-z]{2}s$`)
 
 var (
 	consonantYRE = regexp.MustCompile(`[^aeiou]y$`)
@@ -1285,6 +1289,19 @@ func guideActive(node any) bool {
 		}
 	}
 	return true
+}
+
+// activeActions mirrors ts/src/utility.ts: the entries of a guide path's
+// action map that are switched on.
+func activeActions(actions any) map[string]any {
+	all, _ := actions.(map[string]any)
+	out := map[string]any{}
+	for name, action := range all {
+		if guideActive(action) {
+			out[name] = action
+		}
+	}
+	return out
 }
 
 var authTokenFields = []string{

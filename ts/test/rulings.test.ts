@@ -13,6 +13,7 @@ import assert from 'node:assert'
 import { Pino } from '@voxgig/util'
 
 import { ApiDef } from '../dist/apidef'
+import { activeActions } from '../dist/utility'
 
 
 const DEFDIR = Path.join(__dirname, '..', 'test', 'def')
@@ -63,7 +64,7 @@ function owners(g: any): Record<string, string> {
   for (const [ename, ent] of Object.entries(g.entity) as [string, any][]) {
     for (const [p, gp] of Object.entries(ent.path ?? {}) as [string, any][]) {
       for (const [opname, op] of Object.entries(gp.op ?? {}) as [string, any][]) {
-        const actions = Object.keys(gp.action ?? {}).sort()
+        const actions = Object.keys(activeActions(gp.action)).sort()
         out[op.method + ' ' + p] = ename + ' ' + opname + (0 < actions.length ? ' ' + actions.join(',') : '')
       }
     }
@@ -140,6 +141,7 @@ const RULINGS: { def: string, expect: Record<string, string> }[] = [
       'POST /keys/{keyName}/requestTicket': 'ticket create',
       'GET /account': 'account load',
       'POST /account': 'account create',
+      'POST /devices/v2/add-device': 'add_device create',
     },
   },
   {
@@ -623,6 +625,8 @@ const RULINGS: { def: string, expect: Record<string, string> }[] = [
       'GET /tokens': 'token list',
       'POST /account/2/verify': 'account create verify',
       'POST /tokens/authorize': 'token create authorize',
+      'GET /users/{userId}': 'user load',
+      'PUT /users/{userId}/avatar/pick': 'user update avatar_pick',
     },
   },
   {

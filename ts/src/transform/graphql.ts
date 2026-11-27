@@ -19,7 +19,7 @@ import type {
 
 import { deriveRetShape } from '../guide/graphql01'
 
-import { paramName } from '../utility'
+import { activeActions, paramName } from '../utility'
 
 
 const REL_STUB = '{ id }'
@@ -236,7 +236,7 @@ const graphqlTransform: Transform = async function(
           respath = 'body.data.' + rootfield + '.' + ret.unwrap
         }
 
-        const actionName = Object.keys((gfield as any)?.action ?? {})[0]
+        const actionName = Object.keys(activeActions((gfield as any)?.action))[0]
         const docname = pascal(entname) + pascal(opname) +
           (null != actionName ? pascal(actionName) : '')
 

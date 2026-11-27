@@ -271,8 +271,8 @@ function mergeCommandEntities(guide, log) {
                 ...Object.entries(names).map(([param, rename]) => [param, { ...rename }]),
             ]),
         };
-        if (0 === Object.keys(moved.action ?? {}).length) {
-            moved.action = { [action]: { why_action: ['ent', owner, 'command', ename] } };
+        if (0 === Object.keys((0, utility_1.activeActions)(moved.action)).length) {
+            moved.action = { ...(moved.action ?? {}), [action]: { why_action: ['ent', owner, 'command', ename] } };
         }
         delete entities[ename];
         merged.push(ename);
@@ -304,7 +304,7 @@ function separateSharedPoints(guide, def, log) {
         const reserved = {};
         for (const pathStr of Object.keys(entity.path ?? {}).sort(refcount_1.byCodePoint)) {
             const gpath = entity.path[pathStr];
-            const actions = Object.keys(gpath.action ?? {});
+            const actions = Object.keys((0, utility_1.activeActions)(gpath.action));
             const renames = gpath.rename?.param ?? {};
             const params = (0, utility_1.guideParts)(pathStr).filter(utility_1.isParam).map(utility_1.paramOf)
                 .map((param) => (0, utility_1.canonize)(renames[param]?.target ?? param));
@@ -321,7 +321,7 @@ function separateSharedPoints(guide, def, log) {
             }
         }
         for (const key of Object.keys(groups).sort(refcount_1.byCodePoint)) {
-            const paths = groups[key].filter((pathStr) => 0 === Object.keys(entity.path[pathStr]?.action ?? {}).length);
+            const paths = groups[key].filter((pathStr) => 0 === Object.keys((0, utility_1.activeActions)(entity.path[pathStr]?.action)).length);
             const names = (key) => (0, utility_1.depluralize)((0, jostraca_1.snakify)(literals(key).pop() ?? '')) === ename ? 0 : 1;
             const keys = [...new Set(paths.map(utility_1.selectorPath))].sort((a, b) => names(a) - names(b) || literals(a).length - literals(b).length ||
                 a.length - b.length || (0, refcount_1.byCodePoint)(a, b));
@@ -339,7 +339,8 @@ function separateSharedPoints(guide, def, log) {
                 taken.add(action);
                 for (const pathStr of paths.filter((p) => (0, utility_1.selectorPath)(p) === other)) {
                     entity.path[pathStr].action = {
-                        [action]: { why_action: ['ent', ename, 'shared-selector', plain] }
+                        ...(entity.path[pathStr].action ?? {}),
+                        [action]: { why_action: ['ent', ename, 'shared-selector', plain] },
                     };
                     separated.push(pathStr);
                 }
@@ -406,14 +407,16 @@ function onlyBeneath(entity, root) {
 }
 // A collection literal that is also a verb word, as `/api/upload` over
 // `/api/upload/{upload_id}`, was read as an action named for the entity it
-// keys; it is that entity's collection, so the action is withdrawn.
+// keys; it is that entity's collection, so the action is switched off.
 function withdrawOwnCollectionAction(entity, ename, pathStr) {
     const pathDesc = entity?.path?.[pathStr];
     const last = (0, utility_1.guidePath)(pathStr).split('/').pop();
     if (null == pathDesc?.action?.[ename] || (0, utility_1.canonize)(last) !== ename) {
         return;
     }
-    delete pathDesc.action[ename];
+    pathDesc.action[ename] = {
+        ...pathDesc.action[ename], active: false, why_inactive: 'own-collection',
+    };
     pathDesc.why_path = [...(pathDesc.why_path ?? []), 'own-collection=' + ename];
 }
 // A path of literals only, less any trailing slash, is a collection path.
@@ -451,7 +454,7 @@ function resolvePathList(guideEntity, def) {
             rename,
             method: '', // operation collectOps will copy and assign per op
             op: guidePath.op,
-            action: guidePath.action,
+            action: (0, utility_1.activeActions)(guidePath.action),
             def: def.paths[orig],
         };
         paths$.push(pathdesc);

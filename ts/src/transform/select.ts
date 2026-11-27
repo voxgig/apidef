@@ -7,7 +7,11 @@ import type { TransformResult, Transform } from '../transform'
 
 import { KIT } from '../types'
 
+import { activeActions } from '../utility'
+
 import { arrayCarrier, guideMedia } from './body'
+
+import { applySession, pointBinary } from './file'
 
 import type {
   KitModel,
@@ -37,6 +41,7 @@ const selectTransform: Transform = async function(
   let msg = 'select '
 
   each(kit.entity, (ment: ModelEntity, entname: string) => {
+    applySession(guide, ment)
     each(ment.op, (mop: ModelOp, opname: OpName) => {
       each(mop.points, (mpoint: ModelPoint) => {
         // GraphQL defs have no `paths`; the lookup is only passed through to
@@ -80,7 +85,7 @@ function resolveSelect(
 
   argkinds.map((kind: string) => {
     each(margs[kind], (marg: ModelArg) => {
-      if (!marg.r && (graphql || 'params' !== kind)) {
+      if (false === marg.a || (!marg.r && (graphql || 'params' !== kind))) {
         return
       }
       if (!select.exist.includes(marg.n)) {
@@ -104,11 +109,14 @@ function resolveSelect(
     return
   }
 
-  if (gpath.action) {
-    const actname = Object.keys(gpath.action).sort()[0]
+  const actions = activeActions(gpath.action)
+  const actname = Object.keys(actions).sort()[0]
 
-    if (null != actname) {
-      select.$action = actname
+  if (null != actname) {
+    select.$action = actname
+    const bn = pointBinary(mpoint.m, mpoint.rb, mpoint.rs, actions[actname].binary)
+    if (null != bn) {
+      mpoint.bn = bn
     }
   }
 

@@ -51,6 +51,7 @@ const select_2 = require("../dist/transform/select");
 const body_1 = require("../dist/transform/body");
 const aontu_1 = require("aontu");
 const args_1 = require("../dist/transform/args");
+const file_1 = require("../dist/transform/file");
 const entity_1 = require("../dist/transform/entity");
 const top_2 = require("../dist/transform/top");
 const jostraca_1 = require("jostraca");
@@ -1578,6 +1579,32 @@ function loadTsv(name, dir = SHARED_TSV_DIR) {
                 [point.rb, point.rs].filter((body) => null != body).map((body) => body.kind),
                 [...(point.rb?.fields ?? []), ...(point.rs?.fields ?? [])]
             ]);
+        });
+    }
+});
+(0, node_test_1.describe)('tsv-file-point', () => {
+    const rows = loadTsv('file-point');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(row.name, () => {
+            const def = JSON.parse(row.def);
+            const methods = Object.keys(def.paths[row.path]).map((method) => method.toUpperCase());
+            const guide = (0, file_1.binarySlot)(def, row.path, methods, JSON.parse(row.record), row.action) ?? null;
+            const binary = null == guide ? null : { ...guide, ...JSON.parse(row.author) };
+            const bn = {};
+            for (const method of methods.filter((method) => 'HEAD' !== method)) {
+                bn[method] = (0, file_1.pointBinary)(method, (0, body_1.requestBody)(def, method, row.path), (0, body_1.responseBody)(def, method, row.path), binary) ?? null;
+            }
+            node_assert_1.default.deepStrictEqual({ guide, bn }, JSON.parse(row.expected));
+        });
+    }
+});
+(0, node_test_1.describe)('tsv-session', () => {
+    const rows = loadTsv('session');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(row.name, () => {
+            node_assert_1.default.deepStrictEqual((0, file_1.sessionDialect)(row.method, JSON.parse(row.media), JSON.parse(row.headers)) ?? null, JSON.parse(row.expected));
         });
     }
 });

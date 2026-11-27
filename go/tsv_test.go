@@ -2958,3 +2958,98 @@ func TestBodyGuide(t *testing.T) {
 		})
 	}
 }
+
+// normalJSON round-trips a value so numbers and nils compare as JSON does.
+func normalJSON(t *testing.T, v any) any {
+	t.Helper()
+	data, err := json.Marshal(v)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var out any
+	json.Unmarshal(data, &out)
+	return out
+}
+
+// Mirrors ts/test/tsv.test.ts: tsv-file-point.
+func TestTsvFilePoint(t *testing.T) {
+	rows := loadTsv(t, "file-point")
+	if len(rows) == 0 {
+		t.Fatal("no file-point rows loaded")
+	}
+	for _, row := range rows {
+		t.Run(row["name"], func(t *testing.T) {
+			var def, author map[string]any
+			var record, want any
+			for _, parse := range []struct {
+				src string
+				dst any
+			}{{row["def"], &def}, {row["record"], &record}, {row["author"], &author}, {row["expected"], &want}} {
+				if err := json.Unmarshal([]byte(parse.src), parse.dst); err != nil {
+					t.Fatalf("bad json %q: %v", parse.src, err)
+				}
+			}
+			paths, _ := def["paths"].(map[string]any)
+			pathItem, _ := paths[row["path"]].(map[string]any)
+			methods := []string{}
+			for _, method := range sortedKeys(pathItem) {
+				methods = append(methods, strings.ToUpper(method))
+			}
+			slot := binarySlot(def, row["path"], methods, record, row["action"])
+			var guide any
+			var binary map[string]any
+			if slot != nil {
+				guide = slot
+				binary = map[string]any{}
+				for k, v := range slot {
+					binary[k] = v
+				}
+				for k, v := range author {
+					binary[k] = v
+				}
+			}
+			bn := map[string]any{}
+			for _, method := range methods {
+				if method == "HEAD" {
+					continue
+				}
+				var got any
+				if point := pointBinary(method, requestBody(def, method, row["path"], ""),
+					responseBody(def, method, row["path"], ""), binary); point != nil {
+					got = point
+				}
+				bn[method] = got
+			}
+			got := normalJSON(t, map[string]any{"guide": guide, "bn": bn})
+			if !reflect.DeepEqual(got, want) {
+				t.Errorf("file point\ngot  %s\nwant %s", asJSON(got), asJSON(want))
+			}
+		})
+	}
+}
+
+// Mirrors ts/test/tsv.test.ts: tsv-session.
+func TestTsvSession(t *testing.T) {
+	rows := loadTsv(t, "session")
+	if len(rows) == 0 {
+		t.Fatal("no session rows loaded")
+	}
+	for _, row := range rows {
+		t.Run(row["name"], func(t *testing.T) {
+			var media, headers []string
+			var want any
+			json.Unmarshal([]byte(row["media"]), &media)
+			json.Unmarshal([]byte(row["headers"]), &headers)
+			if err := json.Unmarshal([]byte(row["expected"]), &want); err != nil {
+				t.Fatalf("bad expected %q: %v", row["expected"], err)
+			}
+			var got any
+			if match := sessionDialect(row["method"], media, headers); match != nil {
+				got = match
+			}
+			if got = normalJSON(t, got); !reflect.DeepEqual(got, want) {
+				t.Errorf("session\ngot  %s\nwant %s", asJSON(got), asJSON(want))
+			}
+		})
+	}
+}

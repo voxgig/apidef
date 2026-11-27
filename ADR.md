@@ -273,8 +273,11 @@ the exchange survives into the model as facts on
   are the canonical detection, pinned by `test/auth-exchange.tsv`
   (16 rows, both polarities) through `ts/test/tsv.test.ts`.
 - `guideActive()` is the single reader of `active`, consumed by the
-  entity, path, op and field transforms. A new suppression must route
-  through it rather than filtering a list somewhere.
+  entity, path, op, action and field transforms; a path's actions are read
+  through `activeActions()`, which filters by it, in the guide stage and in
+  the entity, operation, select and GraphQL passes. A file slot's `binary`
+  entry and an entity's `session` are switched by it too. A new suppression
+  must route through it rather than filtering a list somewhere.
 - The guide emitter (`ts/src/guide/guide.ts`) writes `active: *false` —
   the star is not decoration. A plain `active: false` there passes every
   test in this repo and breaks the override in the consumer's project,

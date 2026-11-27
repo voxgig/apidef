@@ -132,3 +132,8 @@ canvas	canvas
 alias	alias
 news	news
 axis	axis
+send_sms	send_sms
+radio_dns	radio_dns
+bulk_mms	bulk_mms
+user_ids	user_id
+app_tags	app_tag

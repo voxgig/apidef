@@ -80,3 +80,4 @@ Docgen
 numeronym
 namespace
 Statuspage(?:'s)?
+tus

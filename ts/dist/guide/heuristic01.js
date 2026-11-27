@@ -70,6 +70,7 @@ const field_1 = require("../transform/field");
 const utility_2 = require("../utility");
 const jostraca_2 = require("jostraca");
 const entity_1 = require("../transform/entity");
+const file_1 = require("../transform/file");
 const refcount_1 = require("../refcount");
 const KONSOLE_LOG = console['log'];
 // Log non - fatal wierdness.
@@ -106,7 +107,7 @@ const VERB_WORDS = new Set([
     'accept', 'decline', 'notify', 'ping', 'count', 'exists', 'preview', 'render', 'generate',
     'calculate', 'compute', 'convert', 'process', 'trigger', 'dispatch', 'apply', 'revoke',
     'grant', 'save', 'lock', 'test', 'inject', 'analyze', 'autocomplete', 'bypass', 'contains',
-    'finish', 'reorder', 'shuffle', 'show', 'award', 'authorize', 'reload',
+    'finish', 'reorder', 'shuffle', 'show', 'award', 'authorize', 'reload', 'pick',
 ]);
 // A bare number is a release or an index, never a noun.
 const NUMBER_PART_RE = /^\d+$/;
@@ -141,6 +142,7 @@ exports.LITERAL_LAST_SHAPES = LITERAL_LAST_SHAPES;
 // Stripped from a command's body component to name the command.
 const COMMAND_SUFFIXES = [
     '_request', '_input', '_payload', '_body', '_params', '_parameters', '_command', '_dto',
+    '_schema',
 ];
 const SCALAR_TYPES = new Set(['string', 'number', 'integer', 'boolean']);
 // The matched part that gives each shape its name.
@@ -202,6 +204,8 @@ async function heuristic01(ctx) {
         nameEntityParams(entity);
     }
     (0, entity_1.separateSharedPoints)(guide, ctx.def, ctx.log);
+    (0, file_1.markFileSlots)(guide, ctx.def, (entity) => cmpSchemaOf(ctx.def, entity.orig));
+    (0, file_1.markSessions)(guide, ctx.def);
     ctx.nearmiss = nearMisses(result.data, guide);
     const metrics = guide.metrics;
     const entities = Object.values(guide.entity);
@@ -2315,7 +2319,7 @@ function nearMisses(data, guide) {
         for (const [pathStr, gpath] of (0, utility_2.sortedEntries)(entity.path ?? {})) {
             for (const op of Object.values(gpath.op ?? {})) {
                 chosen[op.method + ' ' + pathStr] =
-                    { entity: entname, actions: (0, utility_2.sortedKeys)(gpath.action ?? {}) };
+                    { entity: entname, actions: (0, utility_2.sortedKeys)((0, utility_2.activeActions)(gpath.action)) };
             }
         }
     }

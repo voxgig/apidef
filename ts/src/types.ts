@@ -286,8 +286,19 @@ type GuideEntity = {
   // Why the heuristic deactivated it, so guide.aontu reads as a record of a
   // decision rather than an unexplained `active: false`.
   why_inactive?: string
+  session?: GuideSession
   field?: Record<string, GuidePath>
   path: Record<string, GuidePath>
+}
+
+type GuideSession = {
+  active?: boolean
+  why_inactive?: string
+  dialect?: string
+  path?: string
+  append?: string
+  offset?: string
+  slot?: { entity: string, action: string }
 }
 
 type GuidePath = {
@@ -300,8 +311,19 @@ type GuidePath = {
 }
 
 type GuidePathAction = {
-  kind: string
+  kind?: string
+  active?: boolean
+  why_inactive?: string
   why_action: string[]
+  binary?: GuideBinary
+}
+
+type GuideBinary = {
+  active?: boolean
+  why_inactive?: string
+  field?: string | false
+  head?: boolean
+  max?: number | false
 }
 
 type GuideRenameParam = {
@@ -346,6 +368,8 @@ export type {
   GuideEntity,
   GuidePath,
   GuidePathAction,
+  GuideBinary,
+  GuideSession,
   GuideRenameParam,
   GuidePathOp,
   NearMissEntry,

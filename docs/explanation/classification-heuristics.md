@@ -89,8 +89,9 @@ that wildly different spellings collapse onto one canonical identifier:
   so a curated table handles the exceptions (see
   [Customize entity naming](../how-to/customize-entity-naming.md)); a
   trailing `s` after a digit is part of a numeronym, so `k8s` stays `k8s`,
-  and a singular noun that ends in `s` keeps it, as `analysis`, `canvas`
-  and `news` do.
+  a last word of two consonants and an `s` is an initialism, so `send_sms`
+  stays `send_sms`, and a singular noun that ends in `s` keeps it, as
+  `analysis`, `canvas` and `news` do.
 - **guard the first character** — no target language accepts an identifier
   that starts with a digit, so a name that does gets an `n` in front, cased
   to match what follows: `3ds_session` becomes `n3ds_session`, `3DSecure`
@@ -443,10 +444,11 @@ never names one.
 A `POST` addressed to a singular literal that names no component, with no
 item route it could be a verb on and none beneath it to be a collection, is
 a command, and its request body component names it with its affixes
-stripped. `POST /#Action=StartSession` sends a `StartSessionRequest` and
-is `start_session`; `POST /keys/{keyName}/requestTicket` sends a
-`TicketRequest` and is `ticket`. The literal names only when the body is no
-component, or no object, such as an upload. A path whose read answers with
+stripped. `POST /keys/{keyName}/requestTicket` sends a `TicketRequest` and
+is `ticket`, and a trailing `Schema` goes with the affix, so a
+`POST /devices/v2/add-device` that sends an `AddDeviceRequestSchema` is
+`add_device`. The literal names only when the body is no component, or no
+object, such as an upload. A path whose read answers with
 a record keeps the literal: `POST /account` beside a `GET /account` that
 answers an `Account` is the account's `create`.
 
@@ -654,7 +656,8 @@ the verb acts on the noun before the keys. A verb word followed by a key named f
 `/lines/{lineId}/stop/{stopId}` reads a `stop`. So is a verb word that ends a
 collection path with an item route keyed beneath it: beside
 `/api/upload/{upload_id}`, `POST /api/upload` creates an `upload` and calls no
-action, while `POST /api/thing/{id}/upload` stays the action `upload`.
+action, while `POST /api/thing/{id}/upload` stays the action `upload`. The
+guide still names the action, switched off, so `active: true` there calls it.
 
 A literal that opens with a verb word and continues is a verb as well, on
 the nearest resource up the path. `POST /s/{shelf}/lockLendingPolicy`
@@ -888,6 +891,25 @@ silently. Each classification carries a `why_*` array (`why_path`, `why_op`,
 emitted into `base-guide.aontu`, which means a person (or an agent) can **read
 why apidef decided something and override it** in `guide.aontu` rather than
 fighting an opaque black box.
+
+## Files and sessions
+
+A route that moves bytes is classified like any other: a binary download
+beneath an item key is the item's `load` with an action, and an upload to it
+the item's `update`. What the heuristic adds is metadata. An action whose
+route sends or answers bytes is a file slot, and its guide entry records the
+entity field that describes the file, whether a `HEAD` is declared on the
+route, and the size bound the definition gives. A `HEAD` itself never
+becomes an operation, and is known only through that fact. Where bytes are
+only an alternative to a JSON body the route prefers, the slot is written
+switched off.
+
+An upload session is an entity too: its `create` opens it, its `load` reads
+it, and a `PATCH` appends. The heuristic recognises the append by two
+signals together, the media type and a header argument of one dialect, and
+marks the entity a session. One signal alone writes the session switched
+off. On a session's append the dialect's own headers stop being the
+caller's arguments, since the runtime that speaks the dialect sends them.
 
 ## When the guess is wrong
 

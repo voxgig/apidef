@@ -7,6 +7,7 @@ declare function guideMedia(guide: any, entname: string, opname: string, mpoint:
 };
 declare function requestBody(def: any, method: string, path: string, media?: string): ModelBody | undefined;
 declare function responseBody(def: any, method: string, path: string, media?: string): ModelBody | undefined;
+declare function binarySchema(schema: any): boolean;
 declare function requestSchema(def: any, method: string, path: string, media?: string): any;
 declare function selectedRequestSchema(def: any, method: string, path: string, media?: string): any;
 declare function requestFieldSchema(def: any, mpoint: ModelPoint, media?: string): any;
@@ -21,4 +22,6 @@ declare function arrayCarrier(def: any, mpoint: ModelPoint, media?: string): {
 } | undefined;
 declare function requestDecl(def: any, method: string, path: string): any;
 declare function sameType(a: any, b: any): boolean;
-export { bodyTransform, bodyFields, guideMedia, requestBody, responseBody, requestSchema, arrayRequestSchema, arrayCarrier, requestDecl, requestFieldSchema, nullableType, sameType, selectedRequestSchema, };
+declare function requestMedia(def: any, method: string, path: string): string[];
+declare function binaryBounds(def: any, method: string, path: string): number[];
+export { binaryBounds, binarySchema, requestMedia, bodyTransform, bodyFields, guideMedia, requestBody, responseBody, requestSchema, arrayRequestSchema, arrayCarrier, requestDecl, requestFieldSchema, nullableType, sameType, selectedRequestSchema, };

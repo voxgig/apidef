@@ -21,6 +21,7 @@ guide
 |-------|------|---------|
 | `name` | `string` | canonical entity name (singular) |
 | `orig` | `string` | original source name/component it derived from |
+| `session` | `GuideSession?` | present when the entity is a [transfer session](#transfer-sessions) |
 | `path` | `{ [pathStr]: GuidePath }` | the source paths assigned to this entity |
 
 ### `GuidePath`
@@ -28,9 +29,22 @@ guide
 | field | type | meaning |
 |-------|------|---------|
 | `why_path` | `string[]` | trace of why this path joined this entity |
-| `action` | `{ [name]: {} }` | present when the path is an entity *action* |
+| `action` | `{ [name]: GuidePathAction }` | present when the path is an entity *action* |
 | `rename.param` | `{ [orig]: target }` | parameter renames (e.g. `moon_id` → `id`) |
 | `op` | `{ [opname]: GuidePathOp }` | operations this path/method produces |
+
+### `GuidePathAction`
+
+| field | type | meaning |
+|-------|------|---------|
+| `active` | `boolean?` | `false` switches the action off: its points carry no `$action` |
+| `binary` | `object?` | the [file slot](#file-slots) the action's binary points describe |
+
+The heuristic writes an action it rejects as `active: *false`, with a comment
+saying why, rather than leaving it out, so `active: true` in `guide.aontu`
+switches it back on. A collection named for a verb, such as `/api/upload`
+beside `/api/upload/{upload_id}`, is one: its action is written switched off,
+and `POST /api/upload` is the entity's plain `create`.
 
 ### `GuidePathOp`
 
@@ -899,6 +913,9 @@ so your concrete value wins. The shapes you can correct:
 # Switch off an entity the heuristic invented.
 guide: entity: pull_request_merge_result: active: false
 
+# Call a collection named for a verb as an action after all.
+guide: entity: upload: path: "/api/upload": action: upload: active: true
+
 # Fold a verb onto its entity as an action, selected at call time with
 # `$action`, and address it by the same key as the entity's item path.
 guide: entity: pull: path: "/repos/{owner}/{repo}/pulls/{pull_number}/merge": {
@@ -918,6 +935,56 @@ guide: entity: avatar: path: "/avatars/{avatar_id}": op: load: response: media: 
 # record untyped. A dotted path, such as `owner.login`, is kept as `from`.
 guide: entity: issue: id: from: id: "key"
 ```
+
+### File slots
+
+An action whose route sends or answers bytes is a file slot, and its entry
+holds a `binary` map. Each fact is written as an aontu default, so a value in
+`guide.aontu` replaces it, and `false` refuses it:
+
+| field | type | meaning |
+|-------|------|---------|
+| `active` | `boolean?` | `false` gives the action's points no `bn` |
+| `field` | `string` or `false` | the entity field that describes the file |
+| `head` | `boolean?` | whether a `HEAD` is declared on the route |
+| `max` | `number` or `false` | the largest size in bytes the file may have |
+
+A route whose preferred bodies are not bytes, but where bytes are one of the
+media types offered, gets a slot written `active: *false`. Its points gain
+`bn` only once the slot is switched on and a `response.media` or `body.media`
+correction picks the binary media type. The model's `bn` lists what each
+fact means and where its default comes from.
+
+```jsonic
+guide: entity: track: path: "/tracks/{track_id}/audio": action: audio: binary: {
+  field: "audio_info"
+  max: 1048576
+}
+```
+
+### Transfer sessions
+
+An entity whose `PATCH` speaks a resumable upload dialect carries a
+`session` map, every value an aontu default:
+
+| field | type | meaning |
+|-------|------|---------|
+| `active` | `boolean?` | `false` makes the entity an ordinary one again |
+| `dialect` | `string` | `tus` or `ietf` |
+| `path` | `string` | the route of the append |
+| `append` | `string` | the guide operation on that route that appends |
+| `offset` | `string?` | the guide operation on that route that reads the record |
+| `slot` | `{ entity, action }?` | the file slot the session fills; never written by the heuristic |
+
+A `PATCH` whose media type names a dialect, but which lacks the header that
+confirms it, gets a session written `active: *false`. No definition can say
+which file a session uploads, so `slot` is for `guide.aontu` alone:
+
+```jsonic
+guide: entity: upload: session: slot: { entity: "episode", action: "audio" }
+```
+
+The model's `session` lists the dialects and the headers each one sends.
 
 ### Covering a subset of a large API
 

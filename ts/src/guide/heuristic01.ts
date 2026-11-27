@@ -50,6 +50,7 @@ import type {
 
 
 import {
+  activeActions,
   canonize,
   canonizeCmpName,
   canonizeParam,
@@ -87,6 +88,8 @@ import { snakify } from 'jostraca'
 import {
   mergeCollectionPaths, mergeCommandEntities, mergeFoldedEntities, separateSharedPoints,
 } from '../transform/entity'
+
+import { markFileSlots, markSessions } from '../transform/file'
 
 import { byCodePoint, countRefs, satAdd } from '../refcount'
 
@@ -138,7 +141,7 @@ const VERB_WORDS = new Set([
   'accept', 'decline', 'notify', 'ping', 'count', 'exists', 'preview', 'render', 'generate',
   'calculate', 'compute', 'convert', 'process', 'trigger', 'dispatch', 'apply', 'revoke',
   'grant', 'save', 'lock', 'test', 'inject', 'analyze', 'autocomplete', 'bypass', 'contains',
-  'finish', 'reorder', 'shuffle', 'show', 'award', 'authorize', 'reload',
+  'finish', 'reorder', 'shuffle', 'show', 'award', 'authorize', 'reload', 'pick',
 ])
 
 // A bare number is a release or an index, never a noun.
@@ -183,6 +186,7 @@ const LITERAL_LAST_SHAPES = ['t/p/t/', 't/', 'p/t/']
 // Stripped from a command's body component to name the command.
 const COMMAND_SUFFIXES = [
   '_request', '_input', '_payload', '_body', '_params', '_parameters', '_command', '_dto',
+  '_schema',
 ]
 
 const SCALAR_TYPES = new Set(['string', 'number', 'integer', 'boolean'])
@@ -263,6 +267,9 @@ async function heuristic01(ctx: ApiDefContext): Promise<Guide> {
   }
 
   separateSharedPoints(guide, ctx.def, ctx.log)
+
+  markFileSlots(guide, ctx.def, (entity: GuideEntity) => cmpSchemaOf(ctx.def, entity.orig))
+  markSessions(guide, ctx.def)
 
   ctx.nearmiss = nearMisses(result.data, guide)
 
@@ -2928,7 +2935,7 @@ function nearMisses(data: { def: any, guide: any, work: any }, guide: Guide): Ne
     for (const [pathStr, gpath] of sortedEntries(entity.path ?? {}) as [string, any][]) {
       for (const op of Object.values(gpath.op ?? {}) as any[]) {
         chosen[op.method + ' ' + pathStr] =
-          { entity: entname, actions: sortedKeys(gpath.action ?? {}) }
+          { entity: entname, actions: sortedKeys(activeActions(gpath.action)) }
       }
     }
   }

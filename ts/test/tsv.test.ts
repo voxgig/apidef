@@ -73,6 +73,7 @@ import type {
 } from '../dist/apidef'
 import { Aontu } from 'aontu'
 import { argsTransform, resolveArgExample } from '../dist/transform/args'
+import { binarySlot, pointBinary, sessionDialect } from '../dist/transform/file'
 import { buildRelations, resolvePathList } from '../dist/transform/entity'
 import {
   resolveSecurity, findAuthPrefix, topTransform, resolveSummary, resolveWebsite,
@@ -1921,6 +1922,39 @@ describe('tsv-point-body', () => {
       assert.deepStrictEqual([kinds, fields], [
         [point.rb, point.rs].filter((body) => null != body).map((body) => body!.kind),
         [...(point.rb?.fields ?? []), ...(point.rs?.fields ?? [])]])
+    })
+  }
+})
+
+
+describe('tsv-file-point', () => {
+  const rows = loadTsv('file-point')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(row.name, () => {
+      const def = JSON.parse(row.def)
+      const methods = Object.keys(def.paths[row.path]).map((method) => method.toUpperCase())
+      const guide = binarySlot(def, row.path, methods, JSON.parse(row.record), row.action) ?? null
+      const binary = null == guide ? null : { ...guide, ...JSON.parse(row.author) }
+      const bn: Record<string, any> = {}
+      for (const method of methods.filter((method) => 'HEAD' !== method)) {
+        bn[method] = pointBinary(method, requestBody(def, method, row.path),
+          responseBody(def, method, row.path), binary) ?? null
+      }
+      assert.deepStrictEqual({ guide, bn }, JSON.parse(row.expected))
+    })
+  }
+})
+
+
+describe('tsv-session', () => {
+  const rows = loadTsv('session')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(row.name, () => {
+      assert.deepStrictEqual(
+        sessionDialect(row.method, JSON.parse(row.media), JSON.parse(row.headers)) ?? null,
+        JSON.parse(row.expected))
     })
   }
 })

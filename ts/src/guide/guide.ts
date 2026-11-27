@@ -21,6 +21,8 @@ import {
   GuideEntity,
   GuidePath,
   GuidePathAction,
+  GuideBinary,
+  GuideSession,
   GuideRenameParam,
   GuidePathOp,
 } from '../types'
@@ -373,9 +375,17 @@ async function buildBaseGuide(ctx: ApiDefContext) {
 
       if (!isempty(path.action)) {
         items(path.action).map(([actname, actdesc]: [string, GuidePathAction]) => {
-          guideBlocks.push(`      action: ${qs(actname)}: {}` +
-            sw(0 < actdesc.why_action.length ?
-              '  # ' + actdesc.why_action.join(';') : ''))
+          const why = sw(0 < (actdesc.why_action ?? []).length ?
+            '  # ' + actdesc.why_action.join(';') : '')
+          if (false === actdesc.active) {
+            guideBlocks.push(`      # Switched off by the heuristic (${actdesc.why_inactive}). Set` +
+              ' `active: true` on it in guide.aontu to send it as an action.')
+            guideBlocks.push(`      action: ${qs(actname)}: active: *false` + why)
+          }
+          else {
+            guideBlocks.push(`      action: ${qs(actname)}: {}` + why)
+          }
+          guideBlocks.push(...binaryLines(`      action: ${qs(actname)}: binary: `, actdesc.binary))
         })
       }
 
@@ -426,6 +436,8 @@ async function buildBaseGuide(ctx: ApiDefContext) {
       guideBlocks.push(`    active: *false`)
     }
 
+    guideBlocks.push(...sessionLines((entity as any).session))
+
     // NOTE: items(...) sorts the entries, so output is deterministic.
     items(entity.path).map(([pathstr, path]: [string, GuidePath]) =>
       emitEntry('path', entname, entity, pathstr, path))
@@ -448,6 +460,49 @@ async function buildBaseGuide(ctx: ApiDefContext) {
   const basepath = Path.join(guidefolder, guideprefix + 'base-guide.aontu')
   ctx.fs.writeFileSync(basepath, guideSrc)
   removeLegacyAon(ctx.fs, ctx.log, basepath)
+}
+
+
+// A fact refused in guide.aontu reads false, so a default yields to it.
+function binaryLines(prefix: string, binary: GuideBinary | undefined): string[] {
+  if (null == binary) {
+    return []
+  }
+  const lines: string[] = []
+  if (false === binary.active) {
+    lines.push(`      # Not a file slot by the heuristic (${binary.why_inactive}). Set` +
+      ' `binary: active: true` here in guide.aontu to make it one.')
+    lines.push(prefix + 'active: *false')
+  }
+  if ('string' === typeof binary.field) {
+    lines.push(prefix + 'field: *' + JSON.stringify(binary.field) + '|top')
+  }
+  if (true === binary.head) {
+    lines.push(prefix + 'head: *true')
+  }
+  if ('number' === typeof binary.max) {
+    lines.push(prefix + 'max: *' + binary.max + '|top')
+  }
+  return 0 < lines.length ? lines : [prefix + '{}']
+}
+
+
+function sessionLines(session: GuideSession | undefined): string[] {
+  if (null == session) {
+    return []
+  }
+  const lines: string[] = []
+  if (false === session.active) {
+    lines.push(`    # Not a transfer session by the heuristic (${session.why_inactive}). Set` +
+      ' `session: active: true` here in guide.aontu to make it one.')
+    lines.push('    session: active: *false')
+  }
+  for (const key of ['dialect', 'path', 'append', 'offset'] as const) {
+    if ('string' === typeof session[key]) {
+      lines.push(`    session: ${key}: *` + JSON.stringify(session[key]))
+    }
+  }
+  return lines
 }
 
 

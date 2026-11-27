@@ -250,9 +250,17 @@ async function buildBaseGuide(ctx) {
                         path.why_path.join(';') : ''));
             if (!(0, struct_1.isempty)(path.action)) {
                 (0, struct_1.items)(path.action).map(([actname, actdesc]) => {
-                    guideBlocks.push(`      action: ${qs(actname)}: {}` +
-                        sw(0 < actdesc.why_action.length ?
-                            '  # ' + actdesc.why_action.join(';') : ''));
+                    const why = sw(0 < (actdesc.why_action ?? []).length ?
+                        '  # ' + actdesc.why_action.join(';') : '');
+                    if (false === actdesc.active) {
+                        guideBlocks.push(`      # Switched off by the heuristic (${actdesc.why_inactive}). Set` +
+                            ' `active: true` on it in guide.aontu to send it as an action.');
+                        guideBlocks.push(`      action: ${qs(actname)}: active: *false` + why);
+                    }
+                    else {
+                        guideBlocks.push(`      action: ${qs(actname)}: {}` + why);
+                    }
+                    guideBlocks.push(...binaryLines(`      action: ${qs(actname)}: binary: `, actdesc.binary));
                 });
             }
             if (!(0, struct_1.isempty)(path.rename?.param)) {
@@ -295,6 +303,7 @@ async function buildBaseGuide(ctx) {
                 ` \`active: true\` here in guide.aontu to generate it as an entity.`);
             guideBlocks.push(`    active: *false`);
         }
+        guideBlocks.push(...sessionLines(entity.session));
         // NOTE: items(...) sorts the entries, so output is deterministic.
         (0, struct_1.items)(entity.path).map(([pathstr, path]) => emitEntry('path', entname, entity, pathstr, path));
         (0, struct_1.items)(entity.field).map(([fieldstr, path]) => emitEntry('field', entname, entity, fieldstr, path));
@@ -308,6 +317,45 @@ async function buildBaseGuide(ctx) {
     const basepath = node_path_1.default.join(guidefolder, guideprefix + 'base-guide.aontu');
     ctx.fs.writeFileSync(basepath, guideSrc);
     (0, utility_1.removeLegacyAon)(ctx.fs, ctx.log, basepath);
+}
+// A fact refused in guide.aontu reads false, so a default yields to it.
+function binaryLines(prefix, binary) {
+    if (null == binary) {
+        return [];
+    }
+    const lines = [];
+    if (false === binary.active) {
+        lines.push(`      # Not a file slot by the heuristic (${binary.why_inactive}). Set` +
+            ' `binary: active: true` here in guide.aontu to make it one.');
+        lines.push(prefix + 'active: *false');
+    }
+    if ('string' === typeof binary.field) {
+        lines.push(prefix + 'field: *' + JSON.stringify(binary.field) + '|top');
+    }
+    if (true === binary.head) {
+        lines.push(prefix + 'head: *true');
+    }
+    if ('number' === typeof binary.max) {
+        lines.push(prefix + 'max: *' + binary.max + '|top');
+    }
+    return 0 < lines.length ? lines : [prefix + '{}'];
+}
+function sessionLines(session) {
+    if (null == session) {
+        return [];
+    }
+    const lines = [];
+    if (false === session.active) {
+        lines.push(`    # Not a transfer session by the heuristic (${session.why_inactive}). Set` +
+            ' `session: active: true` here in guide.aontu to make it one.');
+        lines.push('    session: active: *false');
+    }
+    for (const key of ['dialect', 'path', 'append', 'offset']) {
+        if ('string' === typeof session[key]) {
+            lines.push(`    session: ${key}: *` + JSON.stringify(session[key]));
+        }
+    }
+    return lines;
 }
 // The entry file a project writes once and owns; the CLI prints it.
 function guideEntrySource(guideprefix) {
