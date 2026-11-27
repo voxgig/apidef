@@ -126,6 +126,9 @@ func TestTsvFlowStep(t *testing.T) {
 			for _, s := range steps {
 				step := s.(map[string]any)
 				shown := map[string]any{"o": step["o"]}
+				if false == step["a"] {
+					shown["a"] = false
+				}
 				if m := step["m"].(map[string]any); len(m) > 0 {
 					shown["m"] = m
 				}
@@ -134,6 +137,9 @@ func TestTsvFlowStep(t *testing.T) {
 				}
 				if tf, ok := step["i"].(map[string]any)["textfield"]; ok {
 					shown["tf"] = tf
+				}
+				if step["o"] == "load" && !hasTextFieldMark(step["v"]) {
+					shown["mark"] = false
 				}
 				got = append(got, shown)
 			}
@@ -238,5 +244,20 @@ func flowTestPoint(spec any) map[string]any {
 	if action, ok := desc["action"].(string); ok {
 		point["q"] = map[string]any{"exist": []any{}, "$action": action}
 	}
+	for _, key := range []string{"rb", "rs"} {
+		if kind, ok := desc[key].(string); ok {
+			point[key] = map[string]any{"kind": kind}
+		}
+	}
 	return point
+}
+
+func hasTextFieldMark(valid any) bool {
+	list, _ := valid.([]any)
+	for _, v := range list {
+		if m, _ := v.(map[string]any); m["apply"] == "TextFieldMark" {
+			return true
+		}
+	}
+	return false
 }

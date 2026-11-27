@@ -171,6 +171,11 @@ function mergeCollectionPaths(guide, log, recordRef, distinct) {
             emptied.push(ename);
         }
     }
+    for (const [pathStr, owner] of Object.entries(owned)) {
+        if (null != owner && owner.item) {
+            withdrawOwnCollectionAction(entities[owner.ename], owner.ename, pathStr);
+        }
+    }
     // With no path left it names nothing guide.aontu could switch back on.
     for (const ename of emptied) {
         delete entities[ename];
@@ -398,6 +403,18 @@ function movePath(entity, targetEntity, pathStr) {
 }
 function onlyBeneath(entity, root) {
     return Object.keys(entity?.path ?? {}).map(utility_1.guidePath).every((pathStr) => root === pathStr || pathStr.startsWith(root + '/'));
+}
+// A collection literal that is also a verb word, as `/api/upload` over
+// `/api/upload/{upload_id}`, was read as an action named for the entity it
+// keys; it is that entity's collection, so the action is withdrawn.
+function withdrawOwnCollectionAction(entity, ename, pathStr) {
+    const pathDesc = entity?.path?.[pathStr];
+    const last = (0, utility_1.guidePath)(pathStr).split('/').pop();
+    if (null == pathDesc?.action?.[ename] || (0, utility_1.canonize)(last) !== ename) {
+        return;
+    }
+    delete pathDesc.action[ename];
+    pathDesc.why_path = [...(pathDesc.why_path ?? []), 'own-collection=' + ename];
 }
 // A path of literals only, less any trailing slash, is a collection path.
 function collectionRoot(pathStr) {

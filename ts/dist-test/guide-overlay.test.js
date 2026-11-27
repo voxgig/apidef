@@ -52,21 +52,21 @@ const HEAD = [
     '',
 ].join('\n');
 const staged = [];
-function stage(entry, name = PREFIX + 'guide.aontu') {
+function stage(entry, name = PREFIX + 'guide.aontu', def = DEF) {
     const dir = Fs.mkdtempSync(Path.join(Os.tmpdir(), 'apidef-overlay-'));
     staged.push(dir);
     const folder = Path.join(dir, 'model');
     Fs.mkdirSync(Path.join(folder, 'guide'), { recursive: true });
     Fs.mkdirSync(Path.join(dir, 'def'));
-    Fs.copyFileSync(Path.join(__dirname, '..', 'test', 'def', DEF), Path.join(dir, 'def', DEF));
+    Fs.copyFileSync(Path.join(__dirname, '..', 'test', 'def', def), Path.join(dir, 'def', def));
     if (null != entry) {
         Fs.writeFileSync(Path.join(folder, 'guide', name), entry);
     }
     return folder;
 }
-async function run(folder, log) {
+async function run(folder, log, def = DEF) {
     const build = await apidef_1.ApiDef.makeBuild({ folder, outprefix: PREFIX });
-    return build({ name: 'solar', def: DEF }, {
+    return build({ name: 'solar', def }, {
         log,
         spec: {
             base: folder,
@@ -100,6 +100,19 @@ async function run(folder, log) {
         node_assert_1.default.strictEqual(bres.guide.entity.moon.active, false);
         node_assert_1.default.deepStrictEqual(Object.keys(bres.apimodel.main.kit.entity), ['planet']);
         node_assert_1.default.deepStrictEqual(Object.keys(bres.apimodel.main.kit.entity.planet.op).sort(), ['create', 'list', 'load', 'update']);
+    });
+    (0, node_test_1.test)('withdrawn-action-redeclared', async () => {
+        const def = 'verb-word-def.json';
+        const actions = async (entry) => {
+            const bres = await run(stage(HEAD + entry, undefined, def), undefined, def);
+            node_assert_1.default.strictEqual(bres.ok, true, String(bres.err?.message));
+            const points = Object.values(bres.apimodel.main.kit.entity.export.op)
+                .flatMap((op) => op.points).filter((point) => '/api/export' === point.o);
+            node_assert_1.default.strictEqual(points.length, 2);
+            return points.map((point) => point.q?.$action ?? null);
+        };
+        node_assert_1.default.deepStrictEqual(await actions('guide: {}\n'), [null, null]);
+        node_assert_1.default.deepStrictEqual(await actions('guide: entity: export: path: "/api/export": action: "export": {}\n'), ['export', 'export']);
     });
     (0, node_test_1.test)('id-correction-reaches-guide', async () => {
         const bres = await run(stage(HEAD + [

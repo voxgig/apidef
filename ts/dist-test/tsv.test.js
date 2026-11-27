@@ -1612,7 +1612,7 @@ function permutations(items) {
 // A point from its route: the placeholders are its params, in the order the
 // model sorts them, unless the row lists them.
 function flowPoint(spec) {
-    const { path, params, rename, action } = 'string' === typeof spec ? { path: spec } : spec;
+    const { path, params, rename, action, rb, rs } = 'string' === typeof spec ? { path: spec } : spec;
     const s = path.split('/').filter((part) => '' !== part).map((part) => part.startsWith('{') ? { var: part.slice(1, -1) } : { lit: part });
     const names = params ?? s.filter((seg) => null != seg.var).map((seg) => seg.var).sort();
     return {
@@ -1620,6 +1620,8 @@ function flowPoint(spec) {
         g: { params: names.map((n) => ({ n, k: 'param', r: true, t: '`$STRING`' })) },
         ...(null == rename ? {} : { r: { param: rename } }),
         ...(null == action ? {} : { q: { exist: [], $action: action } }),
+        ...(null == rb ? {} : { rb: { kind: rb } }),
+        ...(null == rs ? {} : { rs: { kind: rs } }),
     };
 }
 (0, node_test_1.describe)('tsv-flow-step', () => {
@@ -1640,10 +1642,13 @@ function flowPoint(spec) {
                 log: { debug: () => undefined },
             });
             node_assert_1.default.deepStrictEqual(flow.step.map((step) => ({
+                ...(false === step.a ? { a: false } : {}),
                 o: step.o,
                 ...(0 < Object.keys(step.m).length ? { m: step.m } : {}),
                 ...(0 < Object.keys(step.d).length ? { d: step.d } : {}),
                 ...(null == step.i.textfield ? {} : { tf: step.i.textfield }),
+                ...('load' === step.o && !step.v.some((v) => 'TextFieldMark' === v.apply) ?
+                    { mark: false } : {}),
             })), JSON.parse(row.expected));
         });
     }

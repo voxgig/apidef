@@ -517,6 +517,11 @@ const RULINGS = [
             'POST /queues/{queueId}/shuffle': 'queue create shuffle',
             'GET /uploads/{uploadId}': 'upload load',
             'POST /uploads/{uploadId}/finish': 'upload create finish',
+            'GET /api/export': 'export list',
+            'POST /api/export': 'export create',
+            'GET /api/export/{exportId}': 'export load',
+            'POST /api/export/{exportId}/upload': 'export create upload',
+            'POST /books/upload': 'book create upload',
         },
     },
     {
