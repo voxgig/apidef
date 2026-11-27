@@ -667,6 +667,9 @@ func buildGuideSource(ctx *ApiDefContext, baseguide map[string]any) string {
 				"    active: *false")
 		}
 
+		session, _ := ent["session"].(map[string]any)
+		blocks = append(blocks, sessionLines(session)...)
+
 		paths, _ := ent["path"].(map[string]any)
 		pathnames := sortedKeys(paths)
 		for _, pathstr := range pathnames {
@@ -680,7 +683,17 @@ func buildGuideSource(ctx *ApiDefContext, baseguide map[string]any) string {
 			if action, ok := path["action"].(map[string]any); ok && len(action) > 0 {
 				actionNames := sortedKeys(action)
 				for _, actname := range actionNames {
-					blocks = append(blocks, "      action: "+guideJSON(actname)+": {}")
+					actdesc, _ := action[actname].(map[string]any)
+					if actdesc["active"] == false {
+						blocks = append(blocks,
+							"      # Switched off by the heuristic ("+safeStr(actdesc["why_inactive"])+"). Set"+
+								" `active: true` on it in guide.aontu to send it as an action.",
+							"      action: "+guideJSON(actname)+": active: *false")
+					} else {
+						blocks = append(blocks, "      action: "+guideJSON(actname)+": {}")
+					}
+					binary, _ := actdesc["binary"].(map[string]any)
+					blocks = append(blocks, binaryLines("      action: "+guideJSON(actname)+": binary: ", binary)...)
 				}
 			}
 
@@ -741,6 +754,53 @@ func buildGuideSource(ctx *ApiDefContext, baseguide map[string]any) string {
 
 	blocks = append(blocks, "", "}")
 	return strings.Join(blocks, "\n")
+}
+
+// binaryLines mirrors ts/src/guide/guide.ts.
+func binaryLines(prefix string, binary map[string]any) []string {
+	if binary == nil {
+		return nil
+	}
+	lines := []string{}
+	if binary["active"] == false {
+		lines = append(lines,
+			"      # Not a file slot by the heuristic ("+safeStr(binary["why_inactive"])+"). Set"+
+				" `binary: active: true` here in guide.aontu to make it one.",
+			prefix+"active: *false")
+	}
+	if field, ok := binary["field"].(string); ok {
+		lines = append(lines, prefix+"field: *"+guideJSON(field)+"|top")
+	}
+	if binary["head"] == true {
+		lines = append(lines, prefix+"head: *true")
+	}
+	if max, ok := binary["max"].(int); ok {
+		lines = append(lines, prefix+"max: *"+strconv.Itoa(max)+"|top")
+	}
+	if len(lines) == 0 {
+		return []string{prefix + "{}"}
+	}
+	return lines
+}
+
+// sessionLines mirrors ts/src/guide/guide.ts.
+func sessionLines(session map[string]any) []string {
+	if session == nil {
+		return nil
+	}
+	lines := []string{}
+	if session["active"] == false {
+		lines = append(lines,
+			"    # Not a transfer session by the heuristic ("+safeStr(session["why_inactive"])+"). Set"+
+				" `session: active: true` here in guide.aontu to make it one.",
+			"    session: active: *false")
+	}
+	for _, key := range []string{"dialect", "path", "append", "offset"} {
+		if value, ok := session[key].(string); ok {
+			lines = append(lines, "    session: "+key+": *"+guideJSON(value))
+		}
+	}
+	return lines
 }
 
 // heuristic01 is the primary heuristic for extracting entities from OpenAPI paths.
@@ -943,6 +1003,11 @@ func heuristic01(ctx *ApiDefContext) (map[string]any, error) {
 
 	separateSharedPoints(guide, def)
 
+	markFileSlots(guide, def, func(entity map[string]any) any {
+		return cmpSchemaOf(data, safeStr(entity["orig"]))
+	})
+	markSessions(guide, def)
+
 	ctx.NearMiss = nearMisses(data, guide)
 
 	return guide, nil
@@ -996,7 +1061,7 @@ func nearMisses(data map[string]any, guide map[string]any) []NearMissEntry {
 		for _, pathStr := range sortedKeys(paths) {
 			gpath, _ := paths[pathStr].(map[string]any)
 			ops, _ := gpath["op"].(map[string]any)
-			actions, _ := gpath["action"].(map[string]any)
+			actions := activeActions(gpath["action"])
 			for _, opname := range sortedKeys(ops) {
 				op, _ := ops[opname].(map[string]any)
 				chosen[safeStr(op["method"])+" "+pathStr] = choice{entname, sortedKeys(actions)}

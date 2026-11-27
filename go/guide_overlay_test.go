@@ -166,13 +166,18 @@ func TestGuideOverlayCustomizationsHonoured(t *testing.T) {
 	}
 }
 
-func TestGuideOverlayWithdrawnActionRedeclared(t *testing.T) {
+func TestGuideOverlayActionSwitch(t *testing.T) {
 	const defName = "verb-word-def.json"
-	actions := func(entry string) []any {
+	actions := func(entry string, path string) ([]any, string) {
 		t.Helper()
-		res, err := runOverlayDef(stageOverlayDef(t, defName, overlayEntry(entry)), defName)
+		folder := stageOverlayDef(t, defName, overlayEntry(entry))
+		res, err := runOverlayDef(folder, defName)
 		if err != nil || !res.OK {
 			t.Fatalf("generate failed: %v", err)
+		}
+		base, err := os.ReadFile(filepath.Join(folder, "guide", overlayPrefix+"base-guide.aontu"))
+		if err != nil {
+			t.Fatal(err)
 		}
 		ent, _ := overlayEntities(t, res)["export"].(map[string]any)
 		ops, _ := ent["op"].(map[string]any)
@@ -182,22 +187,37 @@ func TestGuideOverlayWithdrawnActionRedeclared(t *testing.T) {
 			points, _ := op["points"].([]any)
 			for _, p := range points {
 				point, _ := p.(map[string]any)
-				if point["o"] != "/api/export" {
+				if point["o"] != path {
 					continue
 				}
 				q, _ := point["q"].(map[string]any)
 				got = append(got, q["$action"])
 			}
 		}
-		return got
+		return got, string(base)
 	}
-	if got := actions(`guide: {}`); !reflect.DeepEqual(got, []any{nil, nil}) {
-		t.Errorf("plain $action = %v, want [<nil> <nil>]", got)
+	check := func(label string, got []any, want []any) {
+		t.Helper()
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("%s $action = %v, want %v", label, got, want)
+		}
 	}
-	declared := actions(`guide: entity: export: path: "/api/export": action: "export": {}`)
-	if !reflect.DeepEqual(declared, []any{"export", "export"}) {
-		t.Errorf("declared $action = %v, want [export export]", declared)
+
+	plain, base := actions(`guide: {}`, "/api/export")
+	check("plain", plain, []any{nil, nil})
+	if !regexp.MustCompile(`\n +action: "export": active: \*false\n`).MatchString(base) {
+		t.Errorf("base guide does not switch the export action off:\n%s", base)
 	}
+	redeclared, _ := actions(`guide: entity: export: path: "/api/export": action: "export": {}`, "/api/export")
+	check("redeclared", redeclared, []any{nil, nil})
+	on, _ := actions(`guide: entity: export: path: "/api/export": action: "export": active: true`, "/api/export")
+	check("switched on", on, []any{"export", "export"})
+
+	const verb = "/api/export/{exportId}/upload"
+	kept, _ := actions(`guide: {}`, verb)
+	check("verb", kept, []any{"upload"})
+	off, _ := actions(`guide: entity: export: path: "`+verb+`": action: "upload": active: false`, verb)
+	check("verb switched off", off, []any{nil})
 }
 
 func TestGuideOverlayIdCorrectionReachesGuide(t *testing.T) {

@@ -51,6 +51,7 @@ type ModelField = {
     };
 };
 type ModelArg = {
+    a?: boolean;
     n: string;
     or?: string;
     t: any;
@@ -140,6 +141,21 @@ type ModelPoint = {
     rb?: ModelBody;
     bf?: string[] | false;
     rs?: ModelBody;
+    bn?: ModelBinary;
+};
+type ModelBinary = {
+    field?: string;
+    head?: boolean;
+    max?: number;
+};
+type ModelSession = {
+    dialect: string;
+    append: string;
+    offset?: string;
+    slot?: {
+        entity: string;
+        action: string;
+    };
 };
 type ModelOp = {
     name: OpName;
@@ -159,6 +175,7 @@ type ModelEntity = {
         from?: Record<string, string>;
     };
     relations: ModelEntityRelations;
+    session?: ModelSession;
 };
 type ModelEntityFlow = {
     name: string;
@@ -198,4 +215,4 @@ type ModelEntityFlowStep = {
     s: ModelEntityFlowStepSpec[];
     v: ModelEntityFlowStepValidator[];
 };
-export type { OpName, ArgKind, PointKind, ModelGraphql, ModelGraphqlVar, ModelGraphqlPage, NamesCluster, Model, ModelEntityRelations, ModelOpMap, ModelFieldOp, ModelField, ModelArg, ModelPoint, ModelPage, ModelPathSegment, BodyKind, ModelBodyField, ModelBody, ModelOp, ModelEntity, ModelEntityFlow, ModelEntityFlowStep, ModelEntityFlowStepInput, ModelEntityFlowStepValidator, ModelEntityFlowStepSpec, };
+export type { OpName, ArgKind, PointKind, ModelGraphql, ModelGraphqlVar, ModelGraphqlPage, NamesCluster, Model, ModelEntityRelations, ModelOpMap, ModelFieldOp, ModelField, ModelArg, ModelBinary, ModelSession, ModelPoint, ModelPage, ModelPathSegment, BodyKind, ModelBodyField, ModelBody, ModelOp, ModelEntity, ModelEntityFlow, ModelEntityFlowStep, ModelEntityFlowStepInput, ModelEntityFlowStepValidator, ModelEntityFlowStepSpec, };

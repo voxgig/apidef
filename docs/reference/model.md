@@ -77,6 +77,7 @@ in `test/security.tsv`.
 | `relations` | `{ ancestors: string[][] }` | ancestor entity chains; generated model files use checked entity paths |
 | `alias` | `{ field: {} }` | field-name aliases (reserved; currently empty) |
 | `active` | `boolean` | included in output |
+| `session` | `ModelSession?` | present when the entity is a [resumable upload session](#modelsession) |
 
 Generated ancestor links use `path("$.main.kit.entity.planet")`. The schema
 applies `rel()` to each link and rejects missing entities, self-links,
@@ -224,6 +225,7 @@ list. Required attributes use one character; optional metadata uses two.
 | `rb` | `ModelBody?` | the request body's media type and encoding, present only when the body is not JSON alone |
 | `bf` | `string[]` or `false`, optional | the [properties a JSON request body declares](#request-body-fields), named as the entity's fields are; `false` when it declares none |
 | `rs` | `ModelBody?` | the media types a success response declares, present only when one declares a body |
+| `bn` | `ModelBinary?` | the facts of the [file slot](#modelbinary) a binary point moves |
 | `co` | `object?` | operation contract identity |
 | `li` | `boolean` or `object`, optional | live invocation hint |
 | `gq` | `object?` | GraphQL document, variables, and pagination |
@@ -239,7 +241,7 @@ Required attributes use one character; optional metadata uses two, except
 | `n` | `string` | canonical argument name (for example, `id`) |
 | `r` | `boolean` | required |
 | `t` | `any` | validator token or validator expression |
-| `a` | `boolean` | included in output; defaults to `true` |
+| `a` | `boolean` | included in output; defaults to `true`, and `false` for a header a session's dialect sends itself |
 | `or` | `string?` | original wire name (for example, `planet_id`) |
 | `ex` | `any?` | advertised parameter example or schema default |
 | `style` | `string?` | how a `query`, `header`, or `cookie` argument sends a list or a map, such as `form`, `simple`, or `deepObject` |
@@ -494,6 +496,64 @@ bf: [ users ]
 
 # POST /api/planet/{planet_id}/terraform, an action's arguments
 bf: [ start, stop ]
+```
+
+### `ModelBinary`
+
+`bn` is optional metadata about the file an action point moves, so a
+consumer that ignores it loses nothing it had. A point carries it only when
+its `rb` or `rs` is a binary `raw` body, its action's guide entry holds an
+active `binary`, and at least one fact is known.
+
+| field | type | meaning |
+|-------|------|---------|
+| `field` | `string?` | the entity field that describes the file, such as a record of its size |
+| `head` | `boolean?` | `true` when a `HEAD` is declared on the route; on the `GET` point only |
+| `max` | `number?` | the largest size in bytes the definition allows the file |
+
+`field` is by default the property of the entity's record schema named for
+the action, unless that property is itself bytes. `head` comes from the
+route's `HEAD`, which never reaches `op`. `max` is the smallest bound the
+definition declares beside a binary body of the route, in either direction:
+a binary schema's `maxLength`, or the `maximum` of a `Content-Length` header
+the request or a success response declares. The guide sets or refuses each,
+as [File slots](./guide.md#file-slots) describes.
+`test/file-point.tsv` pins each case in both ports.
+
+```jsonic
+# GET /tracks/{track_id}/audio, with a HEAD on the route
+bn: { field: "audio", head: true, max: 4194304 }
+# PUT /tracks/{track_id}/audio
+bn: { field: "audio", max: 4194304 }
+```
+
+### `ModelSession`
+
+An entity whose append speaks a resumable upload dialect is a transfer
+session. The append moves the bytes; the dialect's runtime sends its own
+headers, so they leave the arguments of its point (`a: false`) and its `q.exist`.
+
+| field | type | meaning |
+|-------|------|---------|
+| `dialect` | `string` | the wire dialect: `tus` for tus 1.0.0, `ietf` for the IETF draft "Resumable Uploads for HTTP" |
+| `append` | `string` | the operation whose point appends bytes |
+| `offset` | `string?` | the operation that reads the session's record, and with it the offset to resume from |
+| `slot` | `{ entity, action }?` | the file slot the session fills; only the guide says this |
+
+A `PATCH` is an append when its request body and header arguments both name
+one dialect: `application/offset+octet-stream` with an `Upload-Offset`
+header for tus, or `application/partial-upload` with an `Upload-Complete`
+header for the IETF draft. The media type alone makes a session the guide
+writes switched off. The headers a dialect sends itself are, for tus,
+`Tus-Resumable`, `Upload-Offset`, `Upload-Length`, `Upload-Defer-Length`,
+`Upload-Metadata`, `Upload-Checksum` and `Upload-Concat`, and for the IETF
+draft, `Upload-Complete`, `Upload-Incomplete`, `Upload-Offset`,
+`Upload-Length`, `Upload-Limit` and `Upload-Draft-Interop-Version`.
+`test/session.tsv` pins each case in both ports.
+
+```jsonic
+# PATCH /uploads/{upload_id}: application/offset+octet-stream, Upload-Offset
+session: { dialect: "tus", append: "update", offset: "load" }
 ```
 
 ## `ModelEntityFlow`

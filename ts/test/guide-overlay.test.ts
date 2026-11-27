@@ -86,19 +86,34 @@ describe('guide-overlay', () => {
   })
 
 
-  test('withdrawn-action-redeclared', async () => {
+  test('action-switch', async () => {
     const def = 'verb-word-def.json'
-    const actions = async (entry: string) => {
-      const bres = await run(stage(HEAD + entry, undefined, def), undefined, def)
+    const actions = async (entry: string, path: string) => {
+      const folder = stage(HEAD + entry, undefined, def)
+      const bres = await run(folder, undefined, def)
       assert.strictEqual(bres.ok, true, String(bres.err?.message))
       const points = Object.values(bres.apimodel.main.kit.entity.export.op)
-        .flatMap((op: any) => op.points).filter((point: any) => '/api/export' === point.o)
-      assert.strictEqual(points.length, 2)
-      return points.map((point: any) => point.q?.$action ?? null)
+        .flatMap((op: any) => op.points).filter((point: any) => path === point.o)
+      const base = Fs.readFileSync(Path.join(folder, 'guide', PREFIX + 'base-guide.aontu'), 'utf8')
+      return { base, got: points.map((point: any) => point.q?.$action ?? null) }
     }
-    assert.deepStrictEqual(await actions('guide: {}\n'), [null, null])
-    assert.deepStrictEqual(await actions(
-      'guide: entity: export: path: "/api/export": action: "export": {}\n'), ['export', 'export'])
+
+    const plain = await actions('guide: {}\n', '/api/export')
+    assert.deepStrictEqual(plain.got, [null, null])
+    assert.match(plain.base, /\n +action: "export": active: \*false\n/)
+
+    assert.deepStrictEqual((await actions(
+      'guide: entity: export: path: "/api/export": action: "export": {}\n', '/api/export')).got,
+    [null, null])
+    assert.deepStrictEqual((await actions(
+      'guide: entity: export: path: "/api/export": action: "export": active: true\n', '/api/export')).got,
+    ['export', 'export'])
+
+    const verb = '/api/export/{exportId}/upload'
+    assert.deepStrictEqual((await actions('guide: {}\n', verb)).got, ['upload'])
+    assert.deepStrictEqual((await actions(
+      'guide: entity: export: path: "' + verb + '": action: "upload": active: false\n', verb)).got,
+    [null])
   })
 
 

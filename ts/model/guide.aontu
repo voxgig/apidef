@@ -14,13 +14,35 @@ guide: entity: &: {
 
   }
 
+  # A transfer session; only the guide says which slot it fills.
+  session?: {
+    active?: boolean
+    dialect?: string
+    path?: string
+    append?: string
+    offset?: string
+    slot?: {
+      entity: string
+      action: string
+    }
+  }
+
   path: &: {
     active?: boolean
 
      # A non-CRUD verb on the path (`action: merge: {}`), declared beside a
      # CRUD op; the op's points then carry `select.$action`. The heuristic
      # emits these for trailing verbs, and guide.aontu may add them.
-     action?: {}
+     action?: &: {
+       active?: boolean
+
+       binary?: {
+         active?: boolean
+         field?: string | false
+         head?: boolean
+         max?: number | false
+       }
+     }
 
      rename?: {
        param?: {}

@@ -2,6 +2,9 @@
 /* Copyright (c) 2026 Voxgig Ltd, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.bodyTransform = void 0;
+exports.binaryBounds = binaryBounds;
+exports.binarySchema = binarySchema;
+exports.requestMedia = requestMedia;
 exports.bodyFields = bodyFields;
 exports.guideMedia = guideMedia;
 exports.requestBody = requestBody;
@@ -516,5 +519,40 @@ function sameType(a, b) {
 function typeSet(type) {
     return !Array.isArray(type) ? type :
         type.every((member) => 'string' === typeof member) ? [...type].sort() : type.map(typeSet);
+}
+// The media types a request body is declared in.
+function requestMedia(def, method, path) {
+    return (requestOffers(def, method, path) ?? []).map((offer) => offer.media);
+}
+// A binary body's declared size bounds: its schema's maxLength, and the maximum
+// of a Content-Length the request or a success response declares beside it.
+function binaryBounds(def, method, path) {
+    const pathdef = def?.paths?.[path];
+    const opdef = pathdef?.[String(method).toLowerCase()];
+    if (!isMap(opdef)) {
+        return [];
+    }
+    const swagger = null != def.swagger;
+    const sides = [
+        [requestOffers(def, method, path) ?? [], (0, utility_1.routeParams)(pathdef, opdef)
+                .filter((param) => isMap(param) && 'header' === param.in)
+                .map((param) => [param.name, swagger ? param : param.schema])],
+        [swagger ? swaggerResponseOffers(def, opdef) : openapiResponseOffers(opdef),
+            (0, utility_1.sortedKeys)(isMap(opdef.responses) ? opdef.responses : {})
+                .filter((status) => SUCCESS_RE.test(status))
+                .flatMap((status) => Object.entries(opdef.responses[status]?.headers ?? {})
+                .map(([name, header]) => [name, swagger ? header : header?.schema]))],
+    ];
+    const bounds = [];
+    for (const [offers, headers] of sides) {
+        const binary = offers.filter((offer) => true === describeBody(offer).binary);
+        if (0 === binary.length) {
+            continue;
+        }
+        bounds.push(...binary.map((offer) => offer.schema?.maxLength));
+        bounds.push(...headers.filter(([name]) => 'content-length' === String(name).toLowerCase())
+            .map(([, schema]) => schema?.maximum));
+    }
+    return bounds.filter((bound) => Number.isSafeInteger(bound) && 0 <= bound);
 }
 //# sourceMappingURL=body.js.map

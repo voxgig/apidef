@@ -46,6 +46,7 @@ const node_test_1 = require("node:test");
 const node_assert_1 = __importDefault(require("node:assert"));
 const util_1 = require("@voxgig/util");
 const apidef_1 = require("../dist/apidef");
+const utility_1 = require("../dist/utility");
 const DEFDIR = Path.join(__dirname, '..', 'test', 'def');
 const SILENT = (0, util_1.Pino)({ level: 'silent' });
 const staged = [];
@@ -85,7 +86,7 @@ function owners(g) {
     for (const [ename, ent] of Object.entries(g.entity)) {
         for (const [p, gp] of Object.entries(ent.path ?? {})) {
             for (const [opname, op] of Object.entries(gp.op ?? {})) {
-                const actions = Object.keys(gp.action ?? {}).sort();
+                const actions = Object.keys((0, utility_1.activeActions)(gp.action)).sort();
                 out[op.method + ' ' + p] = ename + ' ' + opname + (0 < actions.length ? ' ' + actions.join(',') : '');
             }
         }

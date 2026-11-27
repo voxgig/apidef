@@ -13,6 +13,7 @@ import assert from 'node:assert'
 import { Pino } from '@voxgig/util'
 
 import { ApiDef } from '../dist/apidef'
+import { activeActions } from '../dist/utility'
 
 
 const DEFDIR = Path.join(__dirname, '..', 'test', 'def')
@@ -63,7 +64,7 @@ function owners(g: any): Record<string, string> {
   for (const [ename, ent] of Object.entries(g.entity) as [string, any][]) {
     for (const [p, gp] of Object.entries(ent.path ?? {}) as [string, any][]) {
       for (const [opname, op] of Object.entries(gp.op ?? {}) as [string, any][]) {
-        const actions = Object.keys(gp.action ?? {}).sort()
+        const actions = Object.keys(activeActions(gp.action)).sort()
         out[op.method + ' ' + p] = ename + ' ' + opname + (0 < actions.length ? ' ' + actions.join(',') : '')
       }
     }

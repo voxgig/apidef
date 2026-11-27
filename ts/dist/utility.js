@@ -42,6 +42,7 @@ exports.literalName = literalName;
 exports.paramOf = paramOf;
 exports.paramNoun = paramNoun;
 exports.guideActive = guideActive;
+exports.activeActions = activeActions;
 exports.authExchangeOp = authExchangeOp;
 exports.specSecuredByDefault = specSecuredByDefault;
 exports.ensureMinEntityName = ensureMinEntityName;
@@ -1550,6 +1551,11 @@ function stripOperationVerb(opid) {
 // cannot drift on it.
 function guideActive(node) {
     return false !== node?.active;
+}
+// The entries of a guide path's action map that are switched on.
+function activeActions(actions) {
+    return Object.fromEntries(Object.entries(actions ?? {})
+        .filter(([, action]) => guideActive(action)));
 }
 const AUTH_TOKEN_FIELDS = [
     'access_token', 'accessToken', 'access-token',

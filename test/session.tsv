@@ -1,0 +1,11 @@
+name	method	media	headers	expected
+tus	PATCH	["application/offset+octet-stream"]	["Tus-Resumable","Upload-Offset","Upload-Checksum","X-Trace"]	{"dialect":"tus","active":true,"own":["Tus-Resumable","Upload-Checksum","Upload-Offset"]}
+tus-any-case	patch	["Application/Offset+Octet-Stream"]	["tus-resumable","upload-offset"]	{"dialect":"tus","active":true,"own":["tus-resumable","upload-offset"]}
+tus-among-media	PATCH	["application/json","application/offset+octet-stream"]	["Upload-Offset"]	{"dialect":"tus","active":true,"own":["Upload-Offset"]}
+tus-without-offset	PATCH	["application/offset+octet-stream"]	["Tus-Resumable"]	{"dialect":"tus","active":false,"own":["Tus-Resumable"]}
+tus-not-patch	POST	["application/offset+octet-stream"]	["Tus-Resumable","Upload-Offset"]	null
+offset-without-media	PATCH	["application/octet-stream"]	["Tus-Resumable","Upload-Offset"]	null
+no-body	PATCH	[]	["Upload-Offset","Upload-Complete"]	null
+ietf	PATCH	["application/partial-upload"]	["Upload-Complete","Upload-Offset","If-Match"]	{"dialect":"ietf","active":true,"own":["Upload-Complete","Upload-Offset"]}
+ietf-without-complete	PATCH	["application/partial-upload"]	["Upload-Offset"]	{"dialect":"ietf","active":false,"own":["Upload-Offset"]}
+ietf-media-parameter	PATCH	["application/partial-upload; charset=binary"]	["Upload-Complete"]	{"dialect":"ietf","active":true,"own":["Upload-Complete"]}

@@ -47,6 +47,7 @@ const node_test_1 = require("node:test");
 const node_assert_1 = __importDefault(require("node:assert"));
 const util_1 = require("@voxgig/util");
 const apidef_1 = require("../dist/apidef");
+const utility_1 = require("../dist/utility");
 const DEFDIR = Path.join(__dirname, '..', 'test', 'def');
 const TABLE = Path.join(__dirname, '..', '..', 'test', 'def-routes.tsv');
 const COLUMNS = ['def', 'route', 'entity', 'active', 'op', 'actions', 'renames', 'transform',
@@ -121,7 +122,7 @@ async function routes(def) {
     const rows = [];
     for (const [ename, ent] of Object.entries(bres.guide.entity ?? {})) {
         for (const [path, gp] of Object.entries(ent.path ?? {})) {
-            const actions = Object.keys(gp.action ?? {}).sort().join(',');
+            const actions = Object.keys((0, utility_1.activeActions)(gp.action)).sort().join(',');
             const renames = Object.entries(gp.rename?.param ?? {})
                 .map(([from, to]) => from + '->' + (to?.target ?? to))
                 .sort().join(',');

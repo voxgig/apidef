@@ -231,6 +231,25 @@ fastapi-def.json	GET /api/v1/prompts/{prompt_id}	prompt	true	load		prompt_id->id
 fastapi-def.json	GET /api/v1/tags/	tag	true	list			{"res":"`body.data`"}	
 fastapi-def.json	GET /api/v1/tags/{tag_id}	tag	true	load		tag_id->id		
 fastapi-def.json	POST /api/v1/insights/	insight	true	create				
+file-slot-def.json	DELETE /uploads/{upload_id}	upload	true	remove		upload_id->id		
+file-slot-def.json	GET /drafts/{draft_id}	draft	true	load		draft_id->id		
+file-slot-def.json	GET /parts/{part_id}	part	true	load		part_id->id		
+file-slot-def.json	GET /tracks	track	true	list				
+file-slot-def.json	GET /tracks/{track_id}	track	true	load		track_id->id		
+file-slot-def.json	GET /tracks/{track_id}/audio	track	true	load	audio	track_id->id		
+file-slot-def.json	GET /tracks/{track_id}/cover	track	true	load	cover	track_id->id		
+file-slot-def.json	GET /tracks/{track_id}/lyrics	track_lyric	true	load				
+file-slot-def.json	GET /uploads/{upload_id}	upload	true	load		upload_id->id		
+file-slot-def.json	HEAD /tracks/{track_id}/audio	track	true	head	audio	track_id->id		
+file-slot-def.json	HEAD /uploads/{upload_id}	upload	true	head		upload_id->id		
+file-slot-def.json	PATCH /drafts/{draft_id}	draft	true	patch		draft_id->id		
+file-slot-def.json	PATCH /parts/{part_id}	part	true	patch		part_id->id		
+file-slot-def.json	PATCH /uploads/{upload_id}	upload	true	patch		upload_id->id		
+file-slot-def.json	POST /drafts	draft	true	create				
+file-slot-def.json	POST /parts	part	true	create				
+file-slot-def.json	POST /tracks	track	true	create				
+file-slot-def.json	POST /uploads	upload	true	create				
+file-slot-def.json	PUT /tracks/{track_id}/audio	track	true	update	audio	track_id->id		
 filter-param-def.json	GET /api/find/{name}	api	true	load				
 filter-param-def.json	GET /cat/{tag}	cat	true	load				
 filter-param-def.json	GET /catalogue/{currency}	catalogue	true	load				

@@ -23,6 +23,7 @@ func SelectTransform(ctx *ApiDefContext) (*TransformResult, error) {
 		if mentMap == nil {
 			continue
 		}
+		applySession(guide, entname, mentMap)
 		opMap, _ := mentMap["op"].(map[string]any)
 		for _, opkey := range sortedKeys(opMap) {
 			mop := opMap[opkey]
@@ -80,7 +81,7 @@ func resolveSelect(guideEntity map[string]any, entname string, mtarget map[strin
 			if argMap == nil {
 				continue
 			}
-			if required, _ := argMap["r"].(bool); !required && (graphql || "params" != kind) {
+			if required, _ := argMap["r"].(bool); argMap["a"] == false || (!required && (graphql || "params" != kind)) {
 				continue
 			}
 			name, _ := argMap["n"].(string)
@@ -116,11 +117,17 @@ func resolveSelect(guideEntity map[string]any, entname string, mtarget map[strin
 			entry = gfields[orig]
 		}
 		if gpath, ok := entry.(map[string]any); ok {
-			if action, ok := gpath["action"].(map[string]any); ok {
-				for _, actname := range sortedKeys(action) {
-					selectMap["$action"] = actname
-					break
+			actions := activeActions(gpath["action"])
+			for _, actname := range sortedKeys(actions) {
+				selectMap["$action"] = actname
+				actdesc, _ := actions[actname].(map[string]any)
+				binary, _ := actdesc["binary"].(map[string]any)
+				rb, _ := mtarget["rb"].(map[string]any)
+				rs, _ := mtarget["rs"].(map[string]any)
+				if bn := pointBinary(safeStr(mtarget["m"]), rb, rs, binary); bn != nil {
+					mtarget["bn"] = bn
 				}
+				break
 			}
 		}
 	}
