@@ -395,13 +395,13 @@ function fileSteps(opmap, flow, ent, ref) {
     const ways = fileWays(ent);
     let seed = 0;
     let tf = 0;
-    // A transfer addresses the record the way a load does.
+    // A transfer names the record as its own operation does.
     const transfer = (opname, point, f, on) => {
         const step = {
             o: opname, i: { ref, suffix: '_tf' + (tf++) }, m: {}, d: {}, s: [], v: [], f,
         };
         (0, jostraca_1.each)(point.g?.params, (param) => {
-            if (isEntityIdParam(point, param, 'load')) {
+            if (isEntityIdParam(point, param, opname)) {
                 step.m.id = ent.name + '01';
             }
             else {
@@ -433,12 +433,18 @@ function fileSteps(opmap, flow, ent, ref) {
     const create = null == opmap.create ? undefined : plainPoint(opmap.create.points);
     const atCreate = ways.find((way) => null != create && create === way.write);
     if (null != create) {
-        created = null == create.rs || 'json' === create.rs.kind;
+        // An action is no plain create: the flow cannot make its record with one.
+        const action = actionOf(create);
+        created = '' === action && (null == create.rs || 'json' === create.rs.kind);
         const step = { o: 'create', i: { ref }, m: {}, d: {}, s: [], v: [] };
         fillCreateMatch(opmap, create, step, {});
-        const f = null != atCreate ?
-            [put(atCreate.via, atCreate.action, atCreate.content, sizeOf(create, atCreate.content))] :
-            binaryFields(create).map((field) => put('field', '', 'bytes', FILE_BYTES, field));
+        // The create's own raw body, whichever point its way prefers as writer.
+        const binary = true === create.rb?.binary;
+        const own = 'raw' !== create.rb?.kind ? undefined : ways.find((way) => action === way.action &&
+            way.via === (binary && ('' !== action || null != slotRead('')) ? 'slot' : 'body'));
+        const content = binary ? 'bytes' : 'text';
+        const f = null != own ? [put(own.via, action, content, sizeOf(create, content))] :
+            binaryFields(create).map((field) => put('field', action, 'bytes', FILE_BYTES, field));
         if (0 < f.length)
             step.f = f;
         if (!created || f.some((file) => (file.size ?? 0) < 1))
@@ -446,8 +452,7 @@ function fileSteps(opmap, flow, ent, ref) {
         created = created && false !== step.a;
         flow.step.push(step);
         for (const file of f) {
-            const way = null != atCreate ? (null == atCreate.read ? undefined : atCreate) :
-                slotRead(file.field);
+            const way = null != own ? (null == own.read ? undefined : own) : slotRead(file.field);
             if (null != way)
                 get(way, created ? file : undefined);
         }

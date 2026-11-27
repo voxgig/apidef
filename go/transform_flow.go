@@ -687,7 +687,7 @@ func fileSteps(opmap map[string]any, entname string, ent map[string]any, ref str
 			"m": map[string]any{}, "d": map[string]any{}, "s": []any{}, "v": []any{}, "f": f,
 		}
 		tf++
-		fillItemMatch(step, point, nil, "load", entname)
+		fillItemMatch(step, point, nil, opname, entname)
 		if !on {
 			step["a"] = false
 		}
@@ -749,21 +749,43 @@ func fileSteps(opmap map[string]any, entname string, ent map[string]any, ref str
 	}
 
 	if create != nil {
+		// An action is no plain create: the flow cannot make its record with one.
+		action := actionOf(create)
 		rs, _ := create["rs"].(map[string]any)
-		created = rs == nil || rs["kind"] == "json"
+		created = action == "" && (rs == nil || rs["kind"] == "json")
 		step := map[string]any{
 			"o": "create", "i": map[string]any{"ref": ref},
 			"m": map[string]any{}, "d": map[string]any{}, "s": []any{}, "v": []any{},
 		}
 		fillCollectionMatch(step, create, map[string]any{})
 		seedRelatedOpParams(opmap, step)
+
+		// The create's own raw body, whichever point its way prefers as writer.
+		var own *fileWay
+		rb, raw := rawBody(create, "rb")
+		binary := rb["binary"] == true
+		if raw {
+			via := "body"
+			if binary && (action != "" || slotRead("") != nil) {
+				via = "slot"
+			}
+			for _, way := range ways {
+				if way.action == action && way.via == via {
+					own = way
+					break
+				}
+			}
+		}
+		content := "text"
+		if binary {
+			content = "bytes"
+		}
 		f := []any{}
-		if atCreate != nil {
-			f = append(f, put(atCreate.via, atCreate.action, atCreate.content,
-				sizeOf(create, atCreate.content), ""))
+		if own != nil {
+			f = append(f, put(own.via, action, content, sizeOf(create, content), ""))
 		} else {
 			for _, field := range binaryFields(create) {
-				f = append(f, put("field", "", "bytes", fileBytes, field))
+				f = append(f, put("field", action, "bytes", fileBytes, field))
 			}
 		}
 		if len(f) > 0 {
@@ -781,9 +803,9 @@ func fileSteps(opmap map[string]any, entname string, ent map[string]any, ref str
 
 		for _, file := range f {
 			var way *fileWay
-			if atCreate != nil {
-				if atCreate.read != nil {
-					way = atCreate
+			if own != nil {
+				if own.read != nil {
+					way = own
 				}
 			} else {
 				way = slotRead(fmt.Sprint(file.(map[string]any)["field"]))

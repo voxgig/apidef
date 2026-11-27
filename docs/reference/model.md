@@ -639,8 +639,11 @@ three operations.
 A file flow writes its steps in this order:
 
 1. `create`, on the plain point. A multipart or form body there sends each
-   binary field, and a raw body there writes the content its slot or body
-   names. The step is off when the create answers anything but JSON.
+   binary field, and a raw body there sends its own content, even where a
+   later `update` or `patch` is the slot's or body's writer. The step is off
+   when the create answers anything but JSON, and when the entity's only
+   create is an action: its content keeps that action, and the step stays in
+   the flow, switched off.
 2. A read of each slot a binary field of that create names, and of the slot
    or body the create wrote.
 3. Each other `create`, `update` or `patch` point with a binary field of a
@@ -654,8 +657,10 @@ A step that writes is on only when the flow's own create made the record. A
 read compares with the content the flow wrote before it. Where nothing was
 written, such as a read-only slot or a derived text body, the read has no
 `size` and checks only that content arrives, with a positive length. Every
-step names the record in `m` the way a load does, and `i.suffix` is `_tf`
-followed by the step's position among the transfers.
+step fills `m` the way its own operation names a record: a `create` keeps
+the parent parameters of its collection, and the rest read the last path
+parameter as the record's own. `i.suffix` is `_tf` followed by the step's
+position among the transfers.
 
 ### `ModelFlowFile`
 
