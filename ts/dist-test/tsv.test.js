@@ -59,7 +59,7 @@ const graphql01_1 = require("../dist/guide/graphql01");
 const heuristic01_1 = require("../dist/guide/heuristic01");
 const guide_1 = require("../dist/guide/guide");
 const parse_1 = require("../dist/parse");
-const yamlalias_1 = require("../dist/yamlalias");
+const openapi_1 = require("@tabnas/openapi");
 const refcount_1 = require("../dist/refcount");
 const clean_1 = require("../dist/transform/clean");
 const flowstep_1 = require("../dist/transform/flowstep");
@@ -552,7 +552,7 @@ function loadTsv(name, dir = SHARED_TSV_DIR) {
 (0, node_test_1.describe)('tsv-yaml-aliased-size', () => {
     for (const row of loadTsv('yaml-aliased-size')) {
         (0, node_test_1.test)(`yamlAliasedSize(${row.source})`, () => {
-            node_assert_1.default.deepStrictEqual((0, yamlalias_1.yamlAliasedSize)(JSON.parse(row.source)), Number(row.size));
+            node_assert_1.default.deepStrictEqual((0, openapi_1.aliasedSize)(JSON.parse(row.source)), Number(row.size));
         });
     }
     (0, node_test_1.test)('a definition whose aliases expand past the limit is refused before parsing', async () => {

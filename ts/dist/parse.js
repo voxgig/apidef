@@ -6,42 +6,29 @@ exports.parse = parse;
 exports.decycledChild = decycledChild;
 exports.normalizePathKeys = normalizePathKeys;
 exports.colonPathKeys = colonPathKeys;
-const jsonic_1 = require("@tabnas/jsonic");
-const yaml_1 = require("@tabnas/yaml");
+const openapi_1 = require("@tabnas/openapi");
 const utility_1 = require("./utility");
-const yamlalias_1 = require("./yamlalias");
 const graphql_1 = require("./parse/graphql");
-// NOTE: @tabnas/yaml types its Plugin against @tabnas/parser, while
-// Jsonic.use expects @tabnas/jsonic's own (structurally identical) Plugin
-// type - hence the cast.
-const yamlParser = jsonic_1.Jsonic.make().use(yaml_1.Yaml);
 // Matches any line that is not purely a YAML comment or whitespace.
 const RE_HAS_CONTENT = /^\s*[^#\s]/m;
 // Parse an API definition source into a JSON sructure.
 async function parse(kind, source, meta) {
     if ('OpenAPI' === kind) {
-        validateSource(kind, source, meta);
-        validateAliases(kind, source, meta);
         try {
             const def = await parseOpenAPI(source, meta);
             return def;
         }
         catch (pe) {
-            if (pe.originalError) {
-                pe.originalError.message =
-                    `@voxgig/apidef: parse: syntax: ${pe.originalError.message}` +
-                        ` (${(0, utility_1.relativizePath)(meta.file)})`;
-                pe = pe.originalError;
+            const where = ` (${(0, utility_1.relativizePath)(meta.file)})`;
+            if (isOwnError(pe)) {
+                pe.message += where;
             }
-            else if (pe.code && pe.code.startsWith('jsonic')) {
-                pe.message =
-                    `@voxgig/apidef: parse: syntax: ${pe.message}` +
-                        ` (${(0, utility_1.relativizePath)(meta.file)})`;
+            // The reader's refusals carry a code.
+            else if ('string' === typeof pe.code) {
+                pe.message = `@voxgig/apidef: parse: syntax: ${pe.message}` + where;
             }
             else {
-                pe.message =
-                    `@voxgig/apidef: parse: internal: ${pe.message}` +
-                        ` (${(0, utility_1.relativizePath)(meta.file)})`;
+                pe.message = `@voxgig/apidef: parse: internal: ${pe.message}` + where;
             }
             throw pe;
         }
@@ -69,72 +56,88 @@ async function parse(kind, source, meta) {
             ` (${(0, utility_1.relativizePath)(meta.file)})`);
     }
 }
+function isOwnError(err) {
+    return 'string' === typeof err?.message && err.message.startsWith('@voxgig/apidef:');
+}
 async function parseOpenAPI(source, _meta) {
+    if ('string' !== typeof source) {
+        throw new Error(`@voxgig/apidef: parse: OpenAPI: source must be a string`);
+    }
     let parsed;
     try {
-        parsed = yamlParser(source);
+        // The reader's size limit is for a process of unknown memory; this one
+        // has always read whatever it was given. The reading is named, so that
+        // the reader's default can change without moving what is read here.
+        parsed = (0, openapi_1.parse)(source, { duplicates: 'merge', maxBytes: Infinity, reading: 'base' });
     }
     catch (err) {
-        // Rethrow jsonic parse errors with context
+        const code = err?.code;
+        if ('openapi_root' === code && 'empty' === err.details?.kind) {
+            throw new Error(`@voxgig/apidef: parse: OpenAPI: source is empty`);
+        }
+        if ('openapi_alias_budget' === code) {
+            throw new Error(`@voxgig/apidef: parse: OpenAPI: YAML aliases would expand the source to` +
+                ` about ${err.details.size} bytes, past the limit of ${err.details.budget}`);
+        }
+        if ('openapi_root' === code || 'openapi_stream' === code) {
+            throw new Error(`@voxgig/apidef: parse: JSON/YAML source must be an object`);
+        }
         throw err;
-    }
-    // Validate parsed result is a non-null object
-    if (null == parsed || 'object' !== typeof parsed || Array.isArray(parsed)) {
-        throw new Error(`@voxgig/apidef: parse: JSON/YAML source must be an object`);
     }
     // Validate it's an OpenAPI or Swagger spec
     if (!parsed.openapi && !parsed.swagger) {
         throw new Error(`@voxgig/apidef: parse: Unsupported spec: missing 'openapi' or 'swagger' version field`);
     }
-    if (SURROGATE_RE.test(source)) {
-        parsed = wellFormed(parsed, new Map());
-    }
+    // A lone surrogate is read as U+FFFD, which is what an encoder writes in
+    // its place in UTF-8. Keys that this makes equal are merged, as the
+    // reader merges a repeated key.
+    parsed = (0, openapi_1.wellFormed)(parsed, { duplicates: 'merge' });
     if (null == parsed.components) {
         parsed.components = {};
     }
     if (isRecord(parsed.paths)) {
         parsed.paths = renameKeys(parsed.paths, normalizePathKeys(Object.keys(parsed.paths)));
     }
-    // Single-pass: add x-ref properties and resolve $ref pointers together.
-    addXRefsAndResolve(parsed, parsed);
+    const resolved = (0, openapi_1.resolve)(parsed, { compat: 'apidef' });
+    parsed = resolved.tree;
     // After resolution, so a pointer into `paths` names the key as written and a
     // parameter declared by `$ref` counts. See docs/design/derived-names.md
-    normalizeColonPathParams(parsed, _meta);
-    dropIgnoredHeaders(parsed);
+    const renamed = normalizeColonPathParams(parsed, _meta);
+    dropIgnoredHeaders(parsed, resolved.ignored, renamed);
     dropDuplicateParams(parsed);
     const def = decycle(parsed);
     return def;
 }
 // In an OpenAPI 3 definition, a header parameter named Accept, Content-Type or
-// Authorization is ignored: responses, the request body and the security
-// schemes say those. Each dropped one is recorded for a warning.
-const IGNORED_HEADERS = ['accept', 'content-type', 'authorization'];
+// Authorization is ignored, and the reader says which those are. Each is
+// dropped and recorded for a warning, a path's own before its operations'.
 const IGNORED_HEADERS_KEY = 'x-apidef-ignored-headers';
 exports.IGNORED_HEADERS_KEY = IGNORED_HEADERS_KEY;
-function dropIgnoredHeaders(parsed) {
+function dropIgnoredHeaders(parsed, ignored, renamed) {
     delete parsed[IGNORED_HEADERS_KEY];
     if (!String(parsed.openapi ?? '').startsWith('3') || !isRecord(parsed.paths))
         return;
     const dropped = [];
-    const kept = (list, path, method) => list.filter((param) => {
-        const ignored = isRecord(param) && 'header' === param.in && 'string' === typeof param.name &&
-            IGNORED_HEADERS.includes(param.name.toLowerCase());
-        if (ignored)
-            dropped.push({ path, ...(method ? { method: method.toUpperCase() } : {}), name: param.name });
-        return !ignored;
-    });
-    for (const path of Object.keys(parsed.paths).sort()) {
-        const item = parsed.paths[path];
-        if (!isRecord(item))
+    const rank = new Map();
+    const gone = new Map();
+    for (const row of ignored) {
+        if ('parameter' !== row.what || 'path' !== row.kind || row.additional)
             continue;
-        if (Array.isArray(item.parameters))
-            item.parameters = kept(item.parameters, path);
-        for (const method of METHODS) {
-            const op = item[method];
-            if (isRecord(op) && Array.isArray(op.parameters))
-                op.parameters = kept(op.parameters, path, method);
-        }
+        const method = row.method?.toLowerCase();
+        if (null != method && !METHODS.includes(method))
+            continue;
+        const path = renamed.get(row.path) ?? row.path;
+        const holder = null == method ? parsed.paths[path] : parsed.paths[path][method];
+        gone.set(holder, (gone.get(holder) ?? new Set()).add(row.index));
+        const entry = { path, ...(null == method ? {} : { method: row.method }), name: row.name };
+        rank.set(entry, null == method ? -1 : METHODS.indexOf(method));
+        dropped.push(entry);
     }
+    for (const [holder, indexes] of gone) {
+        holder.parameters = holder.parameters.filter((_, i) => !indexes.has(i));
+    }
+    dropped.sort((a, b) => a.path < b.path ? -1 : a.path > b.path ? 1 :
+        rank.get(a) - rank.get(b));
     if (0 < dropped.length)
         parsed[IGNORED_HEADERS_KEY] = dropped;
 }
@@ -177,37 +180,6 @@ function dropDuplicateParams(parsed) {
     if (0 < dropped.length)
         parsed[DUPLICATE_PARAMS_KEY] = dropped;
 }
-// A surrogate escape, or a raw lone surrogate unit.
-const SURROGATE_RE = /\\(?:u\{?|U)0*[dD][89a-fA-F][0-9a-fA-F]{2}|[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/;
-const LONE_SURROGATE_RE = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g;
-function wellFormedString(s) {
-    return s.replace(LONE_SURROGATE_RE, '�');
-}
-// The Go parser reads a lone surrogate as U+FFFD, and so does every UTF-8
-// writer. Keys it makes equal merge as the parser merges a repeated key.
-function wellFormed(node, done) {
-    if ('string' === typeof node)
-        return wellFormedString(node);
-    if (null == node || 'object' !== typeof node)
-        return node;
-    if (done.has(node))
-        return done.get(node);
-    if (Array.isArray(node)) {
-        done.set(node, node);
-        for (let i = 0; i < node.length; i++)
-            node[i] = wellFormed(node[i], done);
-        return node;
-    }
-    const out = Object.create(Object.getPrototypeOf(node));
-    done.set(node, out);
-    for (const key of Object.keys(node)) {
-        const wkey = wellFormedString(key);
-        const val = wellFormed(node[key], done);
-        const prev = Object.prototype.hasOwnProperty.call(out, wkey) ? out[wkey] : undefined;
-        out[wkey] = null == prev ? val : jsonic_1.Jsonic.util.deep(prev, val);
-    }
-    return out;
-}
 function renameKeys(obj, keys) {
     const out = Object.create(Object.getPrototypeOf(obj));
     Object.keys(obj).forEach((key, i) => { out[keys[i]] = obj[key]; });
@@ -228,7 +200,7 @@ function unquotePathKey(key) {
     try {
         const decoded = JSON.parse(key);
         if ('string' === typeof decoded)
-            return wellFormedString(decoded);
+            return (0, openapi_1.wellFormed)(decoded);
     }
     catch (_e) {
         // Not a JSON string: an escape only YAML knows, so strip the quotes alone.
@@ -295,106 +267,8 @@ function decycle(root) {
     walk(root);
     return root;
 }
-function refSiblings(node) {
-    const out = {};
-    for (const k of Object.keys(node)) {
-        if ('$ref' === k)
-            continue;
-        out[k] = node[k];
-    }
-    return out;
-}
-function addXRefsAndResolve(obj, root, visited = new WeakSet()) {
-    if (!obj || typeof obj !== 'object')
-        return;
-    if (visited.has(obj))
-        return;
-    visited.add(obj);
-    const keys = Array.isArray(obj) ? Array.from(obj.keys()) : Object.keys(obj);
-    for (const key of keys) {
-        const val = obj[key];
-        if (val && typeof val === 'object') {
-            if (typeof val.$ref === 'string') {
-                resolveRefSite(val, root, visited);
-            }
-            else {
-                addXRefsAndResolve(val, root, visited);
-            }
-        }
-    }
-}
-// Resolved in place, as in go/parse.go: the site's own keywords win and the
-// target's children stay shared, so each target is walked once.
-function resolveRefSite(site, root, visited) {
-    const xref = site.$ref;
-    const resolved = resolvePointer(root, xref);
-    if (undefined !== resolved) {
-        replaceOwnKeys(site, { ...resolved, ...refSiblings(site), 'x-ref': xref });
-    }
-    else {
-        site['x-ref'] = xref;
-    }
-    addXRefsAndResolve(site, root, visited);
-}
-// Defined, not assigned, so a key named __proto__ stays data.
-function replaceOwnKeys(obj, src) {
-    for (const k of Object.keys(obj))
-        delete obj[k];
-    for (const k of Object.keys(src)) {
-        Object.defineProperty(obj, k, { value: src[k], writable: true, enumerable: true, configurable: true });
-    }
-}
-const INDEX_RE = /^(0|[1-9]\d*)$/;
 function isRecord(node) {
     return null != node && 'object' === typeof node && !Array.isArray(node);
-}
-function isAlias(node) {
-    return isRecord(node) && 'string' === typeof node.$ref;
-}
-// An own key of an object, or an RFC 6901 index of an array.
-function pointerChild(node, part) {
-    if (Array.isArray(node)) {
-        return INDEX_RE.test(part) && Number(part) < node.length ? node[Number(part)] : undefined;
-    }
-    return isRecord(node) && Object.prototype.hasOwnProperty.call(node, part) ?
-        node[part] : undefined;
-}
-// The object a pointer names, following every alias met on the way, so the
-// answer does not depend on which aliases the walk has already replaced. A
-// pointer that names no object, or needs itself, names nothing.
-function resolvePointer(root, ref, active = new Set()) {
-    if (!ref.startsWith('#/') || active.has(ref))
-        return undefined;
-    active.add(ref);
-    let node = root;
-    for (const raw of ref.substring(2).split('/')) {
-        node = pointerChild(followAlias(root, node, active), raw.replace(/~1/g, '/').replace(/~0/g, '~'));
-        if (undefined === node)
-            break;
-    }
-    node = followAlias(root, node, active);
-    active.delete(ref);
-    return isRecord(node) ? node : undefined;
-}
-// An alias's own keywords win over its target's. Without them the target
-// itself is the answer, so references keep sharing one object.
-function followAlias(root, node, active) {
-    if (!isAlias(node))
-        return node;
-    const target = resolvePointer(root, node.$ref, active);
-    if (undefined === target)
-        return undefined;
-    const sib = refSiblings(node);
-    return 0 === Object.keys(sib).length ? target : { ...target, ...sib };
-}
-function validateAliases(kind, source, meta) {
-    const size = (0, yamlalias_1.yamlAliasedSize)(source);
-    const limit = (0, yamlalias_1.yamlAliasLimit)(source);
-    if (limit < size) {
-        throw new Error(`@voxgig/apidef: parse: ${kind}: YAML aliases would expand the source to` +
-            ` about ${size} bytes, past the limit of ${limit}` +
-            ` (${(0, utility_1.relativizePath)(meta.file)})`);
-    }
 }
 function validateSource(kind, source, meta) {
     if (typeof source !== 'string') {
@@ -413,13 +287,17 @@ const METHODS = [
 ];
 // Rewrite `/a/:b/c` to `/a/{b}/c`, for a `:b` the path or one of its
 // operations declares `in: path`. See docs/design/derived-names.md
+// Gives each path that was renamed, by the name it had.
 function normalizeColonPathParams(parsed, meta) {
+    const renames = new Map();
     if (!isRecord(parsed.paths))
-        return;
+        return renames;
     const paths = Object.keys(parsed.paths);
     const next = colonPathKeys(parsed.paths);
     parsed.paths = renameKeys(parsed.paths, next);
     const renamed = paths.filter((path, i) => next[i] !== path);
+    paths.forEach((path, i) => { if (next[i] !== path)
+        renames.set(path, next[i]); });
     if (0 < renamed.length && null != meta?.log?.info) {
         meta.log.info({
             point: 'path-colon-params',
@@ -428,6 +306,7 @@ function normalizeColonPathParams(parsed, meta) {
                 ' OpenAPI brace form, e.g. ' + renamed[0]
         });
     }
+    return renames;
 }
 // Every `in: path` name counts: the path item's parameters and each operation's.
 function colonPathKeys(paths) {

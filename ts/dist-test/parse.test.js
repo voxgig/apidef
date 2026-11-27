@@ -170,6 +170,16 @@ paths:
 `, { file: 'f0' });
         node_assert_1.default.deepStrictEqual(Object.keys(p0.paths).sort(), ['/a/{id}/digest', '/b']);
     });
+    (0, node_test_1.test)('reads yes as a boolean and 1_000 as a number', async () => {
+        const p0 = await (0, parse_1.parse)('OpenAPI', `openapi: 3.0.0
+info: {title: T, version: '1'}
+paths: {}
+x-flag: yes
+x-count: 1_000
+`, { file: 'f0' });
+        node_assert_1.default.strictEqual(p0['x-flag'], true);
+        node_assert_1.default.strictEqual(p0['x-count'], 1000);
+    });
     (0, node_test_1.test)('resolves repeated $ref with x-ref preserved', async () => {
         const pm0 = { file: 'f0' };
         const mkop = () => ({

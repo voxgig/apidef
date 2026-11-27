@@ -2,8 +2,9 @@ package apidef
 
 // The YAML parser copies an anchor's node in full for every alias, so nested
 // aliases grow geometrically. This reads, from the text and before anything is
-// parsed, the size the source reaches once every alias is copied in. It mirrors
-// ts/src/yamlalias.ts byte for byte.
+// parsed, the size the source reaches once every alias is copied in. It gives
+// what aliasedSize of @tabnas/openapi gives, which the TypeScript suite holds to
+// the same table.
 
 import "math"
 

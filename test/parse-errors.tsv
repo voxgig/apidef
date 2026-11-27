@@ -4,3 +4,6 @@ OpenAPI	bad	JSON
 OpenAPI	{}	Unsupported
 OpenAPI	# just a comment	empty
 OpenAPI	   	empty
+OpenAPI	{"openapi":"3.0.0"}}	(^|Error: )@voxgig/apidef: parse: syntax: 
+OpenAPI	bad	(^|Error: )@voxgig/apidef: parse: JSON/YAML source must be an object \(test-file\)$
+OpenAPI	{}	(^|Error: )@voxgig/apidef: parse: Unsupported spec: 
