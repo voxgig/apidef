@@ -2,9 +2,15 @@
 
 import { test, describe } from 'node:test'
 import assert from 'node:assert'
-import { readFileSync } from 'node:fs'
+import {
+  copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync,
+} from 'node:fs'
+import { tmpdir } from 'node:os'
 import Path from 'node:path'
 
+import { Pino } from '@voxgig/util'
+
+import { ApiDef } from '../dist/apidef'
 import { flowstepTransform } from '../dist/transform/flowstep'
 
 
@@ -113,6 +119,71 @@ describe('flow-textfield', () => {
     const flow = await runFlowstep(entity)
 
     assert.strictEqual(markedField(flow), undefined)
+  })
+
+})
+
+
+// go/flow_step_test.go builds the same definition.
+describe('flow-patch', () => {
+
+  test('a route taking PUT and PATCH gets a patch step after the update', async () => {
+    const def = 'patch-flow-def.json'
+    const dir = mkdtempSync(Path.join(tmpdir(), 'apidef-patch-flow-'))
+    try {
+      const folder = Path.join(dir, 'model')
+      mkdirSync(Path.join(folder, 'guide'), { recursive: true })
+      mkdirSync(Path.join(dir, 'def'))
+      copyFileSync(Path.join(__dirname, '..', 'test', 'def', def), Path.join(dir, 'def', def))
+      writeFileSync(Path.join(folder, 'guide', 'guide.aontu'),
+        '@"@voxgig/apidef/model/guide.aontu"\n@"./base-guide.aontu"\n')
+
+      const build = await ApiDef.makeBuild({ folder, strategy: 'heuristic01' })
+      const bres = await build({ name: 'patch-flow', def }, {
+        log: Pino({ level: 'silent' }),
+        spec: {
+          base: folder,
+          buildargs: {
+            apidef: {
+              ctrl: {
+                step: {
+                  parse: true, guide: true, transformers: true, builders: false, generate: false,
+                }
+              }
+            }
+          }
+        }
+      }, {})
+      assert.strictEqual(bres.ok, true, String(bres.err?.message))
+
+      const { entity, flow } = bres.apimodel.main.kit
+      for (const name of ['note', 'page']) {
+        assert.deepStrictEqual(Object.keys(entity[name].op).sort(),
+          ['create', 'list', 'load', 'patch', 'remove', 'update'])
+        assert.deepStrictEqual(entity[name].op.update.points.map((p: any) => p.m), ['PUT'])
+        assert.deepStrictEqual(entity[name].op.patch.points.map((p: any) => p.m), ['PATCH'])
+      }
+
+      for (const name of ['BasicNoteFlow', 'BasicPageFlow']) {
+        assert.deepStrictEqual(flow[name].step.map((step: any) => step.o),
+          ['create', 'list', 'update', 'patch', 'load', 'remove', 'list'])
+      }
+
+      assert.deepStrictEqual(flow.BasicNoteFlow.step[3], {
+        i: { ref: 'note_ref01', srcdatavar: 'note_ref01_data', suffix: '_pt0', textfield: 'body' },
+        o: 'patch',
+        s: [{ apply: 'TextFieldMark', def: { mark: 'Mark01-note_ref01' } }],
+      })
+      assert.deepStrictEqual(flow.BasicPageFlow.step[3], {
+        d: { notebook_id: 'notebook01' },
+        i: { ref: 'page_ref01', srcdatavar: 'page_ref01_data', suffix: '_pt0', textfield: 'heading' },
+        o: 'patch',
+        s: [{ apply: 'TextFieldMark', def: { mark: 'Mark01-page_ref01' } }],
+      })
+    }
+    finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
   })
 
 })

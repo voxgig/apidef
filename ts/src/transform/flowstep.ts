@@ -19,7 +19,7 @@ function isEntityIdParam(point: any, param: any, opname?: string): boolean {
     const camel = lcf(camelify(param.n))
     if ('id' === renameMap[camel]) return true
   }
-  if ('update' === opname || 'load' === opname || 'remove' === opname) {
+  if ('update' === opname || 'patch' === opname || 'load' === opname || 'remove' === opname) {
     const segments: any[] = point?.s || []
     let last: string | null = null
     for (const s of segments) {
@@ -70,23 +70,11 @@ const flowstepTransform: Transform = async function(
     listStep(opmap, flow, ent,
       { valid: [{ apply: 'ItemExists', def: { ref: ref01 } }] })
 
+    // The patch writes the update's mark, so the load reads back one mark.
     const mark01 = 'Mark01-' + ref01
-    const firsttf = firstTextField(ent, opmap.update)
-    updateStep(opmap, flow, ent,
-      {
-        input: {
-          ref: ref01,
-          textfield: firsttf?.n,
-          suffix: '_up0',
-          srcdatavar: ref01 + '_data'
-        },
-        spec: [{
-          apply: 'TextFieldMark',
-          def: { mark: mark01 }
-        }]
-      })
+    updateStep(opmap, flow, ent, markArgs(ent, opmap.update, ref01, '_up0', mark01))
+    patchStep(opmap, flow, ent, markArgs(ent, opmap.patch, ref01, '_pt0', mark01))
 
-    // A switched-off update writes no mark for the load to find.
     loadStep(opmap, flow, ent,
       {
         input: {
@@ -94,7 +82,7 @@ const flowstepTransform: Transform = async function(
           suffix: '_dt0',
           srcdatavar: ref01 + '_data'
         },
-        valid: stepOff(flow, 'update') ? [] : [{
+        valid: markOff(flow) ? [] : [{
           apply: 'TextFieldMark',
           def: { mark: mark01 }
         }]
@@ -165,6 +153,13 @@ function stepOff(flow: ModelEntityFlow, opname: OpName): boolean {
 }
 
 
+// The load checks no mark when the update or patch step is off and neither is on.
+function markOff(flow: ModelEntityFlow): boolean {
+  return (stepOff(flow, 'update') || stepOff(flow, 'patch')) &&
+    !stepOn(flow, 'update') && !stepOn(flow, 'patch')
+}
+
+
 // A step calls the op without an action, so it reads the point that call
 // reaches: the last plain point, the most generic as points sort the most
 // specific first.
@@ -228,7 +223,7 @@ const createStep: MakeFlowStep = (
 
 
 function seedRelatedOpParams(opmap: any, createPoint: any, step: ModelEntityFlowStep) {
-  const otherOps = ['list', 'load', 'update', 'remove']
+  const otherOps = ['list', 'load', 'update', 'patch', 'remove']
   for (const opname of otherOps) {
     const op = opmap[opname]
     if (!op?.points) continue
@@ -273,26 +268,54 @@ const listStep: MakeFlowStep = (
 }
 
 
-const updateStep: MakeFlowStep = (
-  opmap: any,
-  flow: ModelEntityFlow,
+function changeStep(opname: 'update' | 'patch'): MakeFlowStep {
+  return (
+    opmap: any,
+    flow: ModelEntityFlow,
+    ent: ModelEntity,
+    args: Record<string, any>
+  ) => {
+    if (null != opmap[opname]) {
+      const point = plainPoint(opmap[opname].points)
+      const step = newFlowStep(opname, args, point)
+
+      each(point.g.params, (param: any) => {
+        if (isEntityIdParam(point, param, opname)) {
+          // Entity's own id — supplied at test time via the loaded/created
+          // entity's id field, not as a separate body parameter. Skip.
+          return
+        }
+        step.d[param.n] = args.input?.[param.n] ?? param.n.replace(/_id/, '') + '01'
+      })
+
+      flow.step.push(step)
+    }
+  }
+}
+
+
+const updateStep = changeStep('update')
+const patchStep = changeStep('patch')
+
+
+function markArgs(
   ent: ModelEntity,
-  args: Record<string, any>
-) => {
-  if (null != opmap.update) {
-    const point = plainPoint(opmap.update.points)
-    const step = newFlowStep('update', args, point)
-
-    each(point.g.params, (param: any) => {
-      if (isEntityIdParam(point, param, 'update')) {
-        // Entity's own id — supplied at test time via the loaded/created
-        // entity's id field, not as a separate body parameter. Skip.
-        return
-      }
-      step.d[param.n] = args.input?.[param.n] ?? param.n.replace(/_id/, '') + '01'
-    })
-
-    flow.step.push(step)
+  op: ModelOp | undefined,
+  ref: string,
+  suffix: string,
+  mark: string
+): Record<string, any> {
+  return {
+    input: {
+      ref,
+      textfield: firstTextField(ent, op)?.n,
+      suffix,
+      srcdatavar: ref + '_data',
+    },
+    spec: [{
+      apply: 'TextFieldMark',
+      def: { mark },
+    }],
   }
 }
 

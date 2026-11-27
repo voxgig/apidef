@@ -444,6 +444,18 @@ partial-placeholder-def.json	GET /owners.json	owner	true	load
 partial-placeholder-def.json	GET /totals.json	total	true	load			
 partial-placeholder-def.json	GET /{owner}.json	thing	true	load			
 partial-placeholder-def.json	GET /{owner}/groups.json	group	true	load			
+patch-flow-def.json	DELETE /notebooks/{notebook_id}/pages/{page_id}	page	true	remove		page_id->id	
+patch-flow-def.json	DELETE /notes/{note_id}	note	true	remove		note_id->id	
+patch-flow-def.json	GET /notebooks/{notebook_id}/pages	page	true	list			
+patch-flow-def.json	GET /notebooks/{notebook_id}/pages/{page_id}	page	true	load		page_id->id	
+patch-flow-def.json	GET /notes	note	true	list			
+patch-flow-def.json	GET /notes/{note_id}	note	true	load		note_id->id	
+patch-flow-def.json	PATCH /notebooks/{notebook_id}/pages/{page_id}	page	true	patch		page_id->id	
+patch-flow-def.json	PATCH /notes/{note_id}	note	true	patch		note_id->id	
+patch-flow-def.json	POST /notebooks/{notebook_id}/pages	page	true	create			
+patch-flow-def.json	POST /notes	note	true	create			
+patch-flow-def.json	PUT /notebooks/{notebook_id}/pages/{page_id}	page	true	update		page_id->id	
+patch-flow-def.json	PUT /notes/{note_id}	note	true	update		note_id->id	
 path-extension-def.json	GET /gadgets	gadget	true	list			
 path-extension-def.json	GET /gadgets/{gadgetId}/parts	part	true	load		gadgetId->gadget_id	
 path-extension-def.json	GET /widgets	widget	true	list			
