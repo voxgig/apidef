@@ -1,919 +1,919 @@
-def	route	entity	active	op	actions	renames	transform
-action-create-def.json	GET /domains	domain	true	list			
-action-create-def.json	GET /domains/{domain_id}	domain	true	load		domain_id->id	
-action-create-def.json	GET /tokens	token	true	list			
-action-create-def.json	GET /tokens/{token_id}	token	true	load		token_id->id	
-action-create-def.json	PATCH /domains/{domain_id}	domain	true	patch		domain_id->id	
-action-create-def.json	POST /domains/{domain_id}/revoke	domain	true	create	revoke	domain_id->id	
-action-create-def.json	POST /tokens/{token_id}/revoke	token	true	create	revoke	token_id->id	
-allof-envelope-def.json	DELETE /addresses/{adr_id}	address	true	remove		adr_id->id	
-allof-envelope-def.json	GET /addresses	address	true	list			{"page":{"next":"`body.next_url`","total":"`body.total_count`"},"res":"`body.data`"}
-allof-envelope-def.json	GET /addresses/{adr_id}	address	true	load		adr_id->id	
-allof-envelope-def.json	GET /notes	note	true	list			{"page":{"total":"`body.count`"},"res":"`body.data`"}
-allof-envelope-def.json	GET /owners/{id}	owner	true	load			
-allof-envelope-def.json	POST /addresses	address	true	create			
-array-body-def.json	DELETE /sessions	session	true	remove			
-array-body-def.json	GET /sessions/{session_id}	session	true	load		session_id->id	
-array-body-def.json	GET /users	user	true	list			
-array-body-def.json	GET /users/{user_id}	user	true	load		user_id->id	
-array-body-def.json	PATCH /docs/{doc_id}	doc	true	patch		doc_id->id	
-array-body-def.json	POST /alarms	alarm	true	create			
-array-body-def.json	POST /alerts	alert	true	create			
-array-body-def.json	POST /bales	bale	true	create			
-array-body-def.json	POST /batches	batch	true	create			
-array-body-def.json	POST /beacons	beacon	true	create			
-array-body-def.json	POST /bins	bin	true	create			
-array-body-def.json	POST /boards/{board_id}/drums	drum	true	create			
-array-body-def.json	POST /boards/{board_id}/marks	mark	true	create			
-array-body-def.json	POST /boards/{board_id}/notes	note	true	create			
-array-body-def.json	POST /broadcasts	broadcast	true	create			
-array-body-def.json	POST /chips	chip	true	create			
-array-body-def.json	POST /classes/{class_id}/grades	grade	true	create			
-array-body-def.json	POST /coils	coil	true	create			
-array-body-def.json	POST /coins	coin	true	create			
-array-body-def.json	POST /crates	crate	true	create			
-array-body-def.json	POST /crews	crew	true	create			
-array-body-def.json	POST /decks	deck	true	create			
-array-body-def.json	POST /desks/{desk_id}/memos	memo	true	create			
-array-body-def.json	POST /drums	drum	true	create			
-array-body-def.json	POST /events	event	true	create			
-array-body-def.json	POST /flags	flag	true	create			
-array-body-def.json	POST /flasks	flask	true	create			
-array-body-def.json	POST /flocks	flock	true	create			
-array-body-def.json	POST /forms	form	true	create			
-array-body-def.json	POST /games/{game_id}/scores	score	true	create			
-array-body-def.json	POST /grades	grade	true	create			
-array-body-def.json	POST /herds	herd	true	create			
-array-body-def.json	POST /heroes	hero	true	create			
-array-body-def.json	POST /hoops	hoop	true	create			
-array-body-def.json	POST /items	item	true	create			
-array-body-def.json	POST /jars	jar	true	create			
-array-body-def.json	POST /kegs	keg	true	create			
-array-body-def.json	POST /kits	kit	true	create			
-array-body-def.json	POST /labels	label	true	create			
-array-body-def.json	POST /lists/{list_id}/todos	todo	true	create			
-array-body-def.json	POST /loops	loop	true	create			
-array-body-def.json	POST /marks	mark	true	create			
-array-body-def.json	POST /memos	memo	true	create			
-array-body-def.json	POST /mms/v1/messages	message	true	create			
-array-body-def.json	POST /notes	note	true	create			
-array-body-def.json	POST /notices	notice	true	create			
-array-body-def.json	POST /pallets	pallet	true	create			
-array-body-def.json	POST /pins	pin	true	create			
-array-body-def.json	POST /rafts	raft	true	create			
-array-body-def.json	POST /records	record	true	create			
-array-body-def.json	POST /rims	rim	true	create			
-array-body-def.json	POST /rings	ring	true	create			
-array-body-def.json	POST /rolls	roll	true	create			
-array-body-def.json	POST /scores	score	true	create			
-array-body-def.json	POST /series	series	true	create			
-array-body-def.json	POST /shipments	shipment	true	create			
-array-body-def.json	POST /spools	spool	true	create			
-array-body-def.json	POST /stacks	stack	true	create			
-array-body-def.json	POST /tags	tag	true	create			
-array-body-def.json	POST /tickets	ticket	true	create			
-array-body-def.json	POST /todos	todo	true	create			
-array-body-def.json	POST /totes	tote	true	create			
-array-body-def.json	POST /tubs	tub	true	create			
-array-body-def.json	POST /uploads	upload	true	create			
-array-body-def.json	POST /users	user	true	create			
-array-body-def.json	POST /users/batch	user	true	create	batch		
-array-body-def.json	POST /vats	vat	true	create			
-array-body-def.json	POST /vials	vial	true	create			
-array-body-def.json	POST /widgets	widget	true	create			
-array-body-def.json	PUT /docs/{doc_id}/archive	doc	true	update	archive	doc_id->id	
-array-body-def.json	PUT /tickets/{ticket_id}	ticket	true	update		ticket_id->id	
-array-body-def.json	QUERY /lookups	lookup	true	list			
-array-body-swagger-def.json	GET /members/{member_id}	member	true	load		member_id->id	
-array-body-swagger-def.json	POST /gifts	gift	true	create			
-array-body-swagger-def.json	POST /members	member	true	create			
-array-body-swagger-def.json	POST /tickets	ticket	true	create			
-array-body-swagger-def.json	PUT /members/{member_id}	member	true	update		member_id->id	
-async-result-def.json	GET /devices/{deviceId}	device	true	load		deviceId->id	
-async-result-def.json	GET /devices/{deviceId}/renderResults/{resultId}	render_operation_result	true	load		deviceId->device_id,resultId->result_id	
-async-result-def.json	GET /report/renderResults/{resultId}	render_operation_result	true	load		resultId->result_id	
-async-result-def.json	POST /devices/{deviceId}/render	render_operation_result	true	create	device	deviceId->device_id	
-async-result-def.json	POST /report/render	render_operation_result	true	create	report		
-auth-exchange-def.json	DELETE /widget/{id}	widget	true	remove			
-auth-exchange-def.json	GET /session/{id}	session	true	load			
-auth-exchange-def.json	GET /widget	widget	true	list			
-auth-exchange-def.json	GET /widget/{id}	widget	true	load			
-auth-exchange-def.json	POST /auth/token	token	false	create			
-auth-exchange-def.json	POST /session	session	true	create			
-auth-exchange-def.json	POST /widget	widget	true	create			
-blank-segment-def.json	GET /orders/-/{order_id}/lines/{line_id}	line	true	load		line_id->id,order_id->_id	
-blank-segment-def.json	GET /orders/-/{order}/notes/{note_id}	note	true	load		note_id->id,order->_id	
-blank-segment-def.json	POST /orders/-/{order_id}/refund	nt	true	create		order_id->_id	
-body-media-def.json	GET /#Action=StartSession	session	true	load	start		{"res":"`body.Credentials`"}
-body-media-def.json	GET /keys	key	true	list			
-body-media-def.json	POST /#Action=StartSession	session	true	create	start		{"res":"`body.Credentials`"}
-body-media-def.json	POST /keys/{keyName}/requestTicket	ticket	true	create		keyName->key_name	
-body-media-def.json	POST /signin/{service_id}/{account}/authenticate	authenticate	true	create		service_id->signin_id	
-collection-merge-def.json	DELETE /keys/{key_id}	key	true	remove		key_id->id	
-collection-merge-def.json	GET /keys	key	true	list			
-collection-merge-def.json	POST /keys	key	true	create			
-collection-owner-def.json	DELETE /shop/gadgets/{gadget_id}	gadget	true	remove		gadget_id->id	
-collection-owner-def.json	DELETE /stars/{owner}/{repo}	star	true	remove			
-collection-owner-def.json	DELETE /teams/{team_id}	member	true	remove			
-collection-owner-def.json	GET /catalog/bundles	catalog_bundle	true	list			
-collection-owner-def.json	GET /jobs	job	true	list			
-collection-owner-def.json	GET /org	org	true	load			
-collection-owner-def.json	GET /org/reports	report	true	list			{"page":{"total":"`body.count`"},"res":"`body.results`"}
-collection-owner-def.json	GET /plans	plan	true	list			
-collection-owner-def.json	GET /plans/{plan_id}/accounts	purchase	true	list			
-collection-owner-def.json	GET /shop	shop	true	load			
-collection-owner-def.json	GET /shop/gadgets	gadget	true	list			
-collection-owner-def.json	GET /shop/gadgets/{gadget_id}	gadget	true	load		gadget_id->id	
-collection-owner-def.json	GET /stars	star	true	list			
-collection-owner-def.json	GET /teams	member	true	list			
-collection-owner-def.json	GET /teams/{team_id}	member	true	load			
-collection-owner-def.json	GET /user	user	true	load			
-collection-owner-def.json	GET /user/tokens	token	true	list			{"page":{"total":"`body.count`"},"res":"`body.results`"}
-collection-owner-def.json	POST /jobs/{job_id}/cancel	job	true	create	cancel	job_id->id	
-collection-owner-def.json	POST /org/reports/{report_id}/rerun	report	true	create	rerun	report_id->id	
-collection-owner-def.json	POST /shop/gadgets	gadget	true	create			
-collection-owner-def.json	PUT /catalog/bundles/{bundle_id}	catalog_bundle	true	update		bundle_id->id	
-collection-owner-def.json	PUT /stars/{owner}/{repo}	star	true	update			
-collection-owner-def.json	PUT /user/tokens/{slug}/refresh	token	true	update	refresh		
-command-action-def.json	GET /api/doc	doc	true	load			
-command-action-def.json	GET /projects/{id}/packages	package	true	list		id->project_id	
-command-action-def.json	GET /widgets/{id}	widget	true	load			
-command-action-def.json	POST /api/doc/docmerge	doc	true	create	docmerge		
-command-action-def.json	POST /api/doc/mdconvert	doc	true	create	mdconvert		
-command-action-def.json	POST /widgets/{id}/labels	widget	true	create	labels		
-command-action-def.json	PUT /projects/{id}/packages/nuget	package	true	update	nuget	id->project_id	
-command-action-def.json	PUT /projects/{id}/packages/nuget/symbolpackage	package	true	update	symbolpackage	id->project_id	
-command-def.json	GET /account	account	true	load			
-command-def.json	GET /keys	key	true	list			
-command-def.json	POST /#Action=StartSession	session	true	create	start		{"res":"`body.Credentials`"}
-command-def.json	POST /account	account	true	create			
-command-def.json	POST /keys/{keyName}/requestTicket	ticket	true	create		keyName->key_name	
-composed-part-def.json	DELETE /projects/{project_id}	project	true	remove		project_id->id	{"res":"`body.project`"}
-composed-part-def.json	GET /projects/{project_id}	project	true	load		project_id->id	{"res":"`body.project`"}
-composed-part-def.json	GET /widgets/{widget_id}	widget	true	load		widget_id->id	
-composed-part-def.json	PATCH /projects/{project_id}	project	true	patch		project_id->id	{"res":"`body.project`"}
-composed-part-def.json	POST /projects	project	true	create			{"res":"`body.project`"}
-composed-scalar-def.json	GET /badges/{id}	badge	true	load			
-composed-scalar-def.json	GET /labels/{id}	label	true	load			
-composed-scalar-def.json	GET /samples	sample	true	list			{"res":"`body.data`"}
-composed-scalar-def.json	GET /things/{id}	thing	true	load			
-composed-scalar-def.json	POST /labels	label	true	create			
-compound-def.json	GET /repos/{owner}/{repo}	repo	true	load			
-compound-def.json	GET /user/repos	repo	true	list			
-declared-type-def.json	GET /uploads/{upload_id}	upload	true	load		upload_id->id	
-declared-type-def.json	POST /documents	document	true	create			
-declared-type-def.json	POST /uploads	upload	true	create			
-deep-view-def.json	GET /hosts/{host_id}/statistics	host_statistic	true	list			
-deep-view-def.json	GET /meta/teams/{teamId}/sync/billing/status	team	true	load	sync_billing_status	teamId->id	
-deep-view-def.json	GET /node-eu/{account}/status	node_eu	true	load	status		
-deep-view-def.json	GET /teams	team	true	list			
-deep-view-def.json	GET /teams/{teamId}	team	true	load		teamId->id	
-delete-cmp-def.json	DELETE /things/{thing_id}/archive	thing	true	remove	archive	thing_id->id	
-delete-cmp-def.json	GET /archives	archive	true	list			
-delete-cmp-def.json	GET /things	thing	true	list			
-delete-cmp-def.json	GET /things/{thing_id}	thing	true	load		thing_id->id	
-delete-cmp-def.json	GET /things/{thing_id}/archive/{entry_id}	thing	true	load		thing_id->id	
-dotted-part-def.json	GET /agents.{mode}.json	agent	true	list			
-dotted-part-def.json	GET /files/NOTICE.html.gz	notice	true	load			
-dotted-part-def.json	GET /store/keystore.p12	keystore	true	load			
-dotted-part-def.json	POST /config/org.example.alpha.Widget	org	true	create	org_example_alpha_widget		
-dotted-part-def.json	POST /config/org.example.beta.Gadget	org	true	create			
-embedded-def.json	GET /clinics	clinic	true	list			
-embedded-def.json	GET /clinics/{id}	clinic	true	load			
-embedded-def.json	GET /owners	owner	true	list			
-embedded-def.json	GET /owners/{id}	owner	true	load			
-embedded-def.json	GET /owners/{id}/pets	owner_pet	true	list		id->owner_id	{"res":"`body.data`"}
-embedded-def.json	GET /term.json/{term}	term	true	load		term->id	
-embedded-def.json	GET /term.json/{term}/meanings	term	true	list	meaning	term->id	
-embedded-def.json	GET /vets	vet	true	list			
-embedded-def.json	GET /vets/{id}	vet	true	load			
-embedded-def.json	GET /visits	visit	true	list			
-embedded-def.json	GET /visits/{id}	visit	true	load			
-empty-object-def.json	DELETE /repos/{owner}/{repo}/actions/runs/{run_id}	run	true	remove		run_id->id	
-empty-object-def.json	DELETE /repos/{owner}/{repo}/actions/secrets/{secret_name}	secret	true	remove		secret_name->id	
-empty-object-def.json	GET /repos/{owner}/{repo}	repository	true	load			
-empty-object-def.json	GET /repos/{owner}/{repo}/actions/runs	run	true	list			{"page":{"total":"`body.total_count`"},"res":"`body.workflow_runs`"}
-empty-object-def.json	GET /repos/{owner}/{repo}/actions/runs/{run_id}	run	true	load		run_id->id	
-empty-object-def.json	GET /repos/{owner}/{repo}/actions/secrets	secret	true	list			{"page":{"total":"`body.total_count`"},"res":"`body.secrets`"}
-empty-object-def.json	GET /repos/{owner}/{repo}/actions/secrets/{secret_name}	secret	true	load		secret_name->id	
-empty-object-def.json	POST /repos/{owner}/{repo}/actions/runs/{run_id}/rerun	run	true	create	rerun	run_id->id	
-empty-object-def.json	PUT /repos/{owner}/{repo}/actions/secrets/{secret_name}	secret	true	update		secret_name->id	
-envelope-def.json	GET /{year}/auction/{id}	artwork	true	load			{"res":"`body.data`"}
-envelope-def.json	GET /{year}/census	census	true	list			{"page":{"total":"`body.total`"},"res":"`body.records`"}
-envelope-def.json	GET /{year}/crew/{id}/member	crew_member	true	load		id->crew_id	
-envelope-def.json	GET /{year}/domain	taxon	true	list	domain		{"page":{"total":"`body.total`"},"res":"`body.items`"}
-envelope-def.json	GET /{year}/domain/{domain_id}/kingdom/{kingdom_id}	taxon	true	load	kingdom		
-envelope-def.json	GET /{year}/domain/{id}	taxon	true	load	domain		
-envelope-def.json	GET /{year}/domain/{id}/kingdom	taxon	true	list	kingdom	id->domain_id	{"page":{"total":"`body.total`"},"res":"`body.items`"}
-envelope-def.json	GET /{year}/fossil/{id}	fossil	true	load			
-envelope-def.json	GET /{year}/gallery	gallery	true	list			{"page":{"next":"`body.next`"},"res":"`body.data`"}
-envelope-def.json	GET /{year}/greenhouse/{id}	greenhouse	true	load			
-envelope-def.json	GET /{year}/ledger	ledger	true	load			
-envelope-def.json	GET /{year}/metrics/package/{owner}	package	true	load		owner->id	{"res":"`body.packages`"}
-envelope-def.json	GET /{year}/metrics/token/{owner}	token	true	load		owner->id	{"res":"`body.tokens`"}
-envelope-def.json	GET /{year}/observation	observation	true	list			{"page":{"total":"`body.total`"},"res":"`body.items`"}
-envelope-def.json	GET /{year}/sample/{id}	sample	true	load			{"res":"`body.data`"}
-envelope-def.json	GET /{year}/site/{id}	site	true	load			
-envelope-def.json	GET /{year}/survey	tally	true	list			{"res":"`body.data`"}
-envelope-def.json	PATCH /{year}/domain/{id}	taxon	true	patch	domain		
-envelope-def.json	POST /{year}/crew/{id}/member	crew_member	true	create		id->crew_id	
-envelope-def.json	POST /{year}/domain/{id}/kingdom	taxon	true	create	kingdom	id->domain_id	
-envelope-def.json	POST /{year}/greenhouse	greenhouse	true	create			
-envelope-def.json	POST /{year}/kennel	kennel	true	create			
-envelope-def.json	POST /{year}/survey/{id}/close	tally	true	create		id->survey_id	{"res":"`body.data`"}
-envelope-def.json	POST /{year}/vault	deposit	true	create			
-fastapi-def.json	DELETE /api/v1/insights/{insight_id}	insight	true	remove		insight_id->id	
-fastapi-def.json	GET /api/v1/insights/	insight	true	list			{"page":{"total":"`body.total`"},"res":"`body.items`"}
-fastapi-def.json	GET /api/v1/insights/{insight_id}	insight	true	load		insight_id->id	
-fastapi-def.json	GET /api/v1/prompts/	prompt	true	list			{"page":{"next":"`body.meta.next`","total":"`body.meta.count`"},"res":"`body.results`"}
-fastapi-def.json	GET /api/v1/prompts/{prompt_id}	prompt	true	load		prompt_id->id	
-fastapi-def.json	GET /api/v1/tags/	tag	true	list			{"res":"`body.data`"}
-fastapi-def.json	GET /api/v1/tags/{tag_id}	tag	true	load		tag_id->id	
-fastapi-def.json	POST /api/v1/insights/	insight	true	create			
-filter-param-def.json	GET /api/find/{name}	api	true	load			
-filter-param-def.json	GET /cat/{tag}	cat	true	load			
-filter-param-def.json	GET /catalogue/{currency}	catalogue	true	load			
-filter-param-def.json	GET /categories/{category}	category	true	load		category->id	
-filter-param-def.json	GET /emoji/{group-name}	emoji	true	load		group-name->group_name	
-filter-param-def.json	GET /labels/{lang}	label	true	load		lang->id	
-filter-param-def.json	GET /members/lookup/{member_id}	member	true	load		member_id->id	
-filter-param-def.json	GET /movies/search/{query}	movie	true	load			
-filter-param-def.json	GET /pokemon/{name}	pokemon	true	load		name->id	
-filter-param-def.json	GET /random/joke/{category}	joke	true	load			
-filter-param-def.json	GET /random/quote/{category}	quote	true	load			
-filter-param-def.json	GET /regions/{country}	region	true	load			
-filter-param-def.json	GET /riddle/{category}	riddle	true	load			
-filter-param-def.json	GET /settings/{type}	setting	true	load		type->id	
-filter-param-def.json	GET /teams/{teamId}	team	true	load		teamId->id	
-filter-param-def.json	PUT /settings/{type}	setting	true	update		type->id	
-fold-merge-def.json	GET /repos.json	repo	true	list			{"page":{"total":"`body.count`"},"res":"`body.items`"}
-fold-merge-def.json	GET /usecases.json	use_case	true	list			{"page":{"total":"`body.count`"},"res":"`body.items`"}
-fold-merge-def.json	GET /usecases/{id}.json	use_case	true	load			
-generated-name-def.json	GET /night_mode	night_mode	true	load			
-generated-name-def.json	GET /saved_networks	saved_network	true	list			
-generated-name-def.json	GET /v1/source/{name}	source	true	load		name->id	
-generated-name-def.json	POST /v1/prefix	prefix	true	create			
-generic-name-def.json	GET /boards/{boardId}	board	true	load		boardId->id	
-generic-name-def.json	GET /notices/{noticeId}{format}	notice	true	load		noticeId->id	
-generic-name-def.json	GET /units/{unitId}/teamgroups	team_group	true	list		unitId->unit_id	
-generic-name-def.json	GET /v1/gadgets/{gadget}	gadget	true	load		gadget->id	
-generic-name-def.json	GET /v2/kinds	kind	true	list			{"res":"`body.results`"}
-generic-name-def.json	GET /v2/readings	reading	true	list			
-generic-name-def.json	GET /v2/readings/{readingId}	reading	true	load		readingId->id	
-generic-name-def.json	GET /v2/sensors	sensor	true	list			{"res":"`body.results`"}
-generic-name-def.json	GET /v2/zones	zone	true	list			{"res":"`body.results`"}
-generic-name-def.json	PATCH /v1/gadgets/{gadget}/owners	gadget	true	patch	owners	gadget->id	
-generic-name-def.json	POST /boards/{boardId}/rules/check	board	true	create	rule_check	boardId->id	
-generic-name-def.json	POST /notices/{noticeId}/pin{format}	notice	true	create	pin	noticeId->id	
-generic-name-def.json	POST /notices/{noticeId}/retract{format}	notice	true	create	retract	noticeId->id	
-generic-name-def.json	POST /units/{unitId}/teamgroups	team_group	true	create		unitId->unit_id	
-generic-name-def.json	POST /v1/gadgets/validate	gadget	true	create	validate		
-id-list-def.json	DELETE /groups/playlists/{id}/ids/{itemId}	playlist	true	remove	ids	itemId->item_id	
-id-list-def.json	GET /groups/playlists	playlist	true	list			
-id-list-def.json	GET /groups/playlists/{id}	playlist	true	load			
-id-list-def.json	GET /groups/playlists/{id}/ids	playlist	true	load	ids		
-id-list-def.json	POST /groups/playlists/{id}/ids	playlist	true	create	ids		
-item-download-def.json	GET /shelves/{shelfId}	shelf	true	load		shelfId->id	
-item-download-def.json	GET /shelves/{shelfId}/books	book	true	list		shelfId->shelf_id	
-item-download-def.json	GET /shelves/{shelfId}/books/{bookId}	book	true	load		bookId->id,shelfId->shelf_id	
-item-download-def.json	GET /shelves/{shelfId}/cover	shelf	true	load	cover	shelfId->id	
-item-download-def.json	GET /shelves/{shelfId}/cover/{width}	shelf	true	load	cover	shelfId->id	
-item-download-def.json	PUT /shelves/{shelfId}/books/{bookId}	book	true	update		bookId->id,shelfId->shelf_id	
-item-envelope-def.json	GET /customers.json	customer	true	list			{"res":["`$EACH`","body",{"`$MERGE`":"`.customer`"}]}
-item-envelope-def.json	GET /customers/{id}.json	customer	true	load			{"res":"`body.customer`"}
-item-envelope-def.json	GET /invoices.json	invoice	true	list			
-item-envelope-def.json	GET /invoices/{uid}.json	invoice	true	load		uid->id	
-item-read-def.json	GET /employees/{employeeId}	employee	true	load		employeeId->id	
-item-read-def.json	GET /employees/{employeeId}/photo/{width}	employee	true	load	photo	employeeId->id	
-item-read-def.json	GET /messages/{messageId}	message	true	load		messageId->id	
-item-read-def.json	GET /messages/{messageId}/details	message	true	load	details	messageId->id	
-item-read-def.json	GET /reports/{reportId}/contents	report	true	load	content	reportId->id	
-item-record-def.json	DELETE /user/repository_invitations/{invitation_id}	repository_invitation	true	remove		invitation_id->id	
-item-record-def.json	DELETE /user/starred/{owner}/{repo}	starred	true	remove			
-item-record-def.json	DELETE /user/team_invitations/{invitation_id}	team_invitation	true	remove		invitation_id->id	
-item-record-def.json	GET /clusters/{cluster_name}/instances	instance	true	list			
-item-record-def.json	GET /clusters/{cluster_name}/instances/{instance_id}	instance	true	load		instance_id->id	
-item-record-def.json	GET /exports/{export_id}	export	true	load		export_id->id	
-item-record-def.json	GET /mail/v1/domains	domain	true	list			{"res":"`body.items`"}
-item-record-def.json	GET /mail/v1/domains/{id}	domain	true	load			
-item-record-def.json	GET /repos/{repo_id}	repo	true	load		repo_id->id	
-item-record-def.json	GET /runners	runner	true	list			
-item-record-def.json	GET /runners/{runner_id}	runner	true	load		runner_id->id	
-item-record-def.json	GET /simulation_runs	simulation_run	true	list			
-item-record-def.json	GET /simulation_runs/{run_id}	simulation_run	true	load		run_id->id	
-item-record-def.json	GET /teams/{team_id}	team	true	load		team_id->id	
-item-record-def.json	GET /things/{thing_id}	thing	true	load		thing_id->id	
-item-record-def.json	GET /user/repository_invitations	repository_invitation	true	list			
-item-record-def.json	GET /user/starred	starred	true	list			
-item-record-def.json	GET /user/team_invitations	team_invitation	true	list			
-item-record-def.json	GET /widgets	widget	true	list			
-item-record-def.json	GET /widgets/{widget_id}	widget	true	load		widget_id->id	
-item-record-def.json	GET /workers	worker	true	list			
-item-record-def.json	GET /workers/{worker_id}	worker	true	load		worker_id->id	
-item-record-def.json	PATCH /clusters/{cluster_name}/instances/{instance_id}	instance	true	patch		instance_id->id	
-item-record-def.json	PATCH /things/{thing_id}	thing	true	patch		thing_id->id	{"res":"`body.data`"}
-item-record-def.json	PATCH /user/repository_invitations/{invitation_id}	repository_invitation	true	patch		invitation_id->id	
-item-record-def.json	PATCH /user/team_invitations/{invitation_id}	team_invitation	true	patch		invitation_id->id	
-item-record-def.json	POST /clusters/{cluster_name}/instances/{instance_id}/restart	instance	true	create	restart	instance_id->id	
-item-record-def.json	POST /mail/v1/domains	domain	true	create			
-item-record-def.json	POST /repos/{repo_id}/forks	repo	true	create	fork	repo_id->id	
-item-record-def.json	POST /runners	runner	true	create			
-item-record-def.json	POST /simulation_runs	simulation_run	true	create			
-item-record-def.json	POST /widgets	widget	true	create			
-item-record-def.json	POST /workers	worker	true	create			
-item-record-def.json	PUT /user/starred/{owner}/{repo}	starred	true	update			
-key-noun-def.json	GET /grid/answer/{jobId}	job	true	load	grid_answer	jobId->job_id	
-key-noun-def.json	GET /tsp/answer/{jobId}	job	true	load	tsp_answer	jobId->job_id	
-key-noun-def.json	GET /wiki/{sheetName}	wiki	true	load		sheetName->id	
-key-noun-def.json	PATCH /portal/{storeKey}	portal	true	patch		storeKey->id	
-key-param-def.json	DELETE /s/{shelf}	shelf	true	remove			
-key-param-def.json	GET /s	shelf	true	list			{"page":{"cursor":"`body.nextPageToken`"},"res":"`body.items`"}
-key-param-def.json	GET /s/{shelf}	shelf	true	load			
-key-param-def.json	GET /s/{shelf}/k	book	true	list			{"page":{"cursor":"`body.nextPageToken`"},"res":"`body.items`"}
-key-param-def.json	GET /s/{shelf}/k/{book}	book	true	load			
-key-param-def.json	PATCH /s/{shelf}	shelf	true	patch			
-key-param-def.json	POST /s	shelf	true	create			
-keyed-verb-3-def.json	GET /shops/{owner}/{shop}	shop	true	list			
-keyed-verb-3-def.json	GET /shops/{owner}/{shop}/{orderNum}	order_detail	true	load		orderNum->order_num	
-keyed-verb-3-def.json	POST /shops/{owner}/{shop}/{orderNum}/cancel	order_detail	true	create	cancel	orderNum->order_num	
-keyed-verb-3-def.json	POST /shops/{owner}/{shop}/{orderNum}/retry	order_detail	true	create	retry	orderNum->order_num	
-keyed-verb-def.json	GET /v3/notes/{bookId}	note	true	list		bookId->book_id	{"page":{"total":"`body.total`"},"res":"`body.notes`"}
-keyed-verb-def.json	GET /v3/notes/{bookId}/{id}	note	true	load		bookId->book_id	
-keyed-verb-def.json	POST /v3/notes/{bookId}/{id}/_mute	note	true	create	mute	bookId->book_id	
-keyed-verb-def.json	POST /v3/notes/{bookId}/{id}/_pin	note	true	create	pin	bookId->book_id	
-list-records-def.json	GET /competitions/{id}	competition	true	load			
-list-records-def.json	GET /competitions/{id}/matches	competition	true	list	match		{"page":{"total":"`body.count`"},"res":"`body.matches`"}
-list-records-def.json	GET /competitions/{id}/scorers	scorer	true	list		id->competition_id	{"page":{"total":"`body.count`"},"res":"`body.scorers`"}
-list-records-def.json	GET /competitions/{id}/teams	competition	true	list	team		{"page":{"total":"`body.count`"},"res":"`body.teams`"}
-list-records-def.json	GET /notes	note	true	list			{"page":{"total":"`body.total`"},"res":"`body.note`"}
-list-records-def.json	GET /quote/random	quote	true	list	random		{"res":"`body.episodes`"}
-list-records-def.json	GET /quote/{id}	quote	true	load			{"res":"`body.quote`"}
-list-records-def.json	GET /user-roles	user_role	true	list			{"res":"`body.data`"}
-list-records-def.json	GET /users	user	true	list			{"res":"`body.users`"}
-list-records-def.json	GET /users/{id}/user-role	user_role	true	list		id->user_id	{"res":"`body.user_role`"}
-method-name-def.json	GET /rpc?method=acme.gadgets.parts.getList	part	true	list	get_list		
-method-name-def.json	GET /rpc?method=acme.widgets.getInfo	widget	true	load	get_info		
-method-name-def.json	GET /rpc?method=acme.widgets.search	widget	true	list	search		
-module-affix-def.json	DELETE /v1/GadgetsApi/{serial}	gadget	true	remove		serial->id	
-module-affix-def.json	GET /v1/BadgesApi/Active/{serial}	badge	true	load			
-module-affix-def.json	GET /v1/GadgetsApi	gadget	true	list			
-module-affix-def.json	GET /v1/GadgetsApi/{serial}	gadget	true	load		serial->id	
-module-affix-def.json	POST /v1/GadgetsApi	gadget	true	create			
-module-affix-def.json	POST /v1/GadgetsApi/Find	gadget	true	list	find		
-namespace-prefix-def.json	GET /lockers/{id}	store	true	load	locker		
-namespace-prefix-def.json	GET /safes	safe	true	list			
-namespace-prefix-def.json	GET /safes/{id}	safe	true	load			
-namespace-prefix-def.json	GET /vaults/{id}	store	true	load	vault		
-namespace-prefix-def.json	POST /check	check	true	create			
-namespace-prefix-def.json	POST /encode	encode	true	create			
-namespace-prefix-def.json	POST /hold	payment	true	create			
-no-noun-def.json	GET /aq	aq_index_result	true	load			
-no-noun-def.json	GET /catalog/{vendor}/{plugin}.json	plugin	true	load			
-no-noun-def.json	GET /history	placed_order	true	list			{"res":"`body.bets`"}
-no-noun-def.json	GET /list.json	plugin	true	load			
-no-noun-def.json	GET /{vendor}.json	plugin	true	load			
-no-noun-def.json	POST /deactivate	deactivate	true	create			
-open-object-def.json	DELETE /holidays/{id}	leave_record	true	remove			
-open-object-def.json	GET /holidays	leave_record	true	list			{"res":"`body.data`"}
-open-object-def.json	GET /holidays/{id}	leave_record	true	load			
-open-object-def.json	GET /offices	office	true	list			
-open-object-def.json	GET /offices/{id}	office	true	load			
-open-object-def.json	GET /projects	project	true	list			
-open-object-def.json	GET /projects/{id}	project	true	load			
-open-object-def.json	GET /staff	staff	true	list			
-open-object-def.json	GET /staff/{id}	staff	true	load			
-open-object-def.json	GET /teams	team	true	list			
-open-object-def.json	GET /teams/{id}	team	true	load			
-open-object-def.json	POST /holidays	leave_record	true	create			
-operation-id-def.json	POST /ra/{account}/{service_id}/sign	sign	true	create			
-operation-id-def.json	POST /signin-jwt/{service_id}/{account}/authenticate	session_key	true	create		service_id->signin_jwt_id	
-operation-id-def.json	POST /signin/{account}/{login}/authenticate	session_key	true	create			
-page-meta-def.json	GET /emails	email	true	list			{"page":{"cursor":"`body.next_cursor`","more":"`body.has_more`"},"res":"`body.data`"}
-page-meta-def.json	GET /entries	entry	true	list			{"page":{"total":"`body.total`"},"res":"`body.entries`"}
-page-meta-def.json	GET /forms	form	true	list			{"page":{"more":"`body.hasMore`","total":"`body.total`"},"res":"`body.items`"}
-page-meta-def.json	GET /nodes	node	true	list			{"page":{"cursor":"`body.pageInfo.endCursor`","more":"`body.pageInfo.hasNextPage`"},"res":"`body.nodes`"}
-page-meta-def.json	GET /orders	order	true	list			{"page":{"cursor":"`body.meta.next_cursor`","next":"`body.links.next`","total":"`body.meta.total`"},"res":"`body.data`"}
-page-meta-def.json	GET /results	result	true	list			{"page":{"next":"`body.next`","total":"`body.count`"},"res":"`body.results`"}
-page-meta-def.json	GET /stats	stat	true	load			
-page-param-def.json	GET /agents/{id}	agent	true	list			
-page-param-def.json	GET /boxes	box	true	list			
-page-param-def.json	GET /boxes/{boxId}	box	true	load		boxId->id	
-page-param-def.json	GET /boxes/{boxId}/data/{sensorId}	data	true	list		boxId->box_id,sensorId->sensor_id	
-page-param-def.json	GET /crews	crew	true	list			
-page-param-def.json	GET /crews/{crewId}	crew	true	load		crewId->id	
-page-param-def.json	GET /id/{id}/info	id_info	true	load			
-page-param-def.json	GET /news/{tagId}	article	true	list		tagId->tag_id	
-page-param-def.json	GET /press-releases/{currency}	press_release	true	list			{"page":{"total":"`body.count`"},"res":"`body.data`"}
-page-param-def.json	GET /repos/{owner}	repo	true	list			{"page":{"total":"`body.total`"},"res":"`body.items`"}
-page-param-def.json	GET /restaurants/{id}	restaurant	true	load			
-page-param-def.json	GET /restaurants/{id}/menu	restaurant	true	load	menu		
-page-param-def.json	GET /teams/{teamId}	team	true	load		teamId->id	
-page-param-def.json	GET /users/{userId}/profile	user_profile	true	load		userId->user_id	
-page-param-def.json	POST /repos/{owner}	repo	true	create			
-page-param-def.json	PUT /users/{userId}/profile	user_profile	true	update		userId->user_id	
-page-side-def.json	GET /branches	branch	true	list			{"page":{"next":"`body.pagination.next`"},"res":"`body.branches`"}
-page-side-def.json	GET /characters	character	true	list			{"res":"`body.data`"}
-page-side-def.json	GET /characters/{id}	character	true	load			{"res":"`body.data`"}
-page-side-def.json	GET /documents/{id}	document	true	load			{"res":"`body.data`"}
-page-side-def.json	GET /jobs/{id}	job	true	load			{"res":"`body.data`"}
-page-side-def.json	GET /metrics	metric	true	list			{"res":"`body.data`"}
-page-side-def.json	GET /notifications	notification	true	list			{"page":{"more":"`body.hasMore`"},"res":"`body.data`"}
-page-side-def.json	GET /preferences	preference	true	list			{"res":"`body.workflows`"}
-page-side-def.json	GET /rollups	rollup	true	list			{"res":"`body.statuses`"}
-page-side-def.json	GET /timeline	timeline	true	list			{"page":{"total":"`body.total`"},"res":"`body.results`"}
-page-side-def.json	POST /exports	export	true	create			{"res":"`body.data`"}
-page-side-def.json	POST /jobs	job	true	create			{"res":"`body.data`"}
-param-names-def.json	DELETE /orgs/{organization_name}/projects/{project_name}/containers/{container_name}	container	true	remove		container_name->id	
-param-names-def.json	DELETE /v1/teams/{team_slug}/members/{username}	member	true	remove		username->id	
-param-names-def.json	GET /orgs/{organization_name}/projects/{project_name}/containers	container	true	list			
-param-names-def.json	GET /orgs/{organization_name}/projects/{project_name}/containers/{container_name}	container	true	load		container_name->id	
-param-names-def.json	GET /orgs/{organization_name}/projects/{project_name}/containers/{container_name}/instances	instance	true	list			
-param-names-def.json	GET /orgs/{organization_name}/projects/{project_name}/containers/{container_name}/instances/{instance_id}	instance	true	load		instance_id->id	
-param-names-def.json	GET /v1/repos/{owner}	repo	true	list			
-param-names-def.json	GET /v1/repos/{owner}/{name}	repo	true	load			
-param-names-def.json	GET /v1/teams/{team_slug}/members	member	true	list			
-param-names-def.json	GET /v1/teams/{team_slug}/members/{username}	member	true	load		username->id	
-param-names-def.json	PATCH /orgs/{organization_name}/projects/{project_name}/containers/{container_name}	container	true	patch		container_name->id	
-param-names-def.json	PATCH /orgs/{organization_name}/projects/{project_name}/containers/{container_name}/instances/{instance_id}	instance	true	patch		instance_id->id	
-param-names-def.json	POST /orgs/{organization_name}/projects/{project_name}/containers	container	true	create			
-param-names-def.json	POST /orgs/{organization_name}/projects/{project_name}/containers/{container_name}/start	container	true	create	start		
-partial-placeholder-def.json	GET /catalog/{owner}/{group}/{thing}.json	thing	true	load			
-partial-placeholder-def.json	GET /catalog/{owner}/{thing}.json	thing	true	load			
-partial-placeholder-def.json	GET /list.json	thing	true	load			
-partial-placeholder-def.json	GET /owners.json	owner	true	load			
-partial-placeholder-def.json	GET /totals.json	total	true	load			
-partial-placeholder-def.json	GET /{owner}.json	thing	true	load			
-partial-placeholder-def.json	GET /{owner}/groups.json	group	true	load			
-path-extension-def.json	GET /gadgets	gadget	true	list			
-path-extension-def.json	GET /gadgets/{gadgetId}/parts	part	true	load		gadgetId->gadget_id	
-path-extension-def.json	GET /widgets	widget	true	list			
-path-extension-def.json	GET /widgets/{widgetId}/parts	part	true	load		widgetId->widget_id	
-path-item-keys-def.json	DELETE /crates/{crate_id}	crate	true	remove		crate_id->id	
-path-item-keys-def.json	GET /crates/{crate_id}	crate	true	load		crate_id->id	
-path-item-keys-def.json	GET /crates/{crate_id}/versions/{version_id}	release	true	load			
-path-syntax-def.json	GET /api/notes{fileExtension}	note	true	list			
-path-syntax-def.json	GET /search/localSearch/.{ext}	local_search	true	list			{"res":"`body.results`"}
-path-syntax-def.json	GET /widgets	widget	true	list			
-path-syntax-def.json	GET /widgets/{id}	widget	true	load			
-path-syntax-def.json	GET /{sheetName}{fileExtension}	sheet	true	load		sheetName->id	
-path-syntax-def.json	POST /widgets?desc=html	widget	true	create			
-placeholder-ext-def.json	GET /pets.{format}	pet	true	list			{"res":"`body.results`"}
-placeholder-ext-def.json	GET /pets/names.{format}	name	true	list			{"res":"`body.results`"}
-placeholder-ext-def.json	GET /toys.{format}	toy	true	list			{"res":"`body.results`"}
-post-list-collision-def.json	GET /widgets/list	widget	true	list	list		{"page":{"total":"`body.total`"},"res":"`body.items`"}
-post-list-collision-def.json	GET /widgets/{widgetId}	widget	true	load		widgetId->id	
-post-list-collision-def.json	POST /widgets/list	widget	true	post	list		{"page":{"total":"`body.total`"},"res":"`body.data`"}
-post-read-def.json	GET /things	thing	true	list			
-post-read-def.json	POST /listSavedCards	saved_card	true	list			{"res":"`body.details`"}
-post-read-def.json	POST /things/count	thing	true	create	count		
-post-read-def.json	POST /things/search	thing	true	list	search		
-postman-server-def.json	GET /bin/{id}	bin	true	load			
-prefix-tag-def.json	DELETE /alerts/deviceSubscriptions/{device_id}	device_subscription	true	remove		device_id->id	
-prefix-tag-def.json	GET /alerts/deviceSubscriptions	device_subscription	true	list			{"res":"`body.items`"}
-prefix-tag-def.json	GET /alerts/deviceSubscriptions/{device_id}	device_subscription	true	load		device_id->id	
-prefix-tag-def.json	GET /member/{member_id}/fans	member	true	load	fan	member_id->id	
-prefix-tag-def.json	GET /tiles	tile	true	list			
-prefix-tag-def.json	GET /tiles/random	tile	true	load	random		
-prefix-tag-def.json	GET /tiles/{tile_id}	tile	true	load		tile_id->id	
-prefix-tag-def.json	POST /alerts/deviceSubscriptions	device_subscription	true	create			
-procedure-def.json	GET /#Action=GetWidgets	widget	true	load	get		
-procedure-def.json	GET /records.get_entries	entry	true	load	get		
-procedure-def.json	GET /records.metadata	record	true	load			
-procedure-def.json	POST /#Action=BatchDeleteWidgets	widget	true	create	batch_delete		
-procedure-def.json	POST /#Action=ListGadgets	gadget	true	create	list		
-procedure-def.json	POST /#Action=Select	action_select	true	create			
-projection-def.json	GET /owners	owner	true	list			
-projection-def.json	GET /owners/{id}	owner	true	load			
-projection-def.json	GET /owners/{id}/nick_names	owner	true	load	nick_name		
-projection-def.json	GET /owners/{id}/pets	pet	true	list		id->owner_id	
-qualified-cmp-def.json	GET /account_option_v2	account_option_v2	true	load			
-qualified-cmp-def.json	GET /accounts	account	true	list			
-qualified-cmp-def.json	GET /accounts/{account_id}	account	true	load		account_id->id	
-qualified-cmp-def.json	GET /accounts/{account_id}/options	account_option	true	list			
-qualified-cmp-def.json	GET /accounts/{account_id}/options/{option_id}	account_option	true	load		option_id->id	
-query-book-def.yaml	GET /api/book/{book_id}	book	true	load		book_id->id	
-query-book-def.yaml	QUERY /api/book	book	true	list			
-query-book-def.yaml.full.json	GET /api/book/{book_id}	book	true	load		book_id->id	
-query-book-def.yaml.full.json	QUERY /api/book	book	true	list			
-read-verb-item-def.json	GET /gadgets	gadget	true	list			
-read-verb-item-def.json	GET /gadgets/{gadgetId}	gadget	true	load		gadgetId->id	
-read-verb-item-def.json	POST /gadgets/{gadgetId}/getLinkedTags	gadget	true	list	get_linked_tags	gadgetId->id	{"res":"`body.value`"}
-record-array-def.json	GET /boards	board	true	list			{"page":{"next":"`body.next`"},"res":"`body.items`"}
-record-array-def.json	GET /boards/{boardId}	board	true	load		boardId->id	
-record-array-def.json	GET /boards/{boardId}/acl	board	true	load	acl	boardId->id	
-record-array-def.json	GET /me	account	true	load			
-record-array-def.json	GET /reports/latest	report	true	load	latest		
-record-key-def.json	GET /homes	offer	true	list			
-record-key-def.json	GET /homes/{homeRef}	offer	true	load		homeRef->home_ref	
-record-key-def.json	GET /regions/spots	place	true	list			{"page":{"total":"`body.meta.count`"},"res":"`body.data`"}
-record-key-def.json	GET /regions/spots/by-circle	place	true	list	by_circle		{"page":{"total":"`body.meta.count`"},"res":"`body.data`"}
-record-key-def.json	GET /regions/spots/{spotsId}	place	true	load		spotsId->spots_id	{"res":"`body.data`"}
-record-name-def.json	DELETE /s/{shelf}/acl/{entity}	shelf_access_control	true	remove			
-record-name-def.json	GET /farms/{farmId}/croptypes	croptype	true	list		farmId->farm_id	{"res":"`body.items`"}
-record-name-def.json	GET /farms/{farmId}/croptypes/{code}	croptype	true	load		code->id,farmId->farm_id	
-record-name-def.json	GET /s/{shelf}	shelf	true	load			
-record-name-def.json	GET /s/{shelf}/acl	shelf_access_control	true	list			{"res":"`body.items`"}
-record-name-def.json	GET /s/{shelf}/acl/{entity}	shelf_access_control	true	load			
-record-name-def.json	POST /s/{shelf}/acl	shelf_access_control	true	create			
-record-name-def.json	PUT /s/{shelf}/acl/{entity}	shelf_access_control	true	update			
-relationship-def.json	DELETE /expenses/{expenseId}/relationships/tags	expense	true	remove	tags	expenseId->id	
-relationship-def.json	GET /expenses	expense	true	list			
-relationship-def.json	GET /expenses/{expenseId}	expense	true	load		expenseId->id	
-relationship-def.json	PATCH /expenses/{expenseId}/relationships/category	expense	true	patch	category	expenseId->id	
-relationship-def.json	POST /expenses/{expenseId}/relationships/tags	expense	true	create	tags	expenseId->id	
-rename-guard-def.json	GET /things/{thing_id}/2fa/{code}/checks/{check_id}	check	true	load		check_id->id	
-rename-guard-def.json	GET /things/{thing_id}/revisions/{recipe_revision}/packages/{package_ref}/revisions/{package_revision}/files/{file_name}	file	true	load		file_name->id,package_ref->package_id,recipe_revision->revision_id	
-request-body-def.json	DELETE /notes/{note_id}	note	true	remove		note_id->id	
-request-body-def.json	GET /avatars/{avatar_id}	avatar	true	load		avatar_id->id	
-request-body-def.json	GET /notes/{note_id}	note	true	load		note_id->id	
-request-body-def.json	GET /renders/{render_id}	render	true	load		render_id->id	
-request-body-def.json	GET /subscriptions/{subscription_id}	subscription	true	load		subscription_id->id	
-request-body-def.json	GET /uploads/{upload_id}	upload	true	load		upload_id->id	
-request-body-def.json	PATCH /renders/{render_id}	render	true	patch		render_id->id	
-request-body-def.json	POST /avatars	avatar	true	create			
-request-body-def.json	POST /notes	note	true	create			
-request-body-def.json	POST /renders	render	true	create			
-request-body-def.json	POST /subscriptions	subscription	true	create			
-request-body-def.json	POST /uploads	upload	true	create			
-request-paths-def.json	DELETE /contacts/groups/{groupId}/permissions/{username}	permission	true	remove		groupId->group_id,username->id	
-request-paths-def.json	DELETE /schedules	schedule	true	remove			
-request-paths-def.json	GET /boards/{boardId}	board	true	load		boardId->id	
-request-paths-def.json	GET /contacts/groups/{groupId}/permissions	permission	true	list		groupId->group_id	
-request-paths-def.json	GET /contacts/groups/{groupId}/permissions/{username}	permission	true	load		groupId->group_id,username->id	
-request-paths-def.json	GET /image/world/{worldTileName}{tileX}-{tileY}-0.png	world	true	load			
-request-paths-def.json	GET /messages	message	true	list			
-request-paths-def.json	GET /messages/count	message	true	load	count		
-request-paths-def.json	GET /messages/{messageId}	message	true	load		messageId->id	
-request-paths-def.json	GET /schedules	schedule	true	list			
-request-paths-def.json	GET /schedules/{scheduleId}	schedule	true	load		scheduleId->id	
-request-paths-def.json	GET /schedules:count	schedule	true	load	count		
-request-paths-def.json	GET /states/{stateAbbreviation}.json	state	true	load		stateAbbreviation->id	
-request-paths-def.json	GET /{board}/thread/{threadId}.json	thread	true	list		threadId->thread_id	{"res":"`body.posts`"}
-request-paths-def.json	POST /messages/{messageId}/cancel	message	true	create	cancel	messageId->id	
-request-paths-def.json	POST /schedules/{scheduleId}:cancel	schedule	true	create	cancel	scheduleId->id	
-request-paths-def.json	PUT /boards/{boardId}/{fileName}.json	board	true	update		boardId->board_id,fileName->file_name	
-request-paths-def.json	PUT /contacts/groups/{groupId}/permissions/{username}	permission	true	update		groupId->group_id,username->id	
-response-media-def.json	GET /artifacts/{artifactId}	artifact	true	load		artifactId->id	
-response-media-def.json	GET /ids/contentIds/{contentId}	artifact	true	load		contentId->content_id	
-response-media-def.json	GET /rooms/{room_id}	room	true	load		room_id->id	
-response-media-def.json	GET /rooms/{room_id}/attendance	attendance	true	list			
-response-media-def.json	GET /terms/{term}	term	true	load		term->id	
-response-media-def.json	GET /terms/{term}/meanings	meaning	true	list		term->term_id	
-response-media-def.json	GET /terms/{term}/usage	term	true	load	usage	term->id	
-rest-select-def.json	DELETE /public/database/{id}/permission/permanent/{msisdn}	permission	true	remove		id->database_id	
-rest-select-def.json	DELETE /public/database/{id}/permission/{msisdn}	permission	true	remove		id->database_id,msisdn->id	
-rest-select-def.json	GET /public/database/{id}/permission	permission	true	list		id->database_id	
-rest-select-def.json	PUT /entity-templates/disable	entity_template	true	update	disable		
-rest-select-def.json	PUT /iterations/disable	iteration	true	update	disable		
-rest-select-def.json	PUT /iterations:disable	iteration	true	update	disable		
-route-syntax-def.json	DELETE /labels/{labelId}#keys	label	true	remove		labelId->id	
-route-syntax-def.json	DELETE /owners/{ownerId}/pets/${petId}	pet	true	remove		ownerId->owner_id,petId->id	
-route-syntax-def.json	GET /echo	echo	true	load			
-route-syntax-def.json	GET /labels/{labelId}	label	true	load		labelId->id	
-route-syntax-def.json	GET /lines/{lineId}	line	true	load		lineId->id	
-route-syntax-def.json	GET /lines/{lineId}/stop/{stopId}	stop	true	load		lineId->line_id,stopId->id	
-route-syntax-def.json	GET /owners/{ownerId}/pets/${petId}	pet	true	load		ownerId->owner_id,petId->id	
-route-syntax-def.json	GET /walkers/{walkerId}/walks{format}	walker	true	load	walk	walkerId->id	
-route-syntax-def.json	GET /walkers/{walkerId}{format}	walker	true	load		walkerId->id	
-route-syntax-def.json	POST /walkers/{walkerId}/send_to_front{format}	walker	true	create	send_to_front	walkerId->id	
-route-syntax-def.json	POST /walkers/{walkerId}/walks/reset{format}	walker	true	create	walk_reset	walkerId->id	
-route-syntax-def.json	TRACE /echo	echo	true	TRACE			
-ruling-gaps-def.json	GET /LedgerLinks	ledger_link	true	list			{"res":"`body.items`"}
-ruling-gaps-def.json	GET /LedgerLinks/{id}	ledger_link	true	load			
-ruling-gaps-def.json	GET /alerts/topics	topic	true	list			
-ruling-gaps-def.json	GET /catalog/{vendor}/{plugin}.json	plugin	true	load			
-ruling-gaps-def.json	GET /journal/{journal_id}	journal	true	load		journal_id->id	
-ruling-gaps-def.json	GET /journal/{journal_id}/digest	digest	true	load			
-ruling-gaps-def.json	GET /journal/{journal_id}/following	journal	true	list	following	journal_id->id	{"res":"`body.following`"}
-ruling-gaps-def.json	GET /search/notes	search	true	list	note		
-ruling-gaps-def.json	POST /LedgerLinks/ArchiveEntries	ledger_link	true	create	archive_entries		
-same-path-join-def.json	DELETE /orgs/{org}/vault/secrets/{secret_name}	secret	true	remove		org->org_id,secret_name->id	
-same-path-join-def.json	DELETE /widgets/{widget_id}	widget	true	remove		widget_id->id	
-same-path-join-def.json	GET /orgs/{org}/vault/repository-access	org	true	load	vault_repository_access	org->id	
-same-path-join-def.json	GET /orgs/{org}/vault/secrets	secret	true	list		org->org_id	
-same-path-join-def.json	GET /orgs/{org}/vault/secrets/{secret_name}	secret	true	load		org->org_id,secret_name->id	
-same-path-join-def.json	GET /widgets/{widget_id}	widget	true	load		widget_id->id	
-same-path-join-def.json	PATCH /orgs/{org}/vault/repository-access	org	true	patch	vault_repository_access	org->id	
-same-path-record-def.json	DELETE /gardens/{gardenId}/plot/{plotId}	garden_plot	true	remove		gardenId->garden_id,plotId->id	
-same-path-record-def.json	DELETE /staff/holidays/{id}	holiday	true	remove			{"res":"`body.data`"}
-same-path-record-def.json	GET /colors	color	true	list			
-same-path-record-def.json	GET /colors/{colorId}	color	true	load		colorId->id	
-same-path-record-def.json	GET /gardens/{gardenId}/plot/{plotId}	garden_plot	true	load		gardenId->garden_id,plotId->id	
-same-path-record-def.json	GET /shapes	shape	true	list			
-same-path-record-def.json	GET /shapes/{shapeId}	shape	true	load		shapeId->id	
-same-path-record-def.json	GET /sizes	size	true	list			
-same-path-record-def.json	GET /sizes/{sizeId}	size	true	load		sizeId->id	
-same-path-record-def.json	GET /staff/holidays	holiday	true	load			
-same-path-record-def.json	GET /staff/holidays/{id}	holiday	true	load			
-same-path-record-def.json	PUT /gardens/{gardenId}/plot/{plotId}	garden_plot	true	update		gardenId->garden_id,plotId->id	
-shared-node-def.json	GET /rules/{rule_id}	rule	true	load		rule_id->id	
-shared-node-def.json	PUT /rules/{rule_id}	rule	true	update		rule_id->id	
-shared-record-def.json	DELETE /s/{shelf}/defaultBookAcl/{entity}	book_access_control	true	remove	default_book_acl		
-shared-record-def.json	GET /s	shelf	true	list			
-shared-record-def.json	GET /s/{shelf}	shelf	true	load			
-shared-record-def.json	GET /s/{shelf}/defaultBookAcl	book_access_control	true	list	default_book_acl		
-shared-record-def.json	GET /s/{shelf}/defaultBookAcl/{entity}	book_access_control	true	load	default_book_acl		
-shared-record-def.json	GET /s/{shelf}/k	book	true	list			
-shared-record-def.json	GET /s/{shelf}/k/{book}	book	true	load			
-shared-record-def.json	GET /s/{shelf}/k/{book}/acl	book_access_control	true	list	acl		
-shared-record-def.json	GET /s/{shelf}/k/{book}/acl/{entity}	book_access_control	true	load	acl		
-shared-record-def.json	POST /s/{shelf}/defaultBookAcl	book_access_control	true	create	default_book_acl		
-shared-record-def.json	POST /s/{shelf}/k/{book}/acl	book_access_control	true	create	acl		
-shared-record-def.json	PUT /s/{shelf}/k/{book}/acl/{entity}	book_access_control	true	update	acl		
-shared-selector-def.json	GET /catalog/widgets	widget	true	list	catalog_widgets		
-shared-selector-def.json	GET /featured/widgets	widget	true	list			
-shared-selector-def.json	GET /widgets	widget	true	list			
-shared-selector-def.json	GET /widgets/catalog	widget	true	list	catalog		
-shared-selector-def.json	GET /widgets/{widgetId}	widget	true	load		widgetId->id	
-shared-selector-def.json	GET /widgets?view=full	widget	true	list			
-shared-wrapper-def.json	GET /domain	taxon	true	list	domain		{"page":{"total":"`body.total`"},"res":"`body.items`"}
-shared-wrapper-def.json	GET /domain/{domain_id}/kingdom/{id}	taxon	true	load	kingdom		
-shared-wrapper-def.json	GET /domain/{id}	taxon	true	load	domain		
-shared-wrapper-def.json	GET /domain/{id}/kingdom	taxon	true	list	kingdom	id->domain_id	{"page":{"total":"`body.total`"},"res":"`body.items`"}
-sharing-def.json	DELETE /accounts/{aid}/bank_accounts/{id}	removal	true	remove		aid->account_id	
-sharing-def.json	DELETE /accounts/{aid}/external_accounts/{id}	removal	true	remove	external_accounts	aid->account_id	
-sharing-def.json	GET /jobs	job	true	list			
-sharing-def.json	GET /jobs/{id}	job	true	load			
-sharing-def.json	GET /metrics	metric	true	load			
-sharing-def.json	GET /notes	memo	true	list			
-sharing-def.json	GET /notes/{id}	memo	true	load			
-sharing-def.json	GET /packages/{pid}/digest	package	true	load	digest	pid->id	{"res":"`body.files`"}
-sharing-def.json	GET /packages/{pid}/download_urls	package	true	load	download_urls	pid->id	{"res":"`body.files`"}
-sharing-def.json	GET /recipes/{rid}/digest	recipe	true	load	digest	rid->id	{"res":"`body.files`"}
-sharing-def.json	GET /recipes/{rid}/download_urls	recipe	true	load	download_urls	rid->id	{"res":"`body.files`"}
-sharing-def.json	GET /settings/enforce_admins	enforce_admin	true	load			
-sharing-def.json	GET /settings/required_signatures	required_signature	true	load			
-sharing-def.json	GET /stats	stat	true	load			
-sharing-def.json	GET /stats/daily	counter	true	load			
-sharing-def.json	GET /users/{uid}/starred_notes	memo	true	list		uid->user_id	
-sharing-def.json	POST /jobs/{id}/rerun	job	true	create	rerun		
-sharing-def.json	POST /orgs/{org}/actions/variables	variable	true	create		org->org_id	
-sharing-def.json	PUT /orgs/{org}/actions/secrets/{name}	ack	true	update		org->org_id	
-sharing-def.json	PUT /orgs/{org}/dependabot/secrets/{name}	ack	true	update	dependabot	org->org_id	
-short-literal-def.json	GET /fr/{sheetName}{fileExtension}	sheet	true	load		sheetName->sheet_name	
-short-literal-def.json	GET /misc/qq	qqn	true	load			
-short-literal-def.json	GET /misc/qq/{id}	qqn	true	load			
-short-literal-def.json	GET /search/{versionNumber}/q/{term}.{ext}	term	true	load		versionNumber->version_number	
-short-literal-def.json	GET /x/db	database	true	load			
-singleton-part-def.json	DELETE /store/settings	setting	true	remove			
-singleton-part-def.json	DELETE /store/settings/sort-rules	setting	true	remove	sort_rules		
-singleton-part-def.json	DELETE /store/settings/theme	setting	true	remove	theme		
-singleton-part-def.json	GET /store/settings	setting	true	load			
-singleton-part-def.json	GET /store/settings/sort-rules	setting	true	load	sort_rules		
-singleton-part-def.json	GET /store/settings/theme	setting	true	load	theme		
-singleton-part-def.json	PATCH /store/settings	setting	true	patch			
-singleton-part-def.json	PATCH /store/settings/theme	setting	true	patch	theme		
-singleton-part-def.json	PUT /store/settings/sort-rules	setting	true	update	sort_rules		
-solar-1.0.0-openapi-3.0.0-def.yaml	DELETE /api/planet/{planet_id}	planet	true	remove		planet_id->id	
-solar-1.0.0-openapi-3.0.0-def.yaml	DELETE /api/planet/{planet_id}/moon/{moon_id}	moon	true	remove		moon_id->id	
-solar-1.0.0-openapi-3.0.0-def.yaml	GET /api/planet	planet	true	list			
-solar-1.0.0-openapi-3.0.0-def.yaml	GET /api/planet/{planet_id}	planet	true	load		planet_id->id	
-solar-1.0.0-openapi-3.0.0-def.yaml	GET /api/planet/{planet_id}/moon	moon	true	list			
-solar-1.0.0-openapi-3.0.0-def.yaml	GET /api/planet/{planet_id}/moon/{moon_id}	moon	true	load		moon_id->id	
-solar-1.0.0-openapi-3.0.0-def.yaml	POST /api/planet	planet	true	create			
-solar-1.0.0-openapi-3.0.0-def.yaml	POST /api/planet/{planet_id}/forbid	planet	true	create	forbid	planet_id->id	
-solar-1.0.0-openapi-3.0.0-def.yaml	POST /api/planet/{planet_id}/moon	moon	true	create			
-solar-1.0.0-openapi-3.0.0-def.yaml	POST /api/planet/{planet_id}/terraform	planet	true	create	terraform	planet_id->id	
-solar-1.0.0-openapi-3.0.0-def.yaml	PUT /api/planet/{planet_id}	planet	true	update		planet_id->id	
-solar-1.0.0-openapi-3.0.0-def.yaml	PUT /api/planet/{planet_id}/moon/{moon_id}	moon	true	update		moon_id->id	
-solar-1.0.0-openapi-3.0.0-def.yaml.full.json	DELETE /api/planet/{planet_id}	planet	true	remove		planet_id->id	
-solar-1.0.0-openapi-3.0.0-def.yaml.full.json	DELETE /api/planet/{planet_id}/moon/{moon_id}	moon	true	remove		moon_id->id	
-solar-1.0.0-openapi-3.0.0-def.yaml.full.json	GET /api/planet	planet	true	list			
-solar-1.0.0-openapi-3.0.0-def.yaml.full.json	GET /api/planet/{planet_id}	planet	true	load		planet_id->id	
-solar-1.0.0-openapi-3.0.0-def.yaml.full.json	GET /api/planet/{planet_id}/moon	moon	true	list			
-solar-1.0.0-openapi-3.0.0-def.yaml.full.json	GET /api/planet/{planet_id}/moon/{moon_id}	moon	true	load		moon_id->id	
-solar-1.0.0-openapi-3.0.0-def.yaml.full.json	POST /api/planet	planet	true	create			
-solar-1.0.0-openapi-3.0.0-def.yaml.full.json	POST /api/planet/{planet_id}/forbid	planet	true	create	forbid	planet_id->id	
-solar-1.0.0-openapi-3.0.0-def.yaml.full.json	POST /api/planet/{planet_id}/moon	moon	true	create			
-solar-1.0.0-openapi-3.0.0-def.yaml.full.json	POST /api/planet/{planet_id}/terraform	planet	true	create	terraform	planet_id->id	
-solar-1.0.0-openapi-3.0.0-def.yaml.full.json	PUT /api/planet/{planet_id}	planet	true	update		planet_id->id	
-solar-1.0.0-openapi-3.0.0-def.yaml.full.json	PUT /api/planet/{planet_id}/moon/{moon_id}	moon	true	update		moon_id->id	
-sub-path-def.json	GET /clubs/{name}	club	true	load		name->id	
-sub-path-def.json	GET /clubs/{name}/settings	club_setting	true	load			
-sub-path-def.json	GET /parcels/{id}	parcel	true	load			
-sub-path-def.json	GET /teams/{teamId}	team	true	load		teamId->id	
-sub-path-def.json	GET /teams/{teamId}/sync/config	preference	true	load		teamId->team_id	
-sub-path-def.json	POST /teams/{teamId}/sync/config	preference	true	create		teamId->team_id	
-sub-path-def.json	PUT /clubs/{name}/settings	club_setting	true	update			
-sub-path-def.json	PUT /parcels/{id}/address	parcel	true	update	address		
-sub-read-def.json	GET /stores	store	true	list			
-sub-read-def.json	GET /stores/{id}	store	true	load			
-sub-read-def.json	GET /stores/{id}/profile	profile	true	load		id->store_id	
-sub-read-def.json	GET /stores/{id}/status	store	true	load	status		
-subresource-fold-def.json	DELETE /v2/call_routes/{call_route_id}/allowed_callers/{id}	call_route_allowed_caller	true	remove			
-subresource-fold-def.json	DELETE /v2/call_routes/{call_route_id}/options/{id}	call_route_option	true	remove			
-subresource-fold-def.json	GET /v2/call_routes	call_route	true	list			{"res":"`body.call_routes`"}
-subresource-fold-def.json	GET /v2/call_routes/{call_route_id}/allowed_callers	call_route_allowed_caller	true	list			{"res":"`body.allowed_callers`"}
-subresource-fold-def.json	GET /v2/call_routes/{call_route_id}/allowed_callers/{id}	call_route_allowed_caller	true	load			{"res":"`body.allowed_caller`"}
-subresource-fold-def.json	GET /v2/call_routes/{call_route_id}/options/{id}	call_route_option	true	load			{"res":"`body.option`"}
-subresource-fold-def.json	GET /v2/call_routes/{id}	call_route	true	load			{"res":"`body.call_route`"}
-subresource-fold-def.json	POST /v2/call_routes/{call_route_id}/allowed_callers	call_route_allowed_caller	true	create			{"res":"`body.allowed_caller`"}
-subresource-fold-def.json	PUT /v2/call_routes/{call_route_id}/allowed_callers/{id}	call_route_allowed_caller	true	update			{"res":"`body.allowed_caller`"}
-swagger-twin-openapi-def.json	GET /notes/{note_id}	note	true	load		note_id->id	
-swagger-twin-openapi-def.json	GET /widgets	widget	true	list			
-swagger-twin-openapi-def.json	GET /widgets/{widget_id}	widget	true	load		widget_id->id	
-swagger-twin-openapi-def.json	POST /notes	note	true	create			
-swagger-twin-openapi-def.json	POST /tickets	ticket	true	create			
-swagger-twin-openapi-def.json	POST /widgets	widget	true	create			
-swagger-twin-openapi-def.json	POST /widgets/{widget_id}/image	widget	true	create	image	widget_id->id	
-swagger-twin-openapi-def.json	PUT /widgets/{widget_id}	widget	true	update		widget_id->id	
-swagger-twin-swagger-def.json	GET /notes/{note_id}	note	true	load		note_id->id	
-swagger-twin-swagger-def.json	GET /widgets	widget	true	list			
-swagger-twin-swagger-def.json	GET /widgets/{widget_id}	widget	true	load		widget_id->id	
-swagger-twin-swagger-def.json	POST /notes	note	true	create			
-swagger-twin-swagger-def.json	POST /tickets	ticket	true	create			
-swagger-twin-swagger-def.json	POST /widgets	widget	true	create			
-swagger-twin-swagger-def.json	POST /widgets/{widget_id}/image	widget	true	create	image	widget_id->id	
-swagger-twin-swagger-def.json	PUT /widgets/{widget_id}	widget	true	update		widget_id->id	
-tag-key-def.json	DELETE /teams/{teamId}/players/{playerId}	player	true	remove		playerId->id,teamId->team_id	
-tag-key-def.json	GET /teams/{teamId}	team	true	load		teamId->id	
-tag-key-def.json	GET /vaults/{vaultId}/o/{entry}	object	true	load		vaultId->vault_id	
-tag-key-def.json	POST /teams/{teamId}/players/{playerId}/activate	player	true	create	activate	playerId->id,teamId->team_id	
-tag-noun-def.json	DELETE /drawers/{drawer_id}	drawer	true	remove		drawer_id->id	
-tag-noun-def.json	GET /catalog-data/regions/spots/{spotsId}	spot	true	load		spotsId->id	
-tag-noun-def.json	GET /drawers/	drawer	true	list			
-tag-noun-def.json	GET /drawers/{drawer_id}	drawer	true	load		drawer_id->id	
-tag-noun-def.json	GET /{id}	thing	true	load			
-tag-noun-def.json	POST /drawers/	drawer	true	create			
-trailing-key-def.json	DELETE /user_groups/{id}	user_group	true	remove			
-trailing-key-def.json	DELETE /user_groups/{id}/users/{uid}	user	true	remove		id->user_group_id,uid->id	
-trailing-key-def.json	GET /orgs	org	true	list			
-trailing-key-def.json	GET /orgs/{org_id}	org	true	load		org_id->id	
-trailing-key-def.json	GET /orgs/{org}/runner-groups/{runner_group_id}	runner_group	true	load		org->org_id,runner_group_id->id	
-trailing-key-def.json	GET /user_groups	user_group	true	list			
-trailing-key-def.json	GET /user_groups/{id}	user_group	true	load			
-trailing-key-def.json	PATCH /orgs/{org_id}	org	true	patch		org_id->id	
-trailing-key-def.json	PATCH /orgs/{org}/runner-groups/{runner_group_id}	runner_group	true	patch		org->org_id,runner_group_id->id	
-trailing-key-def.json	POST /user_groups	user_group	true	create			
-trailing-key-def.json	POST /user_groups/{id}/users/{uid}	user	true	create		id->user_group_id,uid->id	
-verb-def.json	DELETE /notes/{note_id}	note	true	remove		note_id->id	
-verb-def.json	GET /notes/{note_id}	note	true	load		note_id->id	
-verb-def.json	GET /things	thing	true	list			
-verb-def.json	GET /things/{thing_number}	thing	true	load		thing_number->id	
-verb-def.json	GET /things/{thing_number}/merge	thing	true	load	merge	thing_number->id	
-verb-def.json	GET /things/{thing_number}/notes	note	true	list			
-verb-def.json	PATCH /things/{thing_number}	thing	true	patch		thing_number->id	
-verb-def.json	POST /things	thing	true	create			
-verb-def.json	POST /things/{thing_number}/notes	note	true	create			
-verb-def.json	PUT /things/{thing_number}/merge	thing	true	update	merge	thing_number->id	
-verb-edge-def.json	GET /email-archives	email_archive	true	list			
-verb-edge-def.json	GET /email-archives/{email_archive_id}	email_archive	true	load		email_archive_id->id	
-verb-edge-def.json	GET /widgets	widget	true	list			
-verb-edge-def.json	GET /widgets/{id}	widget	true	load			
-verb-edge-def.json	POST /widgets/{id}/access_keys	widget	true	create	access_keys		
-verb-edge-def.json	POST /widgets/{id}/labels	widget	true	create	labels		
-verb-edge-def.json	PUT /email-archives/{email_archive_id}/archive	email_archive	true	update	archive	email_archive_id->id	
-verb-edge-def.json	PUT /widgets/{id}	widget	true	update			
-verb-edge-def.json	PUT /widgets/{widget_number}/merge	widget	true	update	merge	widget_number->id	
-verb-noun-def.json	GET /account	account	true	load			
-verb-noun-def.json	GET /c/{id}/show	category	true	load		id->c_id	
-verb-noun-def.json	GET /shows	show	true	list			
-verb-noun-def.json	GET /shows/{id}	show	true	load			
-verb-noun-def.json	GET /tokens	token	true	list			
-verb-noun-def.json	POST /account/2/verify	account	true	create	verify		
-verb-noun-def.json	POST /tokens/authorize	token	true	create	authorize		
-verb-phrase-def.json	GET /s	shelf	true	list			
-verb-phrase-def.json	GET /s/{shelf}	shelf	true	load			
-verb-phrase-def.json	GET /s/{shelf}/k/{book}	book	true	load			
-verb-phrase-def.json	GET /s/{shelf}/k/{book}/rbac	grant	true	load			
-verb-phrase-def.json	GET /s/{shelf}/k/{book}/rbac/testAccess	book	true	load	rbac_test_access		
-verb-phrase-def.json	GET /s/{shelf}/rbac	grant	true	load			
-verb-phrase-def.json	GET /s/{shelf}/rbac/testAccess	shelf	true	load	rbac_test_access		
-verb-phrase-def.json	GET /things/{id}	thing	true	load			
-verb-phrase-def.json	GET /things/{id}/labels	label	true	list		id->thing_id	
-verb-phrase-def.json	POST /node-k8s/{service_id}/inject_root_cert	node_k8s	true	create	inject_root_cert	service_id->id	
-verb-phrase-def.json	POST /s/{shelf}/lockLendingPolicy	shelf	true	create	lock_lending_policy		
-verb-phrase-def.json	POST /things/{id}/actions/archive	thing	true	create	archive		
-verb-phrase-def.json	POST /things/{id}/labels	label	true	create		id->thing_id	
-verb-phrase-def.json	POST /things/{id}/labels/archive	label	true	create	archive	id->thing_id	
-verb-phrase-def.json	PUT /s/{shelf}/rbac	grant	true	update			
-verb-result-def.json	GET /farms/{farmId}/barns	barn	true	list		farmId->farm_id	
-verb-result-def.json	GET /farms/{farmId}/barns/$count	barn	true	load	count	farmId->farm_id	
-verb-result-def.json	GET /farms/{farmId}/croptypes	croptype	true	list		farmId->farm_id	
-verb-result-def.json	GET /farms/{farmId}/croptypes/$count	croptype	true	load	count	farmId->farm_id	
-verb-result-def.json	GET /farms/{farmId}/croptypes/{code}	croptype	true	load		code->id,farmId->farm_id	
-verb-result-def.json	GET /tasks	task	true	list			
-verb-result-def.json	GET /tasks/{id}	task	true	load			
-verb-result-def.json	POST /tasks/{id}/cancel	task	true	create	cancel		
-verb-word-def.json	GET /books	book	true	list			
-verb-word-def.json	GET /books/autocomplete	book	true	list	autocomplete		
-verb-word-def.json	GET /books/contains	book	true	list	contains		
-verb-word-def.json	GET /messages/{messageId}	message	true	load		messageId->id	
-verb-word-def.json	GET /queues/{queueId}	queue	true	load		queueId->id	
-verb-word-def.json	GET /uploads/{uploadId}	upload	true	load		uploadId->id	
-verb-word-def.json	POST /queues/{queueId}/reorder	queue	true	create	reorder	queueId->id	
-verb-word-def.json	POST /queues/{queueId}/shuffle	queue	true	create	shuffle	queueId->id	
-verb-word-def.json	POST /uploads/{uploadId}/finish	upload	true	create	finish	uploadId->id	
-verb-word-def.json	PUT /messages/{messageId}/bypass	message	true	update	bypass	messageId->id	
-version-actions-def.json	DELETE /v2/things/{id}	thing	true	remove	v2		
-version-actions-def.json	DELETE /v3/things/{id}	thing	true	remove			
-version-actions-def.json	GET /v1/things	thing	true	list	v1		{"res":"`body.things`"}
-version-actions-def.json	GET /v1/things/{id}	thing	true	load	v1		
-version-actions-def.json	GET /v2/things	thing	true	list			{"res":"`body.things`"}
-version-actions-def.json	GET /v2/things/{id}	thing	true	load	v2		
-version-actions-def.json	GET /v3/things/{id}	thing	true	load			
-version-actions-def.json	POST /v1/things	thing	true	create	v1		
-version-actions-def.json	POST /v2/things	thing	true	create			
-version-actions-def.json	POST /v2/things/{id}/actions/archive	thing	true	create	archive_v2		
-version-actions-def.json	POST /v3/things/{id}/actions/archive	thing	true	create	archive		
-version-verb-def.json	GET /api/v3/search	search	true	load			
-version-verb-def.json	GET /api/v3/stories/{story_id}	story	true	load		story_id->id	
-version-verb-def.json	POST /api/v3/stories/search	story	true	list	search		
-well-known-def.json	DELETE /notes/sched/{id}	sched	true	remove			
-well-known-def.json	DELETE /notes/{id}	note	true	remove			
-well-known-def.json	GET /aaa/cask/{id}	cask	true	load			
-well-known-def.json	GET /aaa/ds/{id}	dsn	true	load			
-well-known-def.json	GET /aaa/dsx/{id}	dsx	true	load			
-well-known-def.json	GET /aaa/dun	dun	true	load			
-well-known-def.json	GET /aaa/efn/{id}	efn	true	load			
-well-known-def.json	GET /aaa/ghn/{id}	ghn	true	load			
-well-known-def.json	GET /aaa/kit/{id}	aaa_kit	true	load			
-well-known-def.json	GET /aaa/nest	nest	true	load			
-well-known-def.json	GET /aaa/qq	qqn	true	load			
-well-known-def.json	GET /aaa/rr	rrn	true	load			
-well-known-def.json	GET /aaa/uv	uvn	true	load			
-well-known-def.json	GET /aaa/well_known_discovery_endpoints_for_agents_and_model_context	well_known_discovery_endpoints_for_agents_and_model_context	true	load			
-well-known-def.json	GET /crates/{id}	parcel	true	load			
-well-known-def.json	GET /ids/contentIds/{contentId}	artifact	true	load		contentId->content_id	
-well-known-def.json	GET /ids/globalIds/{globalId}	artifact	true	load		globalId->global_id	
-well-known-def.json	GET /kilns/{id}	oven	true	load			
-well-known-def.json	GET /lt/abc/{id}	well_known_discovery_endpoints_for_agents_and_model_context2	true	load			
-well-known-def.json	GET /lt/bcd/{id}	bcd	true	load			
-well-known-def.json	GET /lt/v2/abc/{id}	well_known_discovery_endpoints_for_agents_and_model_context3	true	load			
-well-known-def.json	GET /lu/abc/{id}	artifact_search_endpoints_from_groups_and_versions_and_branches_and	true	load			
-well-known-def.json	GET /lu/v2/abc/{id}	artifact_search_endpoints_from_groups_and_versions_and_branches_and2	true	load			
-well-known-def.json	GET /lu/v3/abc/{id}	artifact_search_endpoints_from_groups_and_versions_and_branches_and3	true	load			
-well-known-def.json	GET /lv/abc/{id}	registry_administration_endpoints_for_role_mappings_and_config2	true	load			
-well-known-def.json	GET /lv/cde/{id}	cde	true	load			
-well-known-def.json	GET /notes/sched	sched	true	load			
-well-known-def.json	GET /notes/{id}	note	true	load			
-well-known-def.json	GET /other/db	dbn	true	load			
-well-known-def.json	GET /v2/notes/{id}	note2	true	load			
-well-known-def.json	GET /well-known/agent-card.json	agent_card	true	list			
-well-known-def.json	GET /well-known/agent.json	agent	true	list			
-well-known-def.json	GET /well-known/agents	well_known_agent	true	list			{"page":{"total":"`body.count`"},"res":"`body.agents`"}
-well-known-def.json	GET /well-known/agents/{groupId}/{artifactId}	well_known_agent	true	load		artifactId->artifact_id,groupId->group_id	
-well-known-def.json	GET /well-known/cask/{id}	well_known_cask	true	load			
-well-known-def.json	GET /well-known/crate/{id}	well_known_crate	true	load			
-well-known-def.json	GET /well-known/db	well_known_db	true	load	db		
-well-known-def.json	GET /well-known/db/{id}	well_known_db	true	load			
-well-known-def.json	GET /well-known/dbase	well_known_dbase	true	load			
-well-known-def.json	GET /well-known/dbase/{id}	well_known_dbase	true	load			
-well-known-def.json	GET /well-known/dbset/{id}	dbset	true	load			
-well-known-def.json	GET /well-known/ds/{id}	well_known_ds	true	load			
-well-known-def.json	GET /well-known/dt/{id}	well_known_dt	true	load			
-well-known-def.json	GET /well-known/du/{id}	well_known_du	true	load			
-well-known-def.json	GET /well-known/ef/{id}	well_known_ef	true	load			
-well-known-def.json	GET /well-known/gh/{id}	well_known_gh	true	load			
-well-known-def.json	GET /well-known/hive/v2/hive/{id}	hive	true	load			
-well-known-def.json	GET /well-known/hive/{id}	well_known_hive	true	load			
-well-known-def.json	GET /well-known/ij/{id}	ijn	true	load			
-well-known-def.json	GET /well-known/kiln/{id}	kiln	true	load			
-well-known-def.json	GET /well-known/kit/{id}	kit	true	load			
-well-known-def.json	GET /well-known/ledger/{id}	well_known_ledger	true	load			
-well-known-def.json	GET /well-known/mcp-tools	mcp_tool	true	list			{"page":{"total":"`body.count`"},"res":"`body.tools`"}
-well-known-def.json	GET /well-known/mcp-tools/{groupId}/{artifactId}	mcp_tool	true	load		artifactId->artifact_id,groupId->group_id	
-well-known-def.json	GET /well-known/nest/v2/nest/{id}	well_known_nest	true	load			
-well-known-def.json	GET /well-known/nest/{id}	well_known_nest2	true	load			
-well-known-def.json	GET /well-known/qq/{id}	well_known_qq	true	load			
-well-known-def.json	GET /well-known/qrs/{id}	qrs	true	load			
-well-known-def.json	GET /well-known/repo/{id}	well_known_repo	true	load			
-well-known-def.json	GET /well-known/rr/{id}	well_known_rr2	true	load			
-well-known-def.json	GET /well-known/schemas/{schemaType}/{version}	schema	true	load		schemaType->schema_type	
-well-known-def.json	GET /well-known/uvn/{id}	well_known_uvn	true	load			
-well-known-def.json	GET /well-known/v2/qq/{id}	well_known_qq2	true	load			
-well-known-def.json	GET /well-known/vault/{id}	vault	true	load			
-well-known-def.json	GET /well-known/xyn/{id}	well_known_xyn	true	load			
-well-known-def.json	GET /zzz/abc	abc	true	load			
-well-known-def.json	GET /zzz/crate/{id}	crate	true	load			
-well-known-def.json	GET /zzz/dtn	dtn	true	load			
-well-known-def.json	GET /zzz/efn2/{id}	efn2	true	load			
-well-known-def.json	GET /zzz/ijn/{id}	aaa_ijn	true	load			
-well-known-def.json	GET /zzz/pots	pot	true	list			
-well-known-def.json	GET /zzz/pots/{id}	pot	true	load			
-well-known-def.json	GET /zzz/qrs/{id}	qrs_admin_qrs	true	load			
-well-known-def.json	GET /zzz/qrt/{id}	qrt	true	load			
-well-known-def.json	GET /zzz/registry_administration_endpoints_for_role_mappings_and_config	registry_administration_endpoints_for_role_mappings_and_config	true	load			
-well-known-def.json	GET /zzz/repo/{id}	repo	true	load			
-well-known-def.json	GET /zzz/vault/{id}	widget	true	load			
-well-known-def.json	GET /zzz/well_known_rr/{id}	well_known_rr	true	load			
-well-known-def.json	GET /zzz/xy	xyn	true	load			
-well-known-def.json	GET /zzz/{id}/dbset	zzz	true	load	dbset		
-well-known-def.json	POST /aaa/ledger/{id}/history	ledger	true	create	history		
-well-known-def.json	POST /lu/v2/abc/{id}/merge	artifact_search_endpoints_from_groups_and_versions_and_branches_and2	true	create	merge	id->abc_id	
-well-known-def.json	POST /note/send	note	true	create	send		
-well-known-def.json	POST /notes	note	true	create			
-well-known-def.json	POST /well-known/kit/{id}/merge	kit	true	create	merge		
-well-known-def.json	POST /zzz/dbase/{id}/history	dbase	true	create	history		
-well-known-def.json	POST /zzz/vault/{id}/merge	widget	true	create	merge	id->vault_id	
-word-break-def.json	GET /boxsizes	box_size	true	list			{"res":"`body.ride_types`"}
-word-break-def.json	GET /farms/{farmId}/croptypes	crop_type	true	list		farmId->farm_id	
-word-break-def.json	GET /farms/{farmId}/croptypes/{code}	crop_type	true	load		farmId->farm_id	
-word-break-def.json	GET /zipcodes	zipcode	true	load			
-wrapper-cmp-def.json	DELETE /widgets/{id}	widget	true	remove			
-wrapper-cmp-def.json	GET /widgets	widget	true	list			{"res":"`body.data`"}
-wrapper-cmp-def.json	GET /widgets/{id}	widget	true	load			{"res":"`body.data`"}
-wrapper-cmp-def.json	GET /widgets/{id}/file	widget	true	load	file		
-wrapper-cmp-def.json	POST /widgets	widget	true	create			{"res":"`body.data`"}
-wrapper-name-def.json	GET /gardens/{id}	garden	true	load			
-wrapper-name-def.json	GET /hives/{id}	hive	true	load			{"res":"`body.hive`"}
+def	route	entity	active	op	actions	renames	transform	nearmiss
+action-create-def.json	GET /domains	domain	true	list				
+action-create-def.json	GET /domains/{domain_id}	domain	true	load		domain_id->id		
+action-create-def.json	GET /tokens	token	true	list				
+action-create-def.json	GET /tokens/{token_id}	token	true	load		token_id->id		
+action-create-def.json	PATCH /domains/{domain_id}	domain	true	patch		domain_id->id		
+action-create-def.json	POST /domains/{domain_id}/revoke	domain	true	create	revoke	domain_id->id		
+action-create-def.json	POST /tokens/{token_id}/revoke	token	true	create	revoke	token_id->id		
+allof-envelope-def.json	DELETE /addresses/{adr_id}	address	true	remove		adr_id->id		
+allof-envelope-def.json	GET /addresses	address	true	list			{"page":{"next":"`body.next_url`","total":"`body.total_count`"},"res":"`body.data`"}	
+allof-envelope-def.json	GET /addresses/{adr_id}	address	true	load		adr_id->id		
+allof-envelope-def.json	GET /notes	note	true	list			{"page":{"total":"`body.count`"},"res":"`body.data`"}	
+allof-envelope-def.json	GET /owners/{id}	owner	true	load				
+allof-envelope-def.json	POST /addresses	address	true	create				
+array-body-def.json	DELETE /sessions	session	true	remove				
+array-body-def.json	GET /sessions/{session_id}	session	true	load		session_id->id		
+array-body-def.json	GET /users	user	true	list				
+array-body-def.json	GET /users/{user_id}	user	true	load		user_id->id		
+array-body-def.json	PATCH /docs/{doc_id}	doc	true	patch		doc_id->id		
+array-body-def.json	POST /alarms	alarm	true	create				
+array-body-def.json	POST /alerts	alert	true	create				
+array-body-def.json	POST /bales	bale	true	create				
+array-body-def.json	POST /batches	batch	true	create				
+array-body-def.json	POST /beacons	beacon	true	create				
+array-body-def.json	POST /bins	bin	true	create				
+array-body-def.json	POST /boards/{board_id}/drums	drum	true	create				
+array-body-def.json	POST /boards/{board_id}/marks	mark	true	create				
+array-body-def.json	POST /boards/{board_id}/notes	note	true	create				
+array-body-def.json	POST /broadcasts	broadcast	true	create				
+array-body-def.json	POST /chips	chip	true	create				
+array-body-def.json	POST /classes/{class_id}/grades	grade	true	create				
+array-body-def.json	POST /coils	coil	true	create				
+array-body-def.json	POST /coins	coin	true	create				
+array-body-def.json	POST /crates	crate	true	create				
+array-body-def.json	POST /crews	crew	true	create				
+array-body-def.json	POST /decks	deck	true	create				
+array-body-def.json	POST /desks/{desk_id}/memos	memo	true	create				
+array-body-def.json	POST /drums	drum	true	create				
+array-body-def.json	POST /events	event	true	create				
+array-body-def.json	POST /flags	flag	true	create				
+array-body-def.json	POST /flasks	flask	true	create				
+array-body-def.json	POST /flocks	flock	true	create				
+array-body-def.json	POST /forms	form	true	create				
+array-body-def.json	POST /games/{game_id}/scores	score	true	create				
+array-body-def.json	POST /grades	grade	true	create				
+array-body-def.json	POST /herds	herd	true	create				
+array-body-def.json	POST /heroes	hero	true	create				
+array-body-def.json	POST /hoops	hoop	true	create				
+array-body-def.json	POST /items	item	true	create				
+array-body-def.json	POST /jars	jar	true	create				
+array-body-def.json	POST /kegs	keg	true	create				
+array-body-def.json	POST /kits	kit	true	create				
+array-body-def.json	POST /labels	label	true	create				
+array-body-def.json	POST /lists/{list_id}/todos	todo	true	create				
+array-body-def.json	POST /loops	loop	true	create				
+array-body-def.json	POST /marks	mark	true	create				
+array-body-def.json	POST /memos	memo	true	create				
+array-body-def.json	POST /mms/v1/messages	message	true	create				
+array-body-def.json	POST /notes	note	true	create				
+array-body-def.json	POST /notices	notice	true	create				
+array-body-def.json	POST /pallets	pallet	true	create				
+array-body-def.json	POST /pins	pin	true	create				
+array-body-def.json	POST /rafts	raft	true	create				
+array-body-def.json	POST /records	record	true	create				
+array-body-def.json	POST /rims	rim	true	create				
+array-body-def.json	POST /rings	ring	true	create				
+array-body-def.json	POST /rolls	roll	true	create				
+array-body-def.json	POST /scores	score	true	create				
+array-body-def.json	POST /series	series	true	create				
+array-body-def.json	POST /shipments	shipment	true	create				
+array-body-def.json	POST /spools	spool	true	create				
+array-body-def.json	POST /stacks	stack	true	create				
+array-body-def.json	POST /tags	tag	true	create				
+array-body-def.json	POST /tickets	ticket	true	create				
+array-body-def.json	POST /todos	todo	true	create				
+array-body-def.json	POST /totes	tote	true	create				
+array-body-def.json	POST /tubs	tub	true	create				
+array-body-def.json	POST /uploads	upload	true	create				
+array-body-def.json	POST /users	user	true	create				
+array-body-def.json	POST /users/batch	user	true	create	batch			
+array-body-def.json	POST /vats	vat	true	create				
+array-body-def.json	POST /vials	vial	true	create				
+array-body-def.json	POST /widgets	widget	true	create				
+array-body-def.json	PUT /docs/{doc_id}/archive	doc	true	update	archive	doc_id->id		
+array-body-def.json	PUT /tickets/{ticket_id}	ticket	true	update		ticket_id->id		
+array-body-def.json	QUERY /lookups	lookup	true	list				
+array-body-swagger-def.json	GET /members/{member_id}	member	true	load		member_id->id		
+array-body-swagger-def.json	POST /gifts	gift	true	create				
+array-body-swagger-def.json	POST /members	member	true	create				
+array-body-swagger-def.json	POST /tickets	ticket	true	create				
+array-body-swagger-def.json	PUT /members/{member_id}	member	true	update		member_id->id		
+async-result-def.json	GET /devices/{deviceId}	device	true	load		deviceId->id		
+async-result-def.json	GET /devices/{deviceId}/renderResults/{resultId}	render_operation_result	true	load		deviceId->device_id,resultId->result_id		0/response/render_result<path
+async-result-def.json	GET /report/renderResults/{resultId}	render_operation_result	true	load		resultId->result_id		0/response/render_result<path
+async-result-def.json	POST /devices/{deviceId}/render	render_operation_result	true	create	device	deviceId->device_id		
+async-result-def.json	POST /report/render	render_operation_result	true	create	report			
+auth-exchange-def.json	DELETE /widget/{id}	widget	true	remove				
+auth-exchange-def.json	GET /session/{id}	session	true	load				
+auth-exchange-def.json	GET /widget	widget	true	list				
+auth-exchange-def.json	GET /widget/{id}	widget	true	load				
+auth-exchange-def.json	POST /auth/token	token	false	create				
+auth-exchange-def.json	POST /session	session	true	create				
+auth-exchange-def.json	POST /widget	widget	true	create				
+blank-segment-def.json	GET /orders/-/{order_id}/lines/{line_id}	line	true	load		line_id->id,order_id->_id		
+blank-segment-def.json	GET /orders/-/{order}/notes/{note_id}	note	true	load		note_id->id,order->_id		
+blank-segment-def.json	POST /orders/-/{order_id}/refund	nt	true	create		order_id->_id		-1//refund<path
+body-media-def.json	GET /#Action=StartSession	session	true	load	start		{"res":"`body.Credentials`"}	
+body-media-def.json	GET /keys	key	true	list				
+body-media-def.json	POST /#Action=StartSession	session	true	create	start		{"res":"`body.Credentials`"}	
+body-media-def.json	POST /keys/{keyName}/requestTicket	ticket	true	create		keyName->key_name		
+body-media-def.json	POST /signin/{service_id}/{account}/authenticate	authenticate	true	create		service_id->signin_id		
+collection-merge-def.json	DELETE /keys/{key_id}	key	true	remove		key_id->id		
+collection-merge-def.json	GET /keys	key	true	list				
+collection-merge-def.json	POST /keys	key	true	create				
+collection-owner-def.json	DELETE /shop/gadgets/{gadget_id}	gadget	true	remove		gadget_id->id		
+collection-owner-def.json	DELETE /stars/{owner}/{repo}	star	true	remove				
+collection-owner-def.json	DELETE /teams/{team_id}	member	true	remove				-1//team<path
+collection-owner-def.json	GET /catalog/bundles	catalog_bundle	true	list				
+collection-owner-def.json	GET /jobs	job	true	list				
+collection-owner-def.json	GET /org	org	true	load				
+collection-owner-def.json	GET /org/reports	report	true	list			{"page":{"total":"`body.count`"},"res":"`body.results`"}	
+collection-owner-def.json	GET /plans	plan	true	list				
+collection-owner-def.json	GET /plans/{plan_id}/accounts	purchase	true	list				0/response/account<path
+collection-owner-def.json	GET /shop	shop	true	load				
+collection-owner-def.json	GET /shop/gadgets	gadget	true	list				
+collection-owner-def.json	GET /shop/gadgets/{gadget_id}	gadget	true	load		gadget_id->id		
+collection-owner-def.json	GET /stars	star	true	list				0/path/repository<response
+collection-owner-def.json	GET /teams	member	true	list				-2//team<path+response
+collection-owner-def.json	GET /teams/{team_id}	member	true	load				-2//team<path+response
+collection-owner-def.json	GET /user	user	true	load				
+collection-owner-def.json	GET /user/tokens	token	true	list			{"page":{"total":"`body.count`"},"res":"`body.results`"}	
+collection-owner-def.json	POST /jobs/{job_id}/cancel	job	true	create	cancel	job_id->id		
+collection-owner-def.json	POST /org/reports/{report_id}/rerun	report	true	create	rerun	report_id->id		
+collection-owner-def.json	POST /shop/gadgets	gadget	true	create				
+collection-owner-def.json	PUT /catalog/bundles/{bundle_id}	catalog_bundle	true	update		bundle_id->id		
+collection-owner-def.json	PUT /stars/{owner}/{repo}	star	true	update				
+collection-owner-def.json	PUT /user/tokens/{slug}/refresh	token	true	update	refresh			
+command-action-def.json	GET /api/doc	doc	true	load				
+command-action-def.json	GET /projects/{id}/packages	package	true	list		id->project_id		
+command-action-def.json	GET /widgets/{id}	widget	true	load				
+command-action-def.json	POST /api/doc/docmerge	doc	true	create	docmerge			
+command-action-def.json	POST /api/doc/mdconvert	doc	true	create	mdconvert			
+command-action-def.json	POST /widgets/{id}/labels	widget	true	create	labels			
+command-action-def.json	PUT /projects/{id}/packages/nuget	package	true	update	nuget	id->project_id		
+command-action-def.json	PUT /projects/{id}/packages/nuget/symbolpackage	package	true	update	symbolpackage	id->project_id		
+command-def.json	GET /account	account	true	load				
+command-def.json	GET /keys	key	true	list				
+command-def.json	POST /#Action=StartSession	session	true	create	start		{"res":"`body.Credentials`"}	
+command-def.json	POST /account	account	true	create				
+command-def.json	POST /keys/{keyName}/requestTicket	ticket	true	create		keyName->key_name		
+composed-part-def.json	DELETE /projects/{project_id}	project	true	remove		project_id->id	{"res":"`body.project`"}	
+composed-part-def.json	GET /projects/{project_id}	project	true	load		project_id->id	{"res":"`body.project`"}	
+composed-part-def.json	GET /widgets/{widget_id}	widget	true	load		widget_id->id		
+composed-part-def.json	PATCH /projects/{project_id}	project	true	patch		project_id->id	{"res":"`body.project`"}	
+composed-part-def.json	POST /projects	project	true	create			{"res":"`body.project`"}	
+composed-scalar-def.json	GET /badges/{id}	badge	true	load				
+composed-scalar-def.json	GET /labels/{id}	label	true	load				
+composed-scalar-def.json	GET /samples	sample	true	list			{"res":"`body.data`"}	
+composed-scalar-def.json	GET /things/{id}	thing	true	load				
+composed-scalar-def.json	POST /labels	label	true	create				
+compound-def.json	GET /repos/{owner}/{repo}	repo	true	load				
+compound-def.json	GET /user/repos	repo	true	list				
+declared-type-def.json	GET /uploads/{upload_id}	upload	true	load		upload_id->id		
+declared-type-def.json	POST /documents	document	true	create				
+declared-type-def.json	POST /uploads	upload	true	create				
+deep-view-def.json	GET /hosts/{host_id}/statistics	host_statistic	true	list				
+deep-view-def.json	GET /meta/teams/{teamId}/sync/billing/status	team	true	load	sync_billing_status	teamId->id		
+deep-view-def.json	GET /node-eu/{account}/status	node_eu	true	load	status			
+deep-view-def.json	GET /teams	team	true	list				
+deep-view-def.json	GET /teams/{teamId}	team	true	load		teamId->id		
+delete-cmp-def.json	DELETE /things/{thing_id}/archive	thing	true	remove	archive	thing_id->id		
+delete-cmp-def.json	GET /archives	archive	true	list				
+delete-cmp-def.json	GET /things	thing	true	list				
+delete-cmp-def.json	GET /things/{thing_id}	thing	true	load		thing_id->id		
+delete-cmp-def.json	GET /things/{thing_id}/archive/{entry_id}	thing	true	load		thing_id->id		0/path/archive<response
+dotted-part-def.json	GET /agents.{mode}.json	agent	true	list				
+dotted-part-def.json	GET /files/NOTICE.html.gz	notice	true	load				
+dotted-part-def.json	GET /store/keystore.p12	keystore	true	load				
+dotted-part-def.json	POST /config/org.example.alpha.Widget	org	true	create	org_example_alpha_widget			
+dotted-part-def.json	POST /config/org.example.beta.Gadget	org	true	create				
+embedded-def.json	GET /clinics	clinic	true	list				
+embedded-def.json	GET /clinics/{id}	clinic	true	load				
+embedded-def.json	GET /owners	owner	true	list				
+embedded-def.json	GET /owners/{id}	owner	true	load				
+embedded-def.json	GET /owners/{id}/pets	owner_pet	true	list		id->owner_id	{"res":"`body.data`"}	
+embedded-def.json	GET /term.json/{term}	term	true	load		term->id		
+embedded-def.json	GET /term.json/{term}/meanings	term	true	list	meaning	term->id		
+embedded-def.json	GET /vets	vet	true	list				
+embedded-def.json	GET /vets/{id}	vet	true	load				
+embedded-def.json	GET /visits	visit	true	list				
+embedded-def.json	GET /visits/{id}	visit	true	load				
+empty-object-def.json	DELETE /repos/{owner}/{repo}/actions/runs/{run_id}	run	true	remove		run_id->id		
+empty-object-def.json	DELETE /repos/{owner}/{repo}/actions/secrets/{secret_name}	secret	true	remove		secret_name->id		
+empty-object-def.json	GET /repos/{owner}/{repo}	repository	true	load				
+empty-object-def.json	GET /repos/{owner}/{repo}/actions/runs	run	true	list			{"page":{"total":"`body.total_count`"},"res":"`body.workflow_runs`"}	
+empty-object-def.json	GET /repos/{owner}/{repo}/actions/runs/{run_id}	run	true	load		run_id->id		
+empty-object-def.json	GET /repos/{owner}/{repo}/actions/secrets	secret	true	list			{"page":{"total":"`body.total_count`"},"res":"`body.secrets`"}	
+empty-object-def.json	GET /repos/{owner}/{repo}/actions/secrets/{secret_name}	secret	true	load		secret_name->id		
+empty-object-def.json	POST /repos/{owner}/{repo}/actions/runs/{run_id}/rerun	run	true	create	rerun	run_id->id		
+empty-object-def.json	PUT /repos/{owner}/{repo}/actions/secrets/{secret_name}	secret	true	update		secret_name->id		
+envelope-def.json	GET /{year}/auction/{id}	artwork	true	load			{"res":"`body.data`"}	-2//auction<path+response auction_lot<path+response
+envelope-def.json	GET /{year}/census	census	true	list			{"page":{"total":"`body.total`"},"res":"`body.records`"}	
+envelope-def.json	GET /{year}/crew/{id}/member	crew_member	true	load		id->crew_id		
+envelope-def.json	GET /{year}/domain	taxon	true	list	domain		{"page":{"total":"`body.total`"},"res":"`body.items`"}	
+envelope-def.json	GET /{year}/domain/{domain_id}/kingdom/{kingdom_id}	taxon	true	load	kingdom			
+envelope-def.json	GET /{year}/domain/{id}	taxon	true	load	domain			
+envelope-def.json	GET /{year}/domain/{id}/kingdom	taxon	true	list	kingdom	id->domain_id	{"page":{"total":"`body.total`"},"res":"`body.items`"}	
+envelope-def.json	GET /{year}/fossil/{id}	fossil	true	load				
+envelope-def.json	GET /{year}/gallery	gallery	true	list			{"page":{"next":"`body.next`"},"res":"`body.data`"}	
+envelope-def.json	GET /{year}/greenhouse/{id}	greenhouse	true	load				
+envelope-def.json	GET /{year}/ledger	ledger	true	load				
+envelope-def.json	GET /{year}/metrics/package/{owner}	package	true	load		owner->id	{"res":"`body.packages`"}	
+envelope-def.json	GET /{year}/metrics/token/{owner}	token	true	load		owner->id	{"res":"`body.tokens`"}	
+envelope-def.json	GET /{year}/observation	observation	true	list			{"page":{"total":"`body.total`"},"res":"`body.items`"}	
+envelope-def.json	GET /{year}/sample/{id}	sample	true	load			{"res":"`body.data`"}	
+envelope-def.json	GET /{year}/site/{id}	site	true	load				
+envelope-def.json	GET /{year}/survey	tally	true	list			{"res":"`body.data`"}	0/response/survey<path
+envelope-def.json	PATCH /{year}/domain/{id}	taxon	true	patch	domain			
+envelope-def.json	POST /{year}/crew/{id}/member	crew_member	true	create		id->crew_id		
+envelope-def.json	POST /{year}/domain/{id}/kingdom	taxon	true	create	kingdom	id->domain_id		
+envelope-def.json	POST /{year}/greenhouse	greenhouse	true	create				
+envelope-def.json	POST /{year}/kennel	kennel	true	create				
+envelope-def.json	POST /{year}/survey/{id}/close	tally	true	create		id->survey_id	{"res":"`body.data`"}	0/response/close<path
+envelope-def.json	POST /{year}/vault	deposit	true	create				0/response/vault<path
+fastapi-def.json	DELETE /api/v1/insights/{insight_id}	insight	true	remove		insight_id->id		
+fastapi-def.json	GET /api/v1/insights/	insight	true	list			{"page":{"total":"`body.total`"},"res":"`body.items`"}	
+fastapi-def.json	GET /api/v1/insights/{insight_id}	insight	true	load		insight_id->id		
+fastapi-def.json	GET /api/v1/prompts/	prompt	true	list			{"page":{"next":"`body.meta.next`","total":"`body.meta.count`"},"res":"`body.results`"}	
+fastapi-def.json	GET /api/v1/prompts/{prompt_id}	prompt	true	load		prompt_id->id		
+fastapi-def.json	GET /api/v1/tags/	tag	true	list			{"res":"`body.data`"}	
+fastapi-def.json	GET /api/v1/tags/{tag_id}	tag	true	load		tag_id->id		
+fastapi-def.json	POST /api/v1/insights/	insight	true	create				
+filter-param-def.json	GET /api/find/{name}	api	true	load				
+filter-param-def.json	GET /cat/{tag}	cat	true	load				
+filter-param-def.json	GET /catalogue/{currency}	catalogue	true	load				
+filter-param-def.json	GET /categories/{category}	category	true	load		category->id		
+filter-param-def.json	GET /emoji/{group-name}	emoji	true	load		group-name->group_name		
+filter-param-def.json	GET /labels/{lang}	label	true	load		lang->id		
+filter-param-def.json	GET /members/lookup/{member_id}	member	true	load		member_id->id		
+filter-param-def.json	GET /movies/search/{query}	movie	true	load				
+filter-param-def.json	GET /pokemon/{name}	pokemon	true	load		name->id		
+filter-param-def.json	GET /random/joke/{category}	joke	true	load				
+filter-param-def.json	GET /random/quote/{category}	quote	true	load				
+filter-param-def.json	GET /regions/{country}	region	true	load				
+filter-param-def.json	GET /riddle/{category}	riddle	true	load				
+filter-param-def.json	GET /settings/{type}	setting	true	load		type->id		
+filter-param-def.json	GET /teams/{teamId}	team	true	load		teamId->id		
+filter-param-def.json	PUT /settings/{type}	setting	true	update		type->id		
+fold-merge-def.json	GET /repos.json	repo	true	list			{"page":{"total":"`body.count`"},"res":"`body.items`"}	
+fold-merge-def.json	GET /usecases.json	use_case	true	list			{"page":{"total":"`body.count`"},"res":"`body.items`"}	
+fold-merge-def.json	GET /usecases/{id}.json	use_case	true	load				
+generated-name-def.json	GET /night_mode	night_mode	true	load				
+generated-name-def.json	GET /saved_networks	saved_network	true	list				
+generated-name-def.json	GET /v1/source/{name}	source	true	load		name->id		
+generated-name-def.json	POST /v1/prefix	prefix	true	create				
+generic-name-def.json	GET /boards/{boardId}	board	true	load		boardId->id		
+generic-name-def.json	GET /notices/{noticeId}{format}	notice	true	load		noticeId->id		
+generic-name-def.json	GET /units/{unitId}/teamgroups	team_group	true	list		unitId->unit_id		
+generic-name-def.json	GET /v1/gadgets/{gadget}	gadget	true	load		gadget->id		
+generic-name-def.json	GET /v2/kinds	kind	true	list			{"res":"`body.results`"}	
+generic-name-def.json	GET /v2/readings	reading	true	list				
+generic-name-def.json	GET /v2/readings/{readingId}	reading	true	load		readingId->id		
+generic-name-def.json	GET /v2/sensors	sensor	true	list			{"res":"`body.results`"}	
+generic-name-def.json	GET /v2/zones	zone	true	list			{"res":"`body.results`"}	
+generic-name-def.json	PATCH /v1/gadgets/{gadget}/owners	gadget	true	patch	owners	gadget->id		
+generic-name-def.json	POST /boards/{boardId}/rules/check	board	true	create	rule_check	boardId->id		
+generic-name-def.json	POST /notices/{noticeId}/pin{format}	notice	true	create	pin	noticeId->id		
+generic-name-def.json	POST /notices/{noticeId}/retract{format}	notice	true	create	retract	noticeId->id		
+generic-name-def.json	POST /units/{unitId}/teamgroups	team_group	true	create		unitId->unit_id		
+generic-name-def.json	POST /v1/gadgets/validate	gadget	true	create	validate			
+id-list-def.json	DELETE /groups/playlists/{id}/ids/{itemId}	playlist	true	remove	ids	itemId->item_id		
+id-list-def.json	GET /groups/playlists	playlist	true	list				
+id-list-def.json	GET /groups/playlists/{id}	playlist	true	load				
+id-list-def.json	GET /groups/playlists/{id}/ids	playlist	true	load	ids			
+id-list-def.json	POST /groups/playlists/{id}/ids	playlist	true	create	ids			
+item-download-def.json	GET /shelves/{shelfId}	shelf	true	load		shelfId->id		
+item-download-def.json	GET /shelves/{shelfId}/books	book	true	list		shelfId->shelf_id		
+item-download-def.json	GET /shelves/{shelfId}/books/{bookId}	book	true	load		bookId->id,shelfId->shelf_id		
+item-download-def.json	GET /shelves/{shelfId}/cover	shelf	true	load	cover	shelfId->id		
+item-download-def.json	GET /shelves/{shelfId}/cover/{width}	shelf	true	load	cover	shelfId->id		
+item-download-def.json	PUT /shelves/{shelfId}/books/{bookId}	book	true	update		bookId->id,shelfId->shelf_id		
+item-envelope-def.json	GET /customers.json	customer	true	list			{"res":["`$EACH`","body",{"`$MERGE`":"`.customer`"}]}	
+item-envelope-def.json	GET /customers/{id}.json	customer	true	load			{"res":"`body.customer`"}	
+item-envelope-def.json	GET /invoices.json	invoice	true	list				
+item-envelope-def.json	GET /invoices/{uid}.json	invoice	true	load		uid->id		
+item-read-def.json	GET /employees/{employeeId}	employee	true	load		employeeId->id		
+item-read-def.json	GET /employees/{employeeId}/photo/{width}	employee	true	load	photo	employeeId->id		
+item-read-def.json	GET /messages/{messageId}	message	true	load		messageId->id		
+item-read-def.json	GET /messages/{messageId}/details	message	true	load	details	messageId->id		
+item-read-def.json	GET /reports/{reportId}/contents	report	true	load	content	reportId->id		
+item-record-def.json	DELETE /user/repository_invitations/{invitation_id}	repository_invitation	true	remove		invitation_id->id		
+item-record-def.json	DELETE /user/starred/{owner}/{repo}	starred	true	remove				
+item-record-def.json	DELETE /user/team_invitations/{invitation_id}	team_invitation	true	remove		invitation_id->id		
+item-record-def.json	GET /clusters/{cluster_name}/instances	instance	true	list				
+item-record-def.json	GET /clusters/{cluster_name}/instances/{instance_id}	instance	true	load		instance_id->id		
+item-record-def.json	GET /exports/{export_id}	export	true	load		export_id->id		
+item-record-def.json	GET /mail/v1/domains	domain	true	list			{"res":"`body.items`"}	
+item-record-def.json	GET /mail/v1/domains/{id}	domain	true	load				
+item-record-def.json	GET /repos/{repo_id}	repo	true	load		repo_id->id		
+item-record-def.json	GET /runners	runner	true	list				
+item-record-def.json	GET /runners/{runner_id}	runner	true	load		runner_id->id		
+item-record-def.json	GET /simulation_runs	simulation_run	true	list				
+item-record-def.json	GET /simulation_runs/{run_id}	simulation_run	true	load		run_id->id		
+item-record-def.json	GET /teams/{team_id}	team	true	load		team_id->id		
+item-record-def.json	GET /things/{thing_id}	thing	true	load		thing_id->id		
+item-record-def.json	GET /user/repository_invitations	repository_invitation	true	list				
+item-record-def.json	GET /user/starred	starred	true	list				0/path/repo<response
+item-record-def.json	GET /user/team_invitations	team_invitation	true	list				
+item-record-def.json	GET /widgets	widget	true	list				
+item-record-def.json	GET /widgets/{widget_id}	widget	true	load		widget_id->id		
+item-record-def.json	GET /workers	worker	true	list				
+item-record-def.json	GET /workers/{worker_id}	worker	true	load		worker_id->id		
+item-record-def.json	PATCH /clusters/{cluster_name}/instances/{instance_id}	instance	true	patch		instance_id->id		
+item-record-def.json	PATCH /things/{thing_id}	thing	true	patch		thing_id->id	{"res":"`body.data`"}	
+item-record-def.json	PATCH /user/repository_invitations/{invitation_id}	repository_invitation	true	patch		invitation_id->id		
+item-record-def.json	PATCH /user/team_invitations/{invitation_id}	team_invitation	true	patch		invitation_id->id		
+item-record-def.json	POST /clusters/{cluster_name}/instances/{instance_id}/restart	instance	true	create	restart	instance_id->id		
+item-record-def.json	POST /mail/v1/domains	domain	true	create				
+item-record-def.json	POST /repos/{repo_id}/forks	repo	true	create	fork	repo_id->id		
+item-record-def.json	POST /runners	runner	true	create				
+item-record-def.json	POST /simulation_runs	simulation_run	true	create				
+item-record-def.json	POST /widgets	widget	true	create				
+item-record-def.json	POST /workers	worker	true	create				
+item-record-def.json	PUT /user/starred/{owner}/{repo}	starred	true	update				
+key-noun-def.json	GET /grid/answer/{jobId}	job	true	load	grid_answer	jobId->job_id		
+key-noun-def.json	GET /tsp/answer/{jobId}	job	true	load	tsp_answer	jobId->job_id		
+key-noun-def.json	GET /wiki/{sheetName}	wiki	true	load		sheetName->id		
+key-noun-def.json	PATCH /portal/{storeKey}	portal	true	patch		storeKey->id		0/path/shown_account<response
+key-param-def.json	DELETE /s/{shelf}	shelf	true	remove				
+key-param-def.json	GET /s	shelf	true	list			{"page":{"cursor":"`body.nextPageToken`"},"res":"`body.items`"}	
+key-param-def.json	GET /s/{shelf}	shelf	true	load				
+key-param-def.json	GET /s/{shelf}/k	book	true	list			{"page":{"cursor":"`body.nextPageToken`"},"res":"`body.items`"}	
+key-param-def.json	GET /s/{shelf}/k/{book}	book	true	load				
+key-param-def.json	PATCH /s/{shelf}	shelf	true	patch				
+key-param-def.json	POST /s	shelf	true	create				
+keyed-verb-3-def.json	GET /shops/{owner}/{shop}	shop	true	list				0/path/order<response
+keyed-verb-3-def.json	GET /shops/{owner}/{shop}/{orderNum}	order_detail	true	load		orderNum->order_num		0/response/shop<path
+keyed-verb-3-def.json	POST /shops/{owner}/{shop}/{orderNum}/cancel	order_detail	true	create	cancel	orderNum->order_num		0/response/shop<path
+keyed-verb-3-def.json	POST /shops/{owner}/{shop}/{orderNum}/retry	order_detail	true	create	retry	orderNum->order_num		0/response/shop<path
+keyed-verb-def.json	GET /v3/notes/{bookId}	note	true	list		bookId->book_id	{"page":{"total":"`body.total`"},"res":"`body.notes`"}	
+keyed-verb-def.json	GET /v3/notes/{bookId}/{id}	note	true	load		bookId->book_id		
+keyed-verb-def.json	POST /v3/notes/{bookId}/{id}/_mute	note	true	create	mute	bookId->book_id		
+keyed-verb-def.json	POST /v3/notes/{bookId}/{id}/_pin	note	true	create	pin	bookId->book_id		
+list-records-def.json	GET /competitions/{id}	competition	true	load				
+list-records-def.json	GET /competitions/{id}/matches	competition	true	list	match		{"page":{"total":"`body.count`"},"res":"`body.matches`"}	
+list-records-def.json	GET /competitions/{id}/scorers	scorer	true	list		id->competition_id	{"page":{"total":"`body.count`"},"res":"`body.scorers`"}	
+list-records-def.json	GET /competitions/{id}/teams	competition	true	list	team		{"page":{"total":"`body.count`"},"res":"`body.teams`"}	
+list-records-def.json	GET /notes	note	true	list			{"page":{"total":"`body.total`"},"res":"`body.note`"}	
+list-records-def.json	GET /quote/random	quote	true	list	random		{"res":"`body.episodes`"}	
+list-records-def.json	GET /quote/{id}	quote	true	load			{"res":"`body.quote`"}	
+list-records-def.json	GET /user-roles	user_role	true	list			{"res":"`body.data`"}	
+list-records-def.json	GET /users	user	true	list			{"res":"`body.users`"}	
+list-records-def.json	GET /users/{id}/user-role	user_role	true	list		id->user_id	{"res":"`body.user_role`"}	
+method-name-def.json	GET /rpc?method=acme.gadgets.parts.getList	part	true	list	get_list			0/response/rpc<path
+method-name-def.json	GET /rpc?method=acme.widgets.getInfo	widget	true	load	get_info			0/response/rpc<path
+method-name-def.json	GET /rpc?method=acme.widgets.search	widget	true	list	search			0/response/rpc<path
+module-affix-def.json	DELETE /v1/GadgetsApi/{serial}	gadget	true	remove		serial->id		
+module-affix-def.json	GET /v1/BadgesApi/Active/{serial}	badge	true	load				0/response/active<path
+module-affix-def.json	GET /v1/GadgetsApi	gadget	true	list				
+module-affix-def.json	GET /v1/GadgetsApi/{serial}	gadget	true	load		serial->id		
+module-affix-def.json	POST /v1/GadgetsApi	gadget	true	create				
+module-affix-def.json	POST /v1/GadgetsApi/Find	gadget	true	list	find			
+namespace-prefix-def.json	GET /lockers/{id}	store	true	load	locker			
+namespace-prefix-def.json	GET /safes	safe	true	list				
+namespace-prefix-def.json	GET /safes/{id}	safe	true	load				
+namespace-prefix-def.json	GET /vaults/{id}	store	true	load	vault			
+namespace-prefix-def.json	POST /check	check	true	create				
+namespace-prefix-def.json	POST /encode	encode	true	create				
+namespace-prefix-def.json	POST /hold	payment	true	create				0/response/hold<path
+no-noun-def.json	GET /aq	aq_index_result	true	load				
+no-noun-def.json	GET /catalog/{vendor}/{plugin}.json	plugin	true	load				0/response/catalog<path
+no-noun-def.json	GET /history	placed_order	true	list			{"res":"`body.bets`"}	0/response/history<path
+no-noun-def.json	GET /list.json	plugin	true	load				0/response/list<path
+no-noun-def.json	GET /{vendor}.json	plugin	true	load				
+no-noun-def.json	POST /deactivate	deactivate	true	create				
+open-object-def.json	DELETE /holidays/{id}	leave_record	true	remove				-1//holiday<path
+open-object-def.json	GET /holidays	leave_record	true	list			{"res":"`body.data`"}	0/response/holiday<path
+open-object-def.json	GET /holidays/{id}	leave_record	true	load				0/response/holiday<path
+open-object-def.json	GET /offices	office	true	list				
+open-object-def.json	GET /offices/{id}	office	true	load				
+open-object-def.json	GET /projects	project	true	list				
+open-object-def.json	GET /projects/{id}	project	true	load				
+open-object-def.json	GET /staff	staff	true	list				
+open-object-def.json	GET /staff/{id}	staff	true	load				
+open-object-def.json	GET /teams	team	true	list				
+open-object-def.json	GET /teams/{id}	team	true	load				
+open-object-def.json	POST /holidays	leave_record	true	create				0/response/holiday<path
+operation-id-def.json	POST /ra/{account}/{service_id}/sign	sign	true	create				
+operation-id-def.json	POST /signin-jwt/{service_id}/{account}/authenticate	session_key	true	create		service_id->signin_jwt_id		-1//authenticate<path
+operation-id-def.json	POST /signin/{account}/{login}/authenticate	session_key	true	create				-1//authenticate<path
+page-meta-def.json	GET /emails	email	true	list			{"page":{"cursor":"`body.next_cursor`","more":"`body.has_more`"},"res":"`body.data`"}	
+page-meta-def.json	GET /entries	entry	true	list			{"page":{"total":"`body.total`"},"res":"`body.entries`"}	
+page-meta-def.json	GET /forms	form	true	list			{"page":{"more":"`body.hasMore`","total":"`body.total`"},"res":"`body.items`"}	
+page-meta-def.json	GET /nodes	node	true	list			{"page":{"cursor":"`body.pageInfo.endCursor`","more":"`body.pageInfo.hasNextPage`"},"res":"`body.nodes`"}	
+page-meta-def.json	GET /orders	order	true	list			{"page":{"cursor":"`body.meta.next_cursor`","next":"`body.links.next`","total":"`body.meta.total`"},"res":"`body.data`"}	
+page-meta-def.json	GET /results	result	true	list			{"page":{"next":"`body.next`","total":"`body.count`"},"res":"`body.results`"}	
+page-meta-def.json	GET /stats	stat	true	load				
+page-param-def.json	GET /agents/{id}	agent	true	list				
+page-param-def.json	GET /boxes	box	true	list				
+page-param-def.json	GET /boxes/{boxId}	box	true	load		boxId->id		
+page-param-def.json	GET /boxes/{boxId}/data/{sensorId}	data	true	list		boxId->box_id,sensorId->sensor_id		
+page-param-def.json	GET /crews	crew	true	list				
+page-param-def.json	GET /crews/{crewId}	crew	true	load		crewId->id		
+page-param-def.json	GET /id/{id}/info	id_info	true	load				
+page-param-def.json	GET /news/{tagId}	article	true	list		tagId->tag_id		0/response/news<path
+page-param-def.json	GET /press-releases/{currency}	press_release	true	list			{"page":{"total":"`body.count`"},"res":"`body.data`"}	
+page-param-def.json	GET /repos/{owner}	repo	true	list			{"page":{"total":"`body.total`"},"res":"`body.items`"}	
+page-param-def.json	GET /restaurants/{id}	restaurant	true	load				
+page-param-def.json	GET /restaurants/{id}/menu	restaurant	true	load	menu			
+page-param-def.json	GET /teams/{teamId}	team	true	load		teamId->id		
+page-param-def.json	GET /users/{userId}/profile	user_profile	true	load		userId->user_id		
+page-param-def.json	POST /repos/{owner}	repo	true	create				
+page-param-def.json	PUT /users/{userId}/profile	user_profile	true	update		userId->user_id		
+page-side-def.json	GET /branches	branch	true	list			{"page":{"next":"`body.pagination.next`"},"res":"`body.branches`"}	
+page-side-def.json	GET /characters	character	true	list			{"res":"`body.data`"}	
+page-side-def.json	GET /characters/{id}	character	true	load			{"res":"`body.data`"}	
+page-side-def.json	GET /documents/{id}	document	true	load			{"res":"`body.data`"}	
+page-side-def.json	GET /jobs/{id}	job	true	load			{"res":"`body.data`"}	
+page-side-def.json	GET /metrics	metric	true	list			{"res":"`body.data`"}	
+page-side-def.json	GET /notifications	notification	true	list			{"page":{"more":"`body.hasMore`"},"res":"`body.data`"}	
+page-side-def.json	GET /preferences	preference	true	list			{"res":"`body.workflows`"}	
+page-side-def.json	GET /rollups	rollup	true	list			{"res":"`body.statuses`"}	
+page-side-def.json	GET /timeline	timeline	true	list			{"page":{"total":"`body.total`"},"res":"`body.results`"}	
+page-side-def.json	POST /exports	export	true	create			{"res":"`body.data`"}	
+page-side-def.json	POST /jobs	job	true	create			{"res":"`body.data`"}	
+param-names-def.json	DELETE /orgs/{organization_name}/projects/{project_name}/containers/{container_name}	container	true	remove		container_name->id		
+param-names-def.json	DELETE /v1/teams/{team_slug}/members/{username}	member	true	remove		username->id		
+param-names-def.json	GET /orgs/{organization_name}/projects/{project_name}/containers	container	true	list				
+param-names-def.json	GET /orgs/{organization_name}/projects/{project_name}/containers/{container_name}	container	true	load		container_name->id		
+param-names-def.json	GET /orgs/{organization_name}/projects/{project_name}/containers/{container_name}/instances	instance	true	list				
+param-names-def.json	GET /orgs/{organization_name}/projects/{project_name}/containers/{container_name}/instances/{instance_id}	instance	true	load		instance_id->id		
+param-names-def.json	GET /v1/repos/{owner}	repo	true	list				
+param-names-def.json	GET /v1/repos/{owner}/{name}	repo	true	load				
+param-names-def.json	GET /v1/teams/{team_slug}/members	member	true	list				
+param-names-def.json	GET /v1/teams/{team_slug}/members/{username}	member	true	load		username->id		
+param-names-def.json	PATCH /orgs/{organization_name}/projects/{project_name}/containers/{container_name}	container	true	patch		container_name->id		
+param-names-def.json	PATCH /orgs/{organization_name}/projects/{project_name}/containers/{container_name}/instances/{instance_id}	instance	true	patch		instance_id->id		
+param-names-def.json	POST /orgs/{organization_name}/projects/{project_name}/containers	container	true	create				
+param-names-def.json	POST /orgs/{organization_name}/projects/{project_name}/containers/{container_name}/start	container	true	create	start			
+partial-placeholder-def.json	GET /catalog/{owner}/{group}/{thing}.json	thing	true	load				0/response/catalog<path
+partial-placeholder-def.json	GET /catalog/{owner}/{thing}.json	thing	true	load				0/response/catalog<path
+partial-placeholder-def.json	GET /list.json	thing	true	load				0/response/list<path
+partial-placeholder-def.json	GET /owners.json	owner	true	load				
+partial-placeholder-def.json	GET /totals.json	total	true	load				
+partial-placeholder-def.json	GET /{owner}.json	thing	true	load				
+partial-placeholder-def.json	GET /{owner}/groups.json	group	true	load				
+path-extension-def.json	GET /gadgets	gadget	true	list				
+path-extension-def.json	GET /gadgets/{gadgetId}/parts	part	true	load		gadgetId->gadget_id		0/path/report<response
+path-extension-def.json	GET /widgets	widget	true	list				
+path-extension-def.json	GET /widgets/{widgetId}/parts	part	true	load		widgetId->widget_id		0/path/report<response
+path-item-keys-def.json	DELETE /crates/{crate_id}	crate	true	remove		crate_id->id		
+path-item-keys-def.json	GET /crates/{crate_id}	crate	true	load		crate_id->id		
+path-item-keys-def.json	GET /crates/{crate_id}/versions/{version_id}	release	true	load				0/response/version<path
+path-syntax-def.json	GET /api/notes{fileExtension}	note	true	list				
+path-syntax-def.json	GET /search/localSearch/.{ext}	local_search	true	list			{"res":"`body.results`"}	
+path-syntax-def.json	GET /widgets	widget	true	list				
+path-syntax-def.json	GET /widgets/{id}	widget	true	load				
+path-syntax-def.json	GET /{sheetName}{fileExtension}	sheet	true	load		sheetName->id		
+path-syntax-def.json	POST /widgets?desc=html	widget	true	create				
+placeholder-ext-def.json	GET /pets.{format}	pet	true	list			{"res":"`body.results`"}	
+placeholder-ext-def.json	GET /pets/names.{format}	name	true	list			{"res":"`body.results`"}	
+placeholder-ext-def.json	GET /toys.{format}	toy	true	list			{"res":"`body.results`"}	
+post-list-collision-def.json	GET /widgets/list	widget	true	list	list		{"page":{"total":"`body.total`"},"res":"`body.items`"}	
+post-list-collision-def.json	GET /widgets/{widgetId}	widget	true	load		widgetId->id		
+post-list-collision-def.json	POST /widgets/list	widget	true	post	list		{"page":{"total":"`body.total`"},"res":"`body.data`"}	
+post-read-def.json	GET /things	thing	true	list				
+post-read-def.json	POST /listSavedCards	saved_card	true	list			{"res":"`body.details`"}	
+post-read-def.json	POST /things/count	thing	true	create	count			
+post-read-def.json	POST /things/search	thing	true	list	search			
+postman-server-def.json	GET /bin/{id}	bin	true	load				
+prefix-tag-def.json	DELETE /alerts/deviceSubscriptions/{device_id}	device_subscription	true	remove		device_id->id		
+prefix-tag-def.json	GET /alerts/deviceSubscriptions	device_subscription	true	list			{"res":"`body.items`"}	
+prefix-tag-def.json	GET /alerts/deviceSubscriptions/{device_id}	device_subscription	true	load		device_id->id		
+prefix-tag-def.json	GET /member/{member_id}/fans	member	true	load	fan	member_id->id		
+prefix-tag-def.json	GET /tiles	tile	true	list				
+prefix-tag-def.json	GET /tiles/random	tile	true	load	random			
+prefix-tag-def.json	GET /tiles/{tile_id}	tile	true	load		tile_id->id		
+prefix-tag-def.json	POST /alerts/deviceSubscriptions	device_subscription	true	create				
+procedure-def.json	GET /#Action=GetWidgets	widget	true	load	get			
+procedure-def.json	GET /records.get_entries	entry	true	load	get			0/response/record<path
+procedure-def.json	GET /records.metadata	record	true	load				
+procedure-def.json	POST /#Action=BatchDeleteWidgets	widget	true	create	batch_delete			
+procedure-def.json	POST /#Action=ListGadgets	gadget	true	create	list			
+procedure-def.json	POST /#Action=Select	action_select	true	create				
+projection-def.json	GET /owners	owner	true	list				
+projection-def.json	GET /owners/{id}	owner	true	load				
+projection-def.json	GET /owners/{id}/nick_names	owner	true	load	nick_name			
+projection-def.json	GET /owners/{id}/pets	pet	true	list		id->owner_id		
+qualified-cmp-def.json	GET /account_option_v2	account_option_v2	true	load				
+qualified-cmp-def.json	GET /accounts	account	true	list				
+qualified-cmp-def.json	GET /accounts/{account_id}	account	true	load		account_id->id		
+qualified-cmp-def.json	GET /accounts/{account_id}/options	account_option	true	list				
+qualified-cmp-def.json	GET /accounts/{account_id}/options/{option_id}	account_option	true	load		option_id->id		
+query-book-def.yaml	GET /api/book/{book_id}	book	true	load		book_id->id		
+query-book-def.yaml	QUERY /api/book	book	true	list				
+query-book-def.yaml.full.json	GET /api/book/{book_id}	book	true	load		book_id->id		
+query-book-def.yaml.full.json	QUERY /api/book	book	true	list				
+read-verb-item-def.json	GET /gadgets	gadget	true	list				
+read-verb-item-def.json	GET /gadgets/{gadgetId}	gadget	true	load		gadgetId->id		
+read-verb-item-def.json	POST /gadgets/{gadgetId}/getLinkedTags	gadget	true	list	get_linked_tags	gadgetId->id	{"res":"`body.value`"}	-1//linked_tags_result<response
+record-array-def.json	GET /boards	board	true	list			{"page":{"next":"`body.next`"},"res":"`body.items`"}	
+record-array-def.json	GET /boards/{boardId}	board	true	load		boardId->id		
+record-array-def.json	GET /boards/{boardId}/acl	board	true	load	acl	boardId->id		
+record-array-def.json	GET /me	account	true	load				
+record-array-def.json	GET /reports/latest	report	true	load	latest			
+record-key-def.json	GET /homes	offer	true	list				0/response/home<path
+record-key-def.json	GET /homes/{homeRef}	offer	true	load		homeRef->home_ref		0/response/home<path
+record-key-def.json	GET /regions/spots	place	true	list			{"page":{"total":"`body.meta.count`"},"res":"`body.data`"}	-1//spot<path
+record-key-def.json	GET /regions/spots/by-circle	place	true	list	by_circle		{"page":{"total":"`body.meta.count`"},"res":"`body.data`"}	
+record-key-def.json	GET /regions/spots/{spotsId}	place	true	load		spotsId->spots_id	{"res":"`body.data`"}	-1//spot<path
+record-name-def.json	DELETE /s/{shelf}/acl/{entity}	shelf_access_control	true	remove				-1//acl<path
+record-name-def.json	GET /farms/{farmId}/croptypes	croptype	true	list		farmId->farm_id	{"res":"`body.items`"}	
+record-name-def.json	GET /farms/{farmId}/croptypes/{code}	croptype	true	load		code->id,farmId->farm_id		
+record-name-def.json	GET /s/{shelf}	shelf	true	load				
+record-name-def.json	GET /s/{shelf}/acl	shelf_access_control	true	list			{"res":"`body.items`"}	0/response/acl<path
+record-name-def.json	GET /s/{shelf}/acl/{entity}	shelf_access_control	true	load				0/response/acl<path
+record-name-def.json	POST /s/{shelf}/acl	shelf_access_control	true	create				0/response/acl<path
+record-name-def.json	PUT /s/{shelf}/acl/{entity}	shelf_access_control	true	update				0/response/acl<path
+relationship-def.json	DELETE /expenses/{expenseId}/relationships/tags	expense	true	remove	tags	expenseId->id		
+relationship-def.json	GET /expenses	expense	true	list				
+relationship-def.json	GET /expenses/{expenseId}	expense	true	load		expenseId->id		
+relationship-def.json	PATCH /expenses/{expenseId}/relationships/category	expense	true	patch	category	expenseId->id		
+relationship-def.json	POST /expenses/{expenseId}/relationships/tags	expense	true	create	tags	expenseId->id		
+rename-guard-def.json	GET /things/{thing_id}/2fa/{code}/checks/{check_id}	check	true	load		check_id->id		
+rename-guard-def.json	GET /things/{thing_id}/revisions/{recipe_revision}/packages/{package_ref}/revisions/{package_revision}/files/{file_name}	file	true	load		file_name->id,package_ref->package_id,recipe_revision->revision_id		
+request-body-def.json	DELETE /notes/{note_id}	note	true	remove		note_id->id		
+request-body-def.json	GET /avatars/{avatar_id}	avatar	true	load		avatar_id->id		
+request-body-def.json	GET /notes/{note_id}	note	true	load		note_id->id		
+request-body-def.json	GET /renders/{render_id}	render	true	load		render_id->id		
+request-body-def.json	GET /subscriptions/{subscription_id}	subscription	true	load		subscription_id->id		
+request-body-def.json	GET /uploads/{upload_id}	upload	true	load		upload_id->id		
+request-body-def.json	PATCH /renders/{render_id}	render	true	patch		render_id->id		
+request-body-def.json	POST /avatars	avatar	true	create				
+request-body-def.json	POST /notes	note	true	create				
+request-body-def.json	POST /renders	render	true	create				
+request-body-def.json	POST /subscriptions	subscription	true	create				
+request-body-def.json	POST /uploads	upload	true	create				
+request-paths-def.json	DELETE /contacts/groups/{groupId}/permissions/{username}	permission	true	remove		groupId->group_id,username->id		
+request-paths-def.json	DELETE /schedules	schedule	true	remove				
+request-paths-def.json	GET /boards/{boardId}	board	true	load		boardId->id		
+request-paths-def.json	GET /contacts/groups/{groupId}/permissions	permission	true	list		groupId->group_id		
+request-paths-def.json	GET /contacts/groups/{groupId}/permissions/{username}	permission	true	load		groupId->group_id,username->id		
+request-paths-def.json	GET /image/world/{worldTileName}{tileX}-{tileY}-0.png	world	true	load				
+request-paths-def.json	GET /messages	message	true	list				
+request-paths-def.json	GET /messages/count	message	true	load	count			
+request-paths-def.json	GET /messages/{messageId}	message	true	load		messageId->id		
+request-paths-def.json	GET /schedules	schedule	true	list				
+request-paths-def.json	GET /schedules/{scheduleId}	schedule	true	load		scheduleId->id		
+request-paths-def.json	GET /schedules:count	schedule	true	load	count			
+request-paths-def.json	GET /states/{stateAbbreviation}.json	state	true	load		stateAbbreviation->id		
+request-paths-def.json	GET /{board}/thread/{threadId}.json	thread	true	list		threadId->thread_id	{"res":"`body.posts`"}	
+request-paths-def.json	POST /messages/{messageId}/cancel	message	true	create	cancel	messageId->id		
+request-paths-def.json	POST /schedules/{scheduleId}:cancel	schedule	true	create	cancel	scheduleId->id		
+request-paths-def.json	PUT /boards/{boardId}/{fileName}.json	board	true	update		boardId->board_id,fileName->file_name		1/path+tag/upload<response
+request-paths-def.json	PUT /contacts/groups/{groupId}/permissions/{username}	permission	true	update		groupId->group_id,username->id		
+response-media-def.json	GET /artifacts/{artifactId}	artifact	true	load		artifactId->id		
+response-media-def.json	GET /ids/contentIds/{contentId}	artifact	true	load		contentId->content_id		0/tag/content_id<path
+response-media-def.json	GET /rooms/{room_id}	room	true	load		room_id->id		
+response-media-def.json	GET /rooms/{room_id}/attendance	attendance	true	list				
+response-media-def.json	GET /terms/{term}	term	true	load		term->id		
+response-media-def.json	GET /terms/{term}/meanings	meaning	true	list		term->term_id		
+response-media-def.json	GET /terms/{term}/usage	term	true	load	usage	term->id		
+rest-select-def.json	DELETE /public/database/{id}/permission/permanent/{msisdn}	permission	true	remove		id->database_id		0/tag/permanent<path
+rest-select-def.json	DELETE /public/database/{id}/permission/{msisdn}	permission	true	remove		id->database_id,msisdn->id		
+rest-select-def.json	GET /public/database/{id}/permission	permission	true	list		id->database_id		
+rest-select-def.json	PUT /entity-templates/disable	entity_template	true	update	disable			
+rest-select-def.json	PUT /iterations/disable	iteration	true	update	disable			
+rest-select-def.json	PUT /iterations:disable	iteration	true	update	disable			
+route-syntax-def.json	DELETE /labels/{labelId}#keys	label	true	remove		labelId->id		
+route-syntax-def.json	DELETE /owners/{ownerId}/pets/${petId}	pet	true	remove		ownerId->owner_id,petId->id		
+route-syntax-def.json	GET /echo	echo	true	load				
+route-syntax-def.json	GET /labels/{labelId}	label	true	load		labelId->id		
+route-syntax-def.json	GET /lines/{lineId}	line	true	load		lineId->id		
+route-syntax-def.json	GET /lines/{lineId}/stop/{stopId}	stop	true	load		lineId->line_id,stopId->id		
+route-syntax-def.json	GET /owners/{ownerId}/pets/${petId}	pet	true	load		ownerId->owner_id,petId->id		
+route-syntax-def.json	GET /walkers/{walkerId}/walks{format}	walker	true	load	walk	walkerId->id		
+route-syntax-def.json	GET /walkers/{walkerId}{format}	walker	true	load		walkerId->id		
+route-syntax-def.json	POST /walkers/{walkerId}/send_to_front{format}	walker	true	create	send_to_front	walkerId->id		
+route-syntax-def.json	POST /walkers/{walkerId}/walks/reset{format}	walker	true	create	walk_reset	walkerId->id		
+route-syntax-def.json	TRACE /echo	echo	true	TRACE				
+ruling-gaps-def.json	GET /LedgerLinks	ledger_link	true	list			{"res":"`body.items`"}	
+ruling-gaps-def.json	GET /LedgerLinks/{id}	ledger_link	true	load				
+ruling-gaps-def.json	GET /alerts/topics	topic	true	list				
+ruling-gaps-def.json	GET /catalog/{vendor}/{plugin}.json	plugin	true	load				0/response/catalog<path
+ruling-gaps-def.json	GET /journal/{journal_id}	journal	true	load		journal_id->id		
+ruling-gaps-def.json	GET /journal/{journal_id}/digest	digest	true	load				
+ruling-gaps-def.json	GET /journal/{journal_id}/following	journal	true	list	following	journal_id->id	{"res":"`body.following`"}	
+ruling-gaps-def.json	GET /search/notes	search	true	list	note			
+ruling-gaps-def.json	POST /LedgerLinks/ArchiveEntries	ledger_link	true	create	archive_entries			-1//archive_entry<path
+same-path-join-def.json	DELETE /orgs/{org}/vault/secrets/{secret_name}	secret	true	remove		org->org_id,secret_name->id		
+same-path-join-def.json	DELETE /widgets/{widget_id}	widget	true	remove		widget_id->id		
+same-path-join-def.json	GET /orgs/{org}/vault/repository-access	org	true	load	vault_repository_access	org->id		
+same-path-join-def.json	GET /orgs/{org}/vault/secrets	secret	true	list		org->org_id		
+same-path-join-def.json	GET /orgs/{org}/vault/secrets/{secret_name}	secret	true	load		org->org_id,secret_name->id		
+same-path-join-def.json	GET /widgets/{widget_id}	widget	true	load		widget_id->id		
+same-path-join-def.json	PATCH /orgs/{org}/vault/repository-access	org	true	patch	vault_repository_access	org->id		
+same-path-record-def.json	DELETE /gardens/{gardenId}/plot/{plotId}	garden_plot	true	remove		gardenId->garden_id,plotId->id		
+same-path-record-def.json	DELETE /staff/holidays/{id}	holiday	true	remove			{"res":"`body.data`"}	
+same-path-record-def.json	GET /colors	color	true	list				
+same-path-record-def.json	GET /colors/{colorId}	color	true	load		colorId->id		
+same-path-record-def.json	GET /gardens/{gardenId}/plot/{plotId}	garden_plot	true	load		gardenId->garden_id,plotId->id		
+same-path-record-def.json	GET /shapes	shape	true	list				
+same-path-record-def.json	GET /shapes/{shapeId}	shape	true	load		shapeId->id		
+same-path-record-def.json	GET /sizes	size	true	list				
+same-path-record-def.json	GET /sizes/{sizeId}	size	true	load		sizeId->id		
+same-path-record-def.json	GET /staff/holidays	holiday	true	load				
+same-path-record-def.json	GET /staff/holidays/{id}	holiday	true	load				
+same-path-record-def.json	PUT /gardens/{gardenId}/plot/{plotId}	garden_plot	true	update		gardenId->garden_id,plotId->id		
+shared-node-def.json	GET /rules/{rule_id}	rule	true	load		rule_id->id		
+shared-node-def.json	PUT /rules/{rule_id}	rule	true	update		rule_id->id		
+shared-record-def.json	DELETE /s/{shelf}/defaultBookAcl/{entity}	book_access_control	true	remove	default_book_acl			
+shared-record-def.json	GET /s	shelf	true	list				
+shared-record-def.json	GET /s/{shelf}	shelf	true	load				
+shared-record-def.json	GET /s/{shelf}/defaultBookAcl	book_access_control	true	list	default_book_acl			
+shared-record-def.json	GET /s/{shelf}/defaultBookAcl/{entity}	book_access_control	true	load	default_book_acl			
+shared-record-def.json	GET /s/{shelf}/k	book	true	list				
+shared-record-def.json	GET /s/{shelf}/k/{book}	book	true	load				
+shared-record-def.json	GET /s/{shelf}/k/{book}/acl	book_access_control	true	list	acl			
+shared-record-def.json	GET /s/{shelf}/k/{book}/acl/{entity}	book_access_control	true	load	acl			
+shared-record-def.json	POST /s/{shelf}/defaultBookAcl	book_access_control	true	create	default_book_acl			
+shared-record-def.json	POST /s/{shelf}/k/{book}/acl	book_access_control	true	create	acl			
+shared-record-def.json	PUT /s/{shelf}/k/{book}/acl/{entity}	book_access_control	true	update	acl			
+shared-selector-def.json	GET /catalog/widgets	widget	true	list	catalog_widgets			
+shared-selector-def.json	GET /featured/widgets	widget	true	list				
+shared-selector-def.json	GET /widgets	widget	true	list				
+shared-selector-def.json	GET /widgets/catalog	widget	true	list	catalog			
+shared-selector-def.json	GET /widgets/{widgetId}	widget	true	load		widgetId->id		
+shared-selector-def.json	GET /widgets?view=full	widget	true	list				
+shared-wrapper-def.json	GET /domain	taxon	true	list	domain		{"page":{"total":"`body.total`"},"res":"`body.items`"}	
+shared-wrapper-def.json	GET /domain/{domain_id}/kingdom/{id}	taxon	true	load	kingdom			
+shared-wrapper-def.json	GET /domain/{id}	taxon	true	load	domain			
+shared-wrapper-def.json	GET /domain/{id}/kingdom	taxon	true	list	kingdom	id->domain_id	{"page":{"total":"`body.total`"},"res":"`body.items`"}	
+sharing-def.json	DELETE /accounts/{aid}/bank_accounts/{id}	removal	true	remove		aid->account_id		0/response/bank_account<path
+sharing-def.json	DELETE /accounts/{aid}/external_accounts/{id}	removal	true	remove	external_accounts	aid->account_id		
+sharing-def.json	GET /jobs	job	true	list				
+sharing-def.json	GET /jobs/{id}	job	true	load				
+sharing-def.json	GET /metrics	metric	true	load				0/path/counter<response
+sharing-def.json	GET /notes	memo	true	list				0/response/note<path
+sharing-def.json	GET /notes/{id}	memo	true	load				0/response/note<path
+sharing-def.json	GET /packages/{pid}/digest	package	true	load	digest	pid->id	{"res":"`body.files`"}	
+sharing-def.json	GET /packages/{pid}/download_urls	package	true	load	download_urls	pid->id	{"res":"`body.files`"}	
+sharing-def.json	GET /recipes/{rid}/digest	recipe	true	load	digest	rid->id	{"res":"`body.files`"}	
+sharing-def.json	GET /recipes/{rid}/download_urls	recipe	true	load	download_urls	rid->id	{"res":"`body.files`"}	
+sharing-def.json	GET /settings/enforce_admins	enforce_admin	true	load				0/path/flag<response
+sharing-def.json	GET /settings/required_signatures	required_signature	true	load				0/path/flag<response
+sharing-def.json	GET /stats	stat	true	load				0/path/counter<response
+sharing-def.json	GET /stats/daily	counter	true	load				0/response/daily<path
+sharing-def.json	GET /users/{uid}/starred_notes	memo	true	list		uid->user_id		0/response/starred_note<path
+sharing-def.json	POST /jobs/{id}/rerun	job	true	create	rerun			
+sharing-def.json	POST /orgs/{org}/actions/variables	variable	true	create		org->org_id		0/path/ack<response
+sharing-def.json	PUT /orgs/{org}/actions/secrets/{name}	ack	true	update		org->org_id		0/response/secret<path
+sharing-def.json	PUT /orgs/{org}/dependabot/secrets/{name}	ack	true	update	dependabot	org->org_id		0/response/secret<path
+short-literal-def.json	GET /fr/{sheetName}{fileExtension}	sheet	true	load		sheetName->sheet_name		
+short-literal-def.json	GET /misc/qq	qqn	true	load				
+short-literal-def.json	GET /misc/qq/{id}	qqn	true	load				
+short-literal-def.json	GET /search/{versionNumber}/q/{term}.{ext}	term	true	load		versionNumber->version_number		
+short-literal-def.json	GET /x/db	database	true	load				
+singleton-part-def.json	DELETE /store/settings	setting	true	remove				
+singleton-part-def.json	DELETE /store/settings/sort-rules	setting	true	remove	sort_rules			
+singleton-part-def.json	DELETE /store/settings/theme	setting	true	remove	theme			
+singleton-part-def.json	GET /store/settings	setting	true	load				
+singleton-part-def.json	GET /store/settings/sort-rules	setting	true	load	sort_rules			
+singleton-part-def.json	GET /store/settings/theme	setting	true	load	theme			
+singleton-part-def.json	PATCH /store/settings	setting	true	patch				
+singleton-part-def.json	PATCH /store/settings/theme	setting	true	patch	theme			
+singleton-part-def.json	PUT /store/settings/sort-rules	setting	true	update	sort_rules			
+solar-1.0.0-openapi-3.0.0-def.yaml	DELETE /api/planet/{planet_id}	planet	true	remove		planet_id->id		
+solar-1.0.0-openapi-3.0.0-def.yaml	DELETE /api/planet/{planet_id}/moon/{moon_id}	moon	true	remove		moon_id->id		
+solar-1.0.0-openapi-3.0.0-def.yaml	GET /api/planet	planet	true	list				
+solar-1.0.0-openapi-3.0.0-def.yaml	GET /api/planet/{planet_id}	planet	true	load		planet_id->id		
+solar-1.0.0-openapi-3.0.0-def.yaml	GET /api/planet/{planet_id}/moon	moon	true	list				
+solar-1.0.0-openapi-3.0.0-def.yaml	GET /api/planet/{planet_id}/moon/{moon_id}	moon	true	load		moon_id->id		
+solar-1.0.0-openapi-3.0.0-def.yaml	POST /api/planet	planet	true	create				
+solar-1.0.0-openapi-3.0.0-def.yaml	POST /api/planet/{planet_id}/forbid	planet	true	create	forbid	planet_id->id		
+solar-1.0.0-openapi-3.0.0-def.yaml	POST /api/planet/{planet_id}/moon	moon	true	create				
+solar-1.0.0-openapi-3.0.0-def.yaml	POST /api/planet/{planet_id}/terraform	planet	true	create	terraform	planet_id->id		
+solar-1.0.0-openapi-3.0.0-def.yaml	PUT /api/planet/{planet_id}	planet	true	update		planet_id->id		
+solar-1.0.0-openapi-3.0.0-def.yaml	PUT /api/planet/{planet_id}/moon/{moon_id}	moon	true	update		moon_id->id		
+solar-1.0.0-openapi-3.0.0-def.yaml.full.json	DELETE /api/planet/{planet_id}	planet	true	remove		planet_id->id		
+solar-1.0.0-openapi-3.0.0-def.yaml.full.json	DELETE /api/planet/{planet_id}/moon/{moon_id}	moon	true	remove		moon_id->id		
+solar-1.0.0-openapi-3.0.0-def.yaml.full.json	GET /api/planet	planet	true	list				
+solar-1.0.0-openapi-3.0.0-def.yaml.full.json	GET /api/planet/{planet_id}	planet	true	load		planet_id->id		
+solar-1.0.0-openapi-3.0.0-def.yaml.full.json	GET /api/planet/{planet_id}/moon	moon	true	list				
+solar-1.0.0-openapi-3.0.0-def.yaml.full.json	GET /api/planet/{planet_id}/moon/{moon_id}	moon	true	load		moon_id->id		
+solar-1.0.0-openapi-3.0.0-def.yaml.full.json	POST /api/planet	planet	true	create				
+solar-1.0.0-openapi-3.0.0-def.yaml.full.json	POST /api/planet/{planet_id}/forbid	planet	true	create	forbid	planet_id->id		
+solar-1.0.0-openapi-3.0.0-def.yaml.full.json	POST /api/planet/{planet_id}/moon	moon	true	create				
+solar-1.0.0-openapi-3.0.0-def.yaml.full.json	POST /api/planet/{planet_id}/terraform	planet	true	create	terraform	planet_id->id		
+solar-1.0.0-openapi-3.0.0-def.yaml.full.json	PUT /api/planet/{planet_id}	planet	true	update		planet_id->id		
+solar-1.0.0-openapi-3.0.0-def.yaml.full.json	PUT /api/planet/{planet_id}/moon/{moon_id}	moon	true	update		moon_id->id		
+sub-path-def.json	GET /clubs/{name}	club	true	load		name->id		
+sub-path-def.json	GET /clubs/{name}/settings	club_setting	true	load				
+sub-path-def.json	GET /parcels/{id}	parcel	true	load				
+sub-path-def.json	GET /teams/{teamId}	team	true	load		teamId->id		
+sub-path-def.json	GET /teams/{teamId}/sync/config	preference	true	load		teamId->team_id		0/response/config<path
+sub-path-def.json	POST /teams/{teamId}/sync/config	preference	true	create		teamId->team_id		0/response/config<path
+sub-path-def.json	PUT /clubs/{name}/settings	club_setting	true	update				
+sub-path-def.json	PUT /parcels/{id}/address	parcel	true	update	address			-1//location<response
+sub-read-def.json	GET /stores	store	true	list				
+sub-read-def.json	GET /stores/{id}	store	true	load				
+sub-read-def.json	GET /stores/{id}/profile	profile	true	load		id->store_id		
+sub-read-def.json	GET /stores/{id}/status	store	true	load	status			
+subresource-fold-def.json	DELETE /v2/call_routes/{call_route_id}/allowed_callers/{id}	call_route_allowed_caller	true	remove				
+subresource-fold-def.json	DELETE /v2/call_routes/{call_route_id}/options/{id}	call_route_option	true	remove				
+subresource-fold-def.json	GET /v2/call_routes	call_route	true	list			{"res":"`body.call_routes`"}	
+subresource-fold-def.json	GET /v2/call_routes/{call_route_id}/allowed_callers	call_route_allowed_caller	true	list			{"res":"`body.allowed_callers`"}	
+subresource-fold-def.json	GET /v2/call_routes/{call_route_id}/allowed_callers/{id}	call_route_allowed_caller	true	load			{"res":"`body.allowed_caller`"}	
+subresource-fold-def.json	GET /v2/call_routes/{call_route_id}/options/{id}	call_route_option	true	load			{"res":"`body.option`"}	
+subresource-fold-def.json	GET /v2/call_routes/{id}	call_route	true	load			{"res":"`body.call_route`"}	
+subresource-fold-def.json	POST /v2/call_routes/{call_route_id}/allowed_callers	call_route_allowed_caller	true	create			{"res":"`body.allowed_caller`"}	
+subresource-fold-def.json	PUT /v2/call_routes/{call_route_id}/allowed_callers/{id}	call_route_allowed_caller	true	update			{"res":"`body.allowed_caller`"}	
+swagger-twin-openapi-def.json	GET /notes/{note_id}	note	true	load		note_id->id		
+swagger-twin-openapi-def.json	GET /widgets	widget	true	list				
+swagger-twin-openapi-def.json	GET /widgets/{widget_id}	widget	true	load		widget_id->id		
+swagger-twin-openapi-def.json	POST /notes	note	true	create				
+swagger-twin-openapi-def.json	POST /tickets	ticket	true	create				
+swagger-twin-openapi-def.json	POST /widgets	widget	true	create				
+swagger-twin-openapi-def.json	POST /widgets/{widget_id}/image	widget	true	create	image	widget_id->id		
+swagger-twin-openapi-def.json	PUT /widgets/{widget_id}	widget	true	update		widget_id->id		
+swagger-twin-swagger-def.json	GET /notes/{note_id}	note	true	load		note_id->id		
+swagger-twin-swagger-def.json	GET /widgets	widget	true	list				
+swagger-twin-swagger-def.json	GET /widgets/{widget_id}	widget	true	load		widget_id->id		
+swagger-twin-swagger-def.json	POST /notes	note	true	create				
+swagger-twin-swagger-def.json	POST /tickets	ticket	true	create				
+swagger-twin-swagger-def.json	POST /widgets	widget	true	create				
+swagger-twin-swagger-def.json	POST /widgets/{widget_id}/image	widget	true	create	image	widget_id->id		
+swagger-twin-swagger-def.json	PUT /widgets/{widget_id}	widget	true	update		widget_id->id		
+tag-key-def.json	DELETE /teams/{teamId}/players/{playerId}	player	true	remove		playerId->id,teamId->team_id		
+tag-key-def.json	GET /teams/{teamId}	team	true	load		teamId->id		
+tag-key-def.json	GET /vaults/{vaultId}/o/{entry}	object	true	load		vaultId->vault_id		
+tag-key-def.json	POST /teams/{teamId}/players/{playerId}/activate	player	true	create	activate	playerId->id,teamId->team_id		
+tag-noun-def.json	DELETE /drawers/{drawer_id}	drawer	true	remove		drawer_id->id		
+tag-noun-def.json	GET /catalog-data/regions/spots/{spotsId}	spot	true	load		spotsId->id		
+tag-noun-def.json	GET /drawers/	drawer	true	list				
+tag-noun-def.json	GET /drawers/{drawer_id}	drawer	true	load		drawer_id->id		
+tag-noun-def.json	GET /{id}	thing	true	load				
+tag-noun-def.json	POST /drawers/	drawer	true	create				
+trailing-key-def.json	DELETE /user_groups/{id}	user_group	true	remove				
+trailing-key-def.json	DELETE /user_groups/{id}/users/{uid}	user	true	remove		id->user_group_id,uid->id		
+trailing-key-def.json	GET /orgs	org	true	list				
+trailing-key-def.json	GET /orgs/{org_id}	org	true	load		org_id->id		
+trailing-key-def.json	GET /orgs/{org}/runner-groups/{runner_group_id}	runner_group	true	load		org->org_id,runner_group_id->id		
+trailing-key-def.json	GET /user_groups	user_group	true	list				
+trailing-key-def.json	GET /user_groups/{id}	user_group	true	load				
+trailing-key-def.json	PATCH /orgs/{org_id}	org	true	patch		org_id->id		
+trailing-key-def.json	PATCH /orgs/{org}/runner-groups/{runner_group_id}	runner_group	true	patch		org->org_id,runner_group_id->id		
+trailing-key-def.json	POST /user_groups	user_group	true	create				
+trailing-key-def.json	POST /user_groups/{id}/users/{uid}	user	true	create		id->user_group_id,uid->id		
+verb-def.json	DELETE /notes/{note_id}	note	true	remove		note_id->id		
+verb-def.json	GET /notes/{note_id}	note	true	load		note_id->id		
+verb-def.json	GET /things	thing	true	list				
+verb-def.json	GET /things/{thing_number}	thing	true	load		thing_number->id		
+verb-def.json	GET /things/{thing_number}/merge	thing	true	load	merge	thing_number->id		
+verb-def.json	GET /things/{thing_number}/notes	note	true	list				
+verb-def.json	PATCH /things/{thing_number}	thing	true	patch		thing_number->id		
+verb-def.json	POST /things	thing	true	create				
+verb-def.json	POST /things/{thing_number}/notes	note	true	create				
+verb-def.json	PUT /things/{thing_number}/merge	thing	true	update	merge	thing_number->id		
+verb-edge-def.json	GET /email-archives	email_archive	true	list				
+verb-edge-def.json	GET /email-archives/{email_archive_id}	email_archive	true	load		email_archive_id->id		
+verb-edge-def.json	GET /widgets	widget	true	list				
+verb-edge-def.json	GET /widgets/{id}	widget	true	load				
+verb-edge-def.json	POST /widgets/{id}/access_keys	widget	true	create	access_keys			
+verb-edge-def.json	POST /widgets/{id}/labels	widget	true	create	labels			
+verb-edge-def.json	PUT /email-archives/{email_archive_id}/archive	email_archive	true	update	archive	email_archive_id->id		
+verb-edge-def.json	PUT /widgets/{id}	widget	true	update				0/path/ack<response
+verb-edge-def.json	PUT /widgets/{widget_number}/merge	widget	true	update	merge	widget_number->id		
+verb-noun-def.json	GET /account	account	true	load				
+verb-noun-def.json	GET /c/{id}/show	category	true	load		id->c_id		
+verb-noun-def.json	GET /shows	show	true	list				
+verb-noun-def.json	GET /shows/{id}	show	true	load				
+verb-noun-def.json	GET /tokens	token	true	list				
+verb-noun-def.json	POST /account/2/verify	account	true	create	verify			
+verb-noun-def.json	POST /tokens/authorize	token	true	create	authorize			
+verb-phrase-def.json	GET /s	shelf	true	list				
+verb-phrase-def.json	GET /s/{shelf}	shelf	true	load				
+verb-phrase-def.json	GET /s/{shelf}/k/{book}	book	true	load				
+verb-phrase-def.json	GET /s/{shelf}/k/{book}/rbac	grant	true	load				0/response/rbac<path
+verb-phrase-def.json	GET /s/{shelf}/k/{book}/rbac/testAccess	book	true	load	rbac_test_access			-1//test_rbac_access<response
+verb-phrase-def.json	GET /s/{shelf}/rbac	grant	true	load				0/response/rbac<path
+verb-phrase-def.json	GET /s/{shelf}/rbac/testAccess	shelf	true	load	rbac_test_access			-1//test_rbac_access<response
+verb-phrase-def.json	GET /things/{id}	thing	true	load				
+verb-phrase-def.json	GET /things/{id}/labels	label	true	list		id->thing_id		
+verb-phrase-def.json	POST /node-k8s/{service_id}/inject_root_cert	node_k8s	true	create	inject_root_cert	service_id->id		
+verb-phrase-def.json	POST /s/{shelf}/lockLendingPolicy	shelf	true	create	lock_lending_policy			
+verb-phrase-def.json	POST /things/{id}/actions/archive	thing	true	create	archive			0/response/action<path
+verb-phrase-def.json	POST /things/{id}/labels	label	true	create		id->thing_id		
+verb-phrase-def.json	POST /things/{id}/labels/archive	label	true	create	archive	id->thing_id		
+verb-phrase-def.json	PUT /s/{shelf}/rbac	grant	true	update				0/response/rbac<path
+verb-result-def.json	GET /farms/{farmId}/barns	barn	true	list		farmId->farm_id		
+verb-result-def.json	GET /farms/{farmId}/barns/$count	barn	true	load	count	farmId->farm_id		
+verb-result-def.json	GET /farms/{farmId}/croptypes	croptype	true	list		farmId->farm_id		
+verb-result-def.json	GET /farms/{farmId}/croptypes/$count	croptype	true	load	count	farmId->farm_id		
+verb-result-def.json	GET /farms/{farmId}/croptypes/{code}	croptype	true	load		code->id,farmId->farm_id		
+verb-result-def.json	GET /tasks	task	true	list				
+verb-result-def.json	GET /tasks/{id}	task	true	load				
+verb-result-def.json	POST /tasks/{id}/cancel	task	true	create	cancel			
+verb-word-def.json	GET /books	book	true	list				
+verb-word-def.json	GET /books/autocomplete	book	true	list	autocomplete			
+verb-word-def.json	GET /books/contains	book	true	list	contains			
+verb-word-def.json	GET /messages/{messageId}	message	true	load		messageId->id		
+verb-word-def.json	GET /queues/{queueId}	queue	true	load		queueId->id		
+verb-word-def.json	GET /uploads/{uploadId}	upload	true	load		uploadId->id		
+verb-word-def.json	POST /queues/{queueId}/reorder	queue	true	create	reorder	queueId->id		
+verb-word-def.json	POST /queues/{queueId}/shuffle	queue	true	create	shuffle	queueId->id		
+verb-word-def.json	POST /uploads/{uploadId}/finish	upload	true	create	finish	uploadId->id		
+verb-word-def.json	PUT /messages/{messageId}/bypass	message	true	update	bypass	messageId->id		0/path/receipt<response
+version-actions-def.json	DELETE /v2/things/{id}	thing	true	remove	v2			
+version-actions-def.json	DELETE /v3/things/{id}	thing	true	remove				
+version-actions-def.json	GET /v1/things	thing	true	list	v1		{"res":"`body.things`"}	
+version-actions-def.json	GET /v1/things/{id}	thing	true	load	v1			
+version-actions-def.json	GET /v2/things	thing	true	list			{"res":"`body.things`"}	
+version-actions-def.json	GET /v2/things/{id}	thing	true	load	v2			
+version-actions-def.json	GET /v3/things/{id}	thing	true	load				
+version-actions-def.json	POST /v1/things	thing	true	create	v1			
+version-actions-def.json	POST /v2/things	thing	true	create				
+version-actions-def.json	POST /v2/things/{id}/actions/archive	thing	true	create	archive_v2			0/response/action<path
+version-actions-def.json	POST /v3/things/{id}/actions/archive	thing	true	create	archive			0/response/action<path
+version-verb-def.json	GET /api/v3/search	search	true	load				
+version-verb-def.json	GET /api/v3/stories/{story_id}	story	true	load		story_id->id		
+version-verb-def.json	POST /api/v3/stories/search	story	true	list	search			
+well-known-def.json	DELETE /notes/sched/{id}	sched	true	remove				
+well-known-def.json	DELETE /notes/{id}	note	true	remove				
+well-known-def.json	GET /aaa/cask/{id}	cask	true	load				
+well-known-def.json	GET /aaa/ds/{id}	dsn	true	load				
+well-known-def.json	GET /aaa/dsx/{id}	dsx	true	load				
+well-known-def.json	GET /aaa/dun	dun	true	load				
+well-known-def.json	GET /aaa/efn/{id}	efn	true	load				
+well-known-def.json	GET /aaa/ghn/{id}	ghn	true	load				
+well-known-def.json	GET /aaa/kit/{id}	aaa_kit	true	load				
+well-known-def.json	GET /aaa/nest	nest	true	load				
+well-known-def.json	GET /aaa/qq	qqn	true	load				-1//qq<response
+well-known-def.json	GET /aaa/rr	rrn	true	load				
+well-known-def.json	GET /aaa/uv	uvn	true	load				-1//uv<response
+well-known-def.json	GET /aaa/well_known_discovery_endpoints_for_agents_and_model_context	well_known_discovery_endpoints_for_agents_and_model_context	true	load				
+well-known-def.json	GET /crates/{id}	parcel	true	load				0/response/crate<path
+well-known-def.json	GET /ids/contentIds/{contentId}	artifact	true	load		contentId->content_id		0/tag/content_id<path
+well-known-def.json	GET /ids/globalIds/{globalId}	artifact	true	load		globalId->global_id		0/tag/global_id<path
+well-known-def.json	GET /kilns/{id}	oven	true	load				0/response/kiln<path
+well-known-def.json	GET /lt/abc/{id}	well_known_discovery_endpoints_for_agents_and_model_context2	true	load				0/tag/abc<path
+well-known-def.json	GET /lt/bcd/{id}	bcd	true	load				
+well-known-def.json	GET /lt/v2/abc/{id}	well_known_discovery_endpoints_for_agents_and_model_context3	true	load				0/tag/abc<path
+well-known-def.json	GET /lu/abc/{id}	artifact_search_endpoints_from_groups_and_versions_and_branches_and	true	load				0/tag/abc<path
+well-known-def.json	GET /lu/v2/abc/{id}	artifact_search_endpoints_from_groups_and_versions_and_branches_and2	true	load				0/tag/abc<path
+well-known-def.json	GET /lu/v3/abc/{id}	artifact_search_endpoints_from_groups_and_versions_and_branches_and3	true	load				0/tag/abc<path
+well-known-def.json	GET /lv/abc/{id}	registry_administration_endpoints_for_role_mappings_and_config2	true	load				0/tag/abc<path
+well-known-def.json	GET /lv/cde/{id}	cde	true	load				
+well-known-def.json	GET /notes/sched	sched	true	load				
+well-known-def.json	GET /notes/{id}	note	true	load				
+well-known-def.json	GET /other/db	dbn	true	load				-1//db<response
+well-known-def.json	GET /v2/notes/{id}	note2	true	load				
+well-known-def.json	GET /well-known/agent-card.json	agent_card	true	list				
+well-known-def.json	GET /well-known/agent.json	agent	true	list				
+well-known-def.json	GET /well-known/agents	well_known_agent	true	list			{"page":{"total":"`body.count`"},"res":"`body.agents`"}	0/path/agent_search_result<response
+well-known-def.json	GET /well-known/agents/{groupId}/{artifactId}	well_known_agent	true	load		artifactId->artifact_id,groupId->group_id		
+well-known-def.json	GET /well-known/cask/{id}	well_known_cask	true	load				
+well-known-def.json	GET /well-known/crate/{id}	well_known_crate	true	load				
+well-known-def.json	GET /well-known/db	well_known_db	true	load	db			
+well-known-def.json	GET /well-known/db/{id}	well_known_db	true	load				
+well-known-def.json	GET /well-known/dbase	well_known_dbase	true	load				
+well-known-def.json	GET /well-known/dbase/{id}	well_known_dbase	true	load				
+well-known-def.json	GET /well-known/dbset/{id}	dbset	true	load				
+well-known-def.json	GET /well-known/ds/{id}	well_known_ds	true	load				
+well-known-def.json	GET /well-known/dt/{id}	well_known_dt	true	load				
+well-known-def.json	GET /well-known/du/{id}	well_known_du	true	load				
+well-known-def.json	GET /well-known/ef/{id}	well_known_ef	true	load				
+well-known-def.json	GET /well-known/gh/{id}	well_known_gh	true	load				
+well-known-def.json	GET /well-known/hive/v2/hive/{id}	hive	true	load				
+well-known-def.json	GET /well-known/hive/{id}	well_known_hive	true	load				
+well-known-def.json	GET /well-known/ij/{id}	ijn	true	load				
+well-known-def.json	GET /well-known/kiln/{id}	kiln	true	load				
+well-known-def.json	GET /well-known/kit/{id}	kit	true	load				
+well-known-def.json	GET /well-known/ledger/{id}	well_known_ledger	true	load				
+well-known-def.json	GET /well-known/mcp-tools	mcp_tool	true	list			{"page":{"total":"`body.count`"},"res":"`body.tools`"}	
+well-known-def.json	GET /well-known/mcp-tools/{groupId}/{artifactId}	mcp_tool	true	load		artifactId->artifact_id,groupId->group_id		
+well-known-def.json	GET /well-known/nest/v2/nest/{id}	well_known_nest	true	load				
+well-known-def.json	GET /well-known/nest/{id}	well_known_nest2	true	load				
+well-known-def.json	GET /well-known/qq/{id}	well_known_qq	true	load				
+well-known-def.json	GET /well-known/qrs/{id}	qrs	true	load				
+well-known-def.json	GET /well-known/repo/{id}	well_known_repo	true	load				
+well-known-def.json	GET /well-known/rr/{id}	well_known_rr2	true	load				
+well-known-def.json	GET /well-known/schemas/{schemaType}/{version}	schema	true	load		schemaType->schema_type		
+well-known-def.json	GET /well-known/uvn/{id}	well_known_uvn	true	load				
+well-known-def.json	GET /well-known/v2/qq/{id}	well_known_qq2	true	load				
+well-known-def.json	GET /well-known/vault/{id}	vault	true	load				
+well-known-def.json	GET /well-known/xyn/{id}	well_known_xyn	true	load				
+well-known-def.json	GET /zzz/abc	abc	true	load				
+well-known-def.json	GET /zzz/crate/{id}	crate	true	load				
+well-known-def.json	GET /zzz/dtn	dtn	true	load				
+well-known-def.json	GET /zzz/efn2/{id}	efn2	true	load				
+well-known-def.json	GET /zzz/ijn/{id}	aaa_ijn	true	load				
+well-known-def.json	GET /zzz/pots	pot	true	list				
+well-known-def.json	GET /zzz/pots/{id}	pot	true	load				
+well-known-def.json	GET /zzz/qrs/{id}	qrs_admin_qrs	true	load				
+well-known-def.json	GET /zzz/qrt/{id}	qrt	true	load				
+well-known-def.json	GET /zzz/registry_administration_endpoints_for_role_mappings_and_config	registry_administration_endpoints_for_role_mappings_and_config	true	load				
+well-known-def.json	GET /zzz/repo/{id}	repo	true	load				
+well-known-def.json	GET /zzz/vault/{id}	widget	true	load				0/response/vault<path
+well-known-def.json	GET /zzz/well_known_rr/{id}	well_known_rr	true	load				
+well-known-def.json	GET /zzz/xy	xyn	true	load				-1//xy<response
+well-known-def.json	GET /zzz/{id}/dbset	zzz	true	load	dbset			-1//agent_card<response
+well-known-def.json	POST /aaa/ledger/{id}/history	ledger	true	create	history			
+well-known-def.json	POST /lu/v2/abc/{id}/merge	artifact_search_endpoints_from_groups_and_versions_and_branches_and2	true	create	merge	id->abc_id		0/tag/abc<path
+well-known-def.json	POST /note/send	note	true	create	send			
+well-known-def.json	POST /notes	note	true	create				
+well-known-def.json	POST /well-known/kit/{id}/merge	kit	true	create	merge			
+well-known-def.json	POST /zzz/dbase/{id}/history	dbase	true	create	history			
+well-known-def.json	POST /zzz/vault/{id}/merge	widget	true	create	merge	id->vault_id		-1//vault<path
+word-break-def.json	GET /boxsizes	box_size	true	list			{"res":"`body.ride_types`"}	
+word-break-def.json	GET /farms/{farmId}/croptypes	crop_type	true	list		farmId->farm_id		
+word-break-def.json	GET /farms/{farmId}/croptypes/{code}	crop_type	true	load		farmId->farm_id		
+word-break-def.json	GET /zipcodes	zipcode	true	load				
+wrapper-cmp-def.json	DELETE /widgets/{id}	widget	true	remove				
+wrapper-cmp-def.json	GET /widgets	widget	true	list			{"res":"`body.data`"}	
+wrapper-cmp-def.json	GET /widgets/{id}	widget	true	load			{"res":"`body.data`"}	
+wrapper-cmp-def.json	GET /widgets/{id}/file	widget	true	load	file			
+wrapper-cmp-def.json	POST /widgets	widget	true	create			{"res":"`body.data`"}	
+wrapper-name-def.json	GET /gardens/{id}	garden	true	load				
+wrapper-name-def.json	GET /hives/{id}	hive	true	load			{"res":"`body.hive`"}	

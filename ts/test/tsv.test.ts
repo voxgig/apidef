@@ -34,6 +34,9 @@ import {
   stripOperationVerb,
   guideParts,
   selectorParts,
+  sameName,
+  nearMiss,
+  nearMissText,
   getModelPath,
   isEntityWrapperProp,
   envelopeProp,
@@ -501,6 +504,35 @@ describe('tsv-selector-parts', () => {
   for (const row of loadTsv('selector-parts')) {
     test(`selectorParts(${row.input})`, () => {
       assert.deepStrictEqual(selectorParts(row.input), JSON.parse(row.expected))
+    })
+  }
+})
+
+
+describe('tsv-same-name', () => {
+  for (const row of loadTsv('same-name')) {
+    test(`sameName(${row.a}, ${row.b})`, () => {
+      assert.strictEqual(sameName(row.a, row.b), 'true' === row.expected)
+    })
+  }
+})
+
+
+describe('tsv-near-miss', () => {
+  for (const row of loadTsv('near-miss')) {
+    test(`nearMiss(${row.entity}, ${row.evidence})`, () => {
+      assert.deepStrictEqual(
+        nearMiss(row.entity, JSON.parse(row.evidence), JSON.parse(row.actions)),
+        JSON.parse(row.expected))
+    })
+  }
+})
+
+
+describe('tsv-near-miss-text', () => {
+  for (const row of loadTsv('near-miss-text')) {
+    test(`nearMissText(${row.entries.slice(0, 40)})`, () => {
+      assert.strictEqual(nearMissText(JSON.parse(row.entries)), JSON.parse(row.expected))
     })
   }
 })

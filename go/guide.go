@@ -942,7 +942,86 @@ func heuristic01(ctx *ApiDefContext) (map[string]any, error) {
 
 	separateSharedPoints(guide, def)
 
+	ctx.NearMiss = nearMisses(data, guide)
+
 	return guide, nil
+}
+
+// routeEvidence mirrors routeEvidence in ts/src/guide/heuristic01.ts.
+func routeEvidence(data map[string]any, mdesc map[string]any) [][2]string {
+	evidence := [][2]string{}
+	parts := pathParts(data, safeStr(mdesc["path"]))
+	if pm := matchEntityPath(parts); pm != nil && !shortLiteral(pm, parts) {
+		evidence = append(evidence, [2]string{"path", pathNoun(pm, parts, &[]string{})})
+	}
+	ment, _ := mdesc["MethodEntity"].(map[string]any)
+	tagged := safeStr(ment["ref"]) == "tag"
+	var response any
+	if tagged {
+		response = ment["rescmp"]
+	} else if ment != nil {
+		response = ment["cmp"]
+	}
+	responseName, _ := response.(string)
+	responded := responseName != ""
+	if responded {
+		evidence = append(evidence, [2]string{"response", responseName})
+	}
+	if tagged {
+		evidence = append(evidence, [2]string{"tag", safeStr(ment["cmp"])})
+	}
+	if !responded {
+		if body := commandBodyName(data, mdesc); body != "" {
+			evidence = append(evidence, [2]string{"body", body})
+		}
+	}
+	for i := range evidence {
+		evidence[i][1] = Depluralize(Canonize(evidence[i][1]))
+	}
+	return evidence
+}
+
+// nearMisses mirrors nearMisses in ts/src/guide/heuristic01.ts.
+func nearMisses(data map[string]any, guide map[string]any) []NearMissEntry {
+	type choice struct {
+		entity  string
+		actions []string
+	}
+	chosen := map[string]choice{}
+	entities, _ := guide["entity"].(map[string]any)
+	for _, entname := range sortedKeys(entities) {
+		entity, _ := entities[entname].(map[string]any)
+		paths, _ := entity["path"].(map[string]any)
+		for _, pathStr := range sortedKeys(paths) {
+			gpath, _ := paths[pathStr].(map[string]any)
+			ops, _ := gpath["op"].(map[string]any)
+			actions, _ := gpath["action"].(map[string]any)
+			for _, opname := range sortedKeys(ops) {
+				op, _ := ops[opname].(map[string]any)
+				chosen[safeStr(op["method"])+" "+pathStr] = choice{entname, sortedKeys(actions)}
+			}
+		}
+	}
+	work, _ := data["work"].(map[string]any)
+	methods, _ := work["methods"].([]map[string]any)
+	entries := []NearMissEntry{}
+	for _, mdesc := range methods {
+		route := safeStr(mdesc["method"]) + " " + safeStr(mdesc["path"])
+		pick, ok := chosen[route]
+		if !ok {
+			continue
+		}
+		if miss := NearMiss(pick.entity, routeEvidence(data, mdesc), pick.actions); miss != nil {
+			entries = append(entries, NearMissEntry{Route: route, Entity: pick.entity, NearMissResult: *miss})
+		}
+	}
+	sort.SliceStable(entries, func(i, j int) bool {
+		if entries[i].Margin != entries[j].Margin {
+			return entries[i].Margin < entries[j].Margin
+		}
+		return lessUTF16(entries[i].Route, entries[j].Route)
+	})
+	return entries
 }
 
 // measureSharing mirrors MeasureSharing in ts/src/guide/heuristic01.ts.

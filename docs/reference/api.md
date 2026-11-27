@@ -29,7 +29,7 @@ const result = await apidef.generate(spec)
 | `fs` | `fs`-like | `node:fs` | filesystem implementation (for testing / virtual FS) |
 | `pino` | pino instance | — | logger to use instead of the built-in pretty logger |
 | `meta` | `object` | `{}` | arbitrary metadata passed through to the build |
-| `why` | `{ show?: boolean }` | — | include classification `why_*` traces in output |
+| `why` | `{ show?: boolean }` | — | include classification `why_*` traces in output, and write the [near-miss report](./guide.md#near-misses) |
 
 ¹ The log level when `debug` is unset. The CLI passes `debug` only when
 `--debug` is given, so a plain CLI run writes no `<def>.full.json`.

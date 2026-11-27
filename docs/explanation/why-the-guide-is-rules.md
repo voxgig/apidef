@@ -124,7 +124,10 @@ meet that problem.
 **A margin on every decision.** Each network decision came with scores, so a
 close call was visible. With hand-set weights the scores were not calibrated,
 though, and a chain of rules can say just as cheaply which other readings
-also applied.
+also applied. The guide now does: each route's path, response, tag, and
+body are weighed against the entity chosen for it, and the routes where they
+disagree are listed as [near misses](../reference/guide.md#near-misses),
+closest first.
 
 **Differential testing.** Wherever the two strategies disagreed, one of them
 was wrong, and several of those disagreements were defects in the heuristic:

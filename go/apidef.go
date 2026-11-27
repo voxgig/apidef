@@ -165,6 +165,9 @@ func (a *apiDefInstance) Generate(spec map[string]any) (*ApiDefResult, error) {
 	}
 
 	ctx.Guide, _ = guideModel["guide"].(map[string]any)
+	if a.opts.Why != nil && a.opts.Why.Show && ctx.NearMiss != nil {
+		WriteFileWarn(warn, "./apidef-near-misses.txt", NearMissText(ctx.NearMiss))
+	}
 	steps = append(steps, "guide")
 
 	// Step: transformers

@@ -544,6 +544,153 @@ func CanonizeCmpName(orig string) string {
 	return Canonize(stripToolAffixes(StripSchemaNamespace(orig)))
 }
 
+// SameName mirrors sameName in ts/src/utility.ts.
+func SameName(a, b string) bool {
+	same := func(x, y string) bool {
+		return x == y || (2 < min(len(utf16.Encode([]rune(x))), len(utf16.Encode([]rune(y)))) &&
+			(strings.HasPrefix(x, y) || strings.HasPrefix(y, x)))
+	}
+	within := func(inner, outer []string) bool {
+		for i := 0; i+len(inner) <= len(outer); i++ {
+			match := true
+			for j, word := range inner {
+				if !same(word, outer[i+j]) {
+					match = false
+					break
+				}
+			}
+			if match {
+				return true
+			}
+		}
+		return false
+	}
+	as := strings.Split(a, "_")
+	bs := strings.Split(b, "_")
+	return within(as, bs) || within(bs, as)
+}
+
+// NearMissAlternative is a name a route's evidence gives in place of its entity.
+type NearMissAlternative struct {
+	Name    string   `json:"name"`
+	Sources []string `json:"sources"`
+}
+
+// NearMissResult mirrors the NearMiss type in ts/src/utility.ts.
+type NearMissResult struct {
+	Margin       int                   `json:"margin"`
+	Support      []string              `json:"support"`
+	Alternatives []NearMissAlternative `json:"alternatives"`
+}
+
+// NearMissEntry is one route of the near-miss report.
+type NearMissEntry struct {
+	Route  string `json:"route"`
+	Entity string `json:"entity"`
+	NearMissResult
+}
+
+// NearMiss mirrors nearMiss in ts/src/utility.ts.
+func NearMiss(entity string, evidence [][2]string, actions []string) *NearMissResult {
+	named := [][2]string{}
+	for _, ev := range evidence {
+		if ev[1] != "" {
+			named = append(named, ev)
+		}
+	}
+	sources := func(name string) []string {
+		out := []string{}
+		for _, ev := range named {
+			if SameName(ev[1], name) {
+				out = append(out, ev[0])
+			}
+		}
+		return out
+	}
+	names := []string{}
+	seen := map[string]bool{}
+	for _, ev := range named {
+		if ev[0] == "tag" || seen[ev[1]] {
+			continue
+		}
+		seen[ev[1]] = true
+		if SameName(ev[1], entity) {
+			continue
+		}
+		taken := false
+		for _, action := range actions {
+			if SameName(ev[1], action) {
+				taken = true
+				break
+			}
+		}
+		if !taken {
+			names = append(names, ev[1])
+		}
+	}
+	if len(names) == 0 {
+		return nil
+	}
+	support := sources(entity)
+	alternatives := []NearMissAlternative{}
+	for _, name := range names {
+		own := []string{}
+		for _, src := range sources(name) {
+			if !slices.Contains(support, src) {
+				own = append(own, src)
+			}
+		}
+		if 0 < len(own) {
+			alternatives = append(alternatives, NearMissAlternative{Name: name, Sources: own})
+		}
+	}
+	if len(alternatives) == 0 {
+		return nil
+	}
+	sort.SliceStable(alternatives, func(i, j int) bool {
+		if len(alternatives[i].Sources) != len(alternatives[j].Sources) {
+			return len(alternatives[i].Sources) > len(alternatives[j].Sources)
+		}
+		return lessUTF16(alternatives[i].Name, alternatives[j].Name)
+	})
+	return &NearMissResult{
+		Margin:       len(support) - len(alternatives[0].Sources),
+		Support:      support,
+		Alternatives: alternatives,
+	}
+}
+
+var nearMissHeader = []string{
+	"# Routes whose own evidence names something other than the entity the guide",
+	"# gave them, closest first. Columns: margin, route, entity (its sources),",
+	"# alternatives (their sources). The margin is the sources behind the entity",
+	"# less those behind only the strongest alternative.",
+}
+
+// NearMissText mirrors nearMissText in ts/src/utility.ts.
+func NearMissText(entries []NearMissEntry) string {
+	named := func(name string, sources []string) string {
+		if len(sources) == 0 {
+			return name
+		}
+		return name + " (" + strings.Join(sources, ", ") + ")"
+	}
+	lines := append([]string{}, nearMissHeader...)
+	for _, entry := range entries {
+		alts := []string{}
+		for _, alt := range entry.Alternatives {
+			alts = append(alts, named(alt.Name, alt.Sources))
+		}
+		lines = append(lines, strings.Join([]string{
+			strconv.Itoa(entry.Margin),
+			entry.Route,
+			named(entry.Entity, entry.Support),
+			strings.Join(alts, "; "),
+		}, "\t"))
+	}
+	return strings.Join(append(lines, ""), "\n")
+}
+
 var toolSuffixRE = regexp.MustCompile(`^(.*[a-z0-9])(Output|Input)$`)
 
 // stripToolAffixes mirrors ts/src/utility.ts: a generator's module path before

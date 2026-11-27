@@ -30,6 +30,7 @@ import {
   GuidePathAction,
   GuideRenameParam,
   GuidePathOp,
+  NearMissEntry,
 } from '../types'
 
 import type {
@@ -78,6 +79,7 @@ import {
   sortedEntries,
   sortedKeys,
   warnOnError,
+  nearMiss,
 } from '../utility'
 
 import { snakify } from 'jostraca'
@@ -261,6 +263,8 @@ async function heuristic01(ctx: ApiDefContext): Promise<Guide> {
   }
 
   separateSharedPoints(guide, ctx.def, ctx.log)
+
+  ctx.nearmiss = nearMisses(result.data, guide)
 
   const metrics = guide.metrics
 
@@ -2876,6 +2880,60 @@ function commandName(
     why.push(('body' === source.from ? 'command=' : 'command-opid=') + source.name)
   }
   return source?.name ?? null
+}
+
+
+// The names a route's own evidence gives, source by source: its path's noun
+// unless too short to name, the record it answers with, the tag it was named
+// from, and its command body when no record answers.
+function routeEvidence(data: { def: any, guide: any, work: any }, mdesc: any): [string, string][] {
+  const evidence: [string, string][] = []
+  const parts = data.work.pathmap[mdesc.path]?.parts ?? []
+  const pm = matchEntityPath(parts)
+  if (null != pm && !shortLiteral(pm, parts)) {
+    evidence.push(['path', pathNoun(pm, parts, [])])
+  }
+  const ment = mdesc.MethodEntity
+  const tagged = 'tag' === ment?.ref
+  const response = (tagged ? ment.rescmp : ment?.cmp) || null
+  if (null != response) {
+    evidence.push(['response', response])
+  }
+  if (tagged) {
+    evidence.push(['tag', ment.cmp])
+  }
+  const body = null == response ? commandBodyName(data, mdesc) : null
+  if (null != body) {
+    evidence.push(['body', body])
+  }
+  return evidence.map(([source, name]) => [source, depluralize(canonize(name))])
+}
+
+
+// Every route whose evidence names something other than the entity the guide
+// gave it, the closest contests first.
+function nearMisses(data: { def: any, guide: any, work: any }, guide: Guide): NearMissEntry[] {
+  const chosen: Record<string, { entity: string, actions: string[] }> = Object.create(null)
+  for (const [entname, entity] of sortedEntries(guide.entity) as [string, any][]) {
+    for (const [pathStr, gpath] of sortedEntries(entity.path ?? {}) as [string, any][]) {
+      for (const op of Object.values(gpath.op ?? {}) as any[]) {
+        chosen[op.method + ' ' + pathStr] =
+          { entity: entname, actions: sortedKeys(gpath.action ?? {}) }
+      }
+    }
+  }
+  const entries: NearMissEntry[] = []
+  for (const mdesc of data.work.methods) {
+    const route = mdesc.method + ' ' + mdesc.path
+    const entity = chosen[route]?.entity
+    const miss = null == entity ? null :
+      nearMiss(entity, routeEvidence(data, mdesc), chosen[route].actions)
+    if (null != miss) {
+      entries.push({ route, entity, ...miss })
+    }
+  }
+  return entries.sort((a, b) => a.margin - b.margin ||
+    (a.route < b.route ? -1 : a.route > b.route ? 1 : 0))
 }
 
 

@@ -820,6 +820,63 @@ entity: moon: {
 }
 ```
 
+## Near misses
+
+A near miss is a route whose own evidence names something other than the
+entity the guide gave it. Every build that runs the `heuristic01` guide keeps
+the list on `result.ctx.nearmiss`. With `why: { show: true }` it also writes
+the list to **`apidef-near-misses.txt`** in the working directory, beside
+`apidef-warnings.txt`, closest contest first.
+
+The evidence is read per route, from four sources:
+
+| Source | Name |
+|---|---|
+| `path` | the noun the path's shape gives, as entity naming reads it; a literal of fewer than three letters gives none |
+| `response` | the component the success response is named from, after envelopes and generic names are set aside |
+| `tag` | the tag, when the guide named the route from it |
+| `body` | the request body's component, when the response names no record |
+
+Each name is canonized and singular. Two names agree when the words of one
+are a run of the other's words (`contact` and `student_contact`), and a word
+of three letters or more agrees with a word it opens (`org` and
+`organization`).
+
+A route is reported when a source names something that agrees neither with
+the route's entity nor with any of its actions. A tag only ever backs the
+entity: where it disagrees, it is the module the route sits in, and the path
+outranks it by rule.
+
+The **margin** is the number of sources that agree with the entity, less the
+number that agree only with the strongest alternative:
+
+| Margin | Meaning |
+|---|---|
+| below zero | a rule overrode the route's own evidence, usually one that reads the definition as a whole |
+| zero | the evidence was split, and rule precedence decided |
+| greater than zero | the entity had more evidence, and a source still disagreed |
+
+Each line is tab-separated: the margin, the route, the entity with the sources
+behind it, and the alternatives with theirs, separated by `; `. The
+`collection-owner-def.json` fixture gives:
+
+```text
+-2	GET /teams	member	team (path, response)
+-2	GET /teams/{team_id}	member	team (path, response)
+-1	DELETE /teams/{team_id}	member	team (path)
+0	GET /plans/{plan_id}/accounts	purchase (response)	account (path)
+0	GET /stars	star (path)	repository (response)
+```
+
+The first line is the kind to read first: both the path and the response
+name `team`, and a rule about the definition as a whole joined the route to
+`member` instead. A reading you disagree with is corrected in `guide.aontu`,
+as the next section describes. The scoring is the shared table
+[`test/near-miss.tsv`](../../test/near-miss.tsv), the line format is
+[`test/near-miss-text.tsv`](../../test/near-miss-text.tsv), and the last
+column of [`test/def-routes.tsv`](../../test/def-routes.tsv) pins every test
+definition's near misses in both ports.
+
 ## Correcting the guide
 
 `base-guide.aontu` is the heuristic's output, and apidef overwrites it on

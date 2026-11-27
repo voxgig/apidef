@@ -57,19 +57,20 @@ type ApiDefResult struct {
 
 // ApiDefContext holds the processing context during API definition generation.
 type ApiDefContext struct {
-	Resolved *ResolvedSpec  `json:"-"`
-	Log      Logger         `json:"-"`
-	Spec     map[string]any `json:"spec,omitempty"`
-	Opts     ApiDefOptions  `json:"opts"`
-	DefPath  string         `json:"defpath"`
-	Model    map[string]any `json:"model,omitempty"`
-	ApiModel map[string]any `json:"apimodel,omitempty"`
-	Guide    map[string]any `json:"guide,omitempty"`
-	Def      map[string]any `json:"def,omitempty"`
-	Note     map[string]any `json:"note,omitempty"`
-	Warn     Warner         `json:"-"`
-	Metrics  *Metrics       `json:"metrics,omitempty"`
-	Work     map[string]any `json:"work,omitempty"`
+	Resolved *ResolvedSpec   `json:"-"`
+	Log      Logger          `json:"-"`
+	Spec     map[string]any  `json:"spec,omitempty"`
+	Opts     ApiDefOptions   `json:"opts"`
+	DefPath  string          `json:"defpath"`
+	Model    map[string]any  `json:"model,omitempty"`
+	ApiModel map[string]any  `json:"apimodel,omitempty"`
+	Guide    map[string]any  `json:"guide,omitempty"`
+	Def      map[string]any  `json:"def,omitempty"`
+	Note     map[string]any  `json:"note,omitempty"`
+	Warn     Warner          `json:"-"`
+	Metrics  *Metrics        `json:"metrics,omitempty"`
+	Work     map[string]any  `json:"work,omitempty"`
+	NearMiss []NearMissEntry `json:"nearmiss,omitempty"`
 }
 
 // Metrics holds counters and found items during processing.
