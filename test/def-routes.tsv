@@ -147,6 +147,7 @@ command-def.json	GET /account	account	true	load
 command-def.json	GET /keys	key	true	list				
 command-def.json	POST /#Action=StartSession	session	true	create	start		{"res":"`body.Credentials`"}	
 command-def.json	POST /account	account	true	create				
+command-def.json	POST /devices/v2/add-device	add_device	true	create				
 command-def.json	POST /keys/{keyName}/requestTicket	ticket	true	create		keyName->key_name		
 composed-part-def.json	DELETE /projects/{project_id}	project	true	remove		project_id->id	{"res":"`body.project`"}	
 composed-part-def.json	GET /projects/{project_id}	project	true	load		project_id->id	{"res":"`body.project`"}	
@@ -782,8 +783,10 @@ verb-noun-def.json	GET /c/{id}/show	category	true	load		id->c_id
 verb-noun-def.json	GET /shows	show	true	list				
 verb-noun-def.json	GET /shows/{id}	show	true	load				
 verb-noun-def.json	GET /tokens	token	true	list				
+verb-noun-def.json	GET /users/{userId}	user	true	load		userId->id		
 verb-noun-def.json	POST /account/2/verify	account	true	create	verify			
 verb-noun-def.json	POST /tokens/authorize	token	true	create	authorize			
+verb-noun-def.json	PUT /users/{userId}/avatar/pick	user	true	update	avatar_pick	userId->id		
 verb-phrase-def.json	GET /s	shelf	true	list				
 verb-phrase-def.json	GET /s/{shelf}	shelf	true	load				
 verb-phrase-def.json	GET /s/{shelf}/k/{book}	book	true	load				

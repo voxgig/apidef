@@ -357,6 +357,7 @@ function setCustomPlurals(plurals) {
 function clearCustomPlurals() {
     setCustomPlurals(undefined);
 }
+const INITIALISM_RE = /(^|[^a-z])[b-df-hj-np-tv-z]{2}s$/;
 function depluralize(word) {
     if (!word || word.length === 0) {
         return word;
@@ -439,11 +440,13 @@ function depluralize(word) {
         lower.endsWith('shes') || lower.endsWith('ches')) {
         return word.slice(0, -2);
     }
-    // A trailing s after a digit is part of a numeronym (k8s), not a plural.
+    // A trailing s after a digit is part of a numeronym (k8s), not a plural,
+    // and a vowelless last word ending in s is an initialism (sms).
     if (lower.endsWith('s') &&
         !lower.endsWith('ss') &&
         !lower.endsWith('us') &&
         !/[0-9]s$/.test(lower) &&
+        !INITIALISM_RE.test(lower) &&
         word.length > 3) {
         return word.slice(0, -1);
     }

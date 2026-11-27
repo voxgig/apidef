@@ -138,7 +138,7 @@ const VERB_WORDS = new Set([
   'accept', 'decline', 'notify', 'ping', 'count', 'exists', 'preview', 'render', 'generate',
   'calculate', 'compute', 'convert', 'process', 'trigger', 'dispatch', 'apply', 'revoke',
   'grant', 'save', 'lock', 'test', 'inject', 'analyze', 'autocomplete', 'bypass', 'contains',
-  'finish', 'reorder', 'shuffle', 'show', 'award', 'authorize', 'reload',
+  'finish', 'reorder', 'shuffle', 'show', 'award', 'authorize', 'reload', 'pick',
 ])
 
 // A bare number is a release or an index, never a noun.
@@ -183,6 +183,7 @@ const LITERAL_LAST_SHAPES = ['t/p/t/', 't/', 'p/t/']
 // Stripped from a command's body component to name the command.
 const COMMAND_SUFFIXES = [
   '_request', '_input', '_payload', '_body', '_params', '_parameters', '_command', '_dto',
+  '_schema',
 ]
 
 const SCALAR_TYPES = new Set(['string', 'number', 'integer', 'boolean'])

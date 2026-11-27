@@ -160,6 +160,7 @@ const RULINGS = [
             'POST /keys/{keyName}/requestTicket': 'ticket create',
             'GET /account': 'account load',
             'POST /account': 'account create',
+            'POST /devices/v2/add-device': 'add_device create',
         },
     },
     {
@@ -643,6 +644,8 @@ const RULINGS = [
             'GET /tokens': 'token list',
             'POST /account/2/verify': 'account create verify',
             'POST /tokens/authorize': 'token create authorize',
+            'GET /users/{userId}': 'user load',
+            'PUT /users/{userId}/avatar/pick': 'user update avatar_pick',
         },
     },
     {

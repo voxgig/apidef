@@ -70,7 +70,7 @@ var verbWords = map[string]bool{
 	"apply": true, "revoke": true, "grant": true, "save": true, "test": true, "inject": true,
 	"analyze": true, "autocomplete": true, "bypass": true, "contains": true, "finish": true,
 	"reorder": true, "shuffle": true, "show": true, "award": true, "authorize": true,
-	"reload": true,
+	"reload": true, "pick": true,
 }
 
 var versionParamRE = regexp.MustCompile(`(?i)version`)
@@ -196,6 +196,7 @@ var literalLastShapes = map[string]bool{"t/p/t/": true, "t/": true, "p/t/": true
 // Stripped from a command's body component to name the command.
 var commandSuffixes = []string{
 	"_request", "_input", "_payload", "_body", "_params", "_parameters", "_command", "_dto",
+	"_schema",
 }
 
 var payloadScalarTypes = map[string]bool{"string": true, "number": true, "integer": true, "boolean": true}

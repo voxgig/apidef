@@ -89,8 +89,9 @@ that wildly different spellings collapse onto one canonical identifier:
   so a curated table handles the exceptions (see
   [Customize entity naming](../how-to/customize-entity-naming.md)); a
   trailing `s` after a digit is part of a numeronym, so `k8s` stays `k8s`,
-  and a singular noun that ends in `s` keeps it, as `analysis`, `canvas`
-  and `news` do.
+  a last word of two consonants and an `s` is an initialism, so `send_sms`
+  stays `send_sms`, and a singular noun that ends in `s` keeps it, as
+  `analysis`, `canvas` and `news` do.
 - **guard the first character** — no target language accepts an identifier
   that starts with a digit, so a name that does gets an `n` in front, cased
   to match what follows: `3ds_session` becomes `n3ds_session`, `3DSecure`
@@ -443,10 +444,11 @@ never names one.
 A `POST` addressed to a singular literal that names no component, with no
 item route it could be a verb on and none beneath it to be a collection, is
 a command, and its request body component names it with its affixes
-stripped. `POST /#Action=StartSession` sends a `StartSessionRequest` and
-is `start_session`; `POST /keys/{keyName}/requestTicket` sends a
-`TicketRequest` and is `ticket`. The literal names only when the body is no
-component, or no object, such as an upload. A path whose read answers with
+stripped. `POST /keys/{keyName}/requestTicket` sends a `TicketRequest` and
+is `ticket`, and a trailing `Schema` goes with the affix, so a
+`POST /devices/v2/add-device` that sends an `AddDeviceRequestSchema` is
+`add_device`. The literal names only when the body is no component, or no
+object, such as an upload. A path whose read answers with
 a record keeps the literal: `POST /account` beside a `GET /account` that
 answers an `Account` is the account's `create`.
 
