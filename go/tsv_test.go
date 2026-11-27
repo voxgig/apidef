@@ -397,6 +397,46 @@ func TestTsvSelectorParts(t *testing.T) {
 	}
 }
 
+func TestTsvSameName(t *testing.T) {
+	for _, row := range loadTsv(t, "same-name") {
+		t.Run(row["a"]+"/"+row["b"], func(t *testing.T) {
+			if got := SameName(row["a"], row["b"]); got != (row["expected"] == "true") {
+				t.Errorf("SameName(%q, %q) = %v, want %s", row["a"], row["b"], got, row["expected"])
+			}
+		})
+	}
+}
+
+func TestTsvNearMiss(t *testing.T) {
+	for _, row := range loadTsv(t, "near-miss") {
+		t.Run(row["entity"]+row["evidence"], func(t *testing.T) {
+			var evidence [][2]string
+			var actions []string
+			var want *NearMissResult
+			unmarshalCol(t, row, "evidence", &evidence)
+			unmarshalCol(t, row, "actions", &actions)
+			unmarshalCol(t, row, "expected", &want)
+			if got := NearMiss(row["entity"], evidence, actions); !reflect.DeepEqual(got, want) {
+				t.Errorf("NearMiss(%q, %v) = %+v, want %+v", row["entity"], evidence, got, want)
+			}
+		})
+	}
+}
+
+func TestTsvNearMissText(t *testing.T) {
+	for _, row := range loadTsv(t, "near-miss-text") {
+		t.Run(row["entries"], func(t *testing.T) {
+			var entries []NearMissEntry
+			var want string
+			unmarshalCol(t, row, "entries", &entries)
+			unmarshalCol(t, row, "expected", &want)
+			if got := NearMissText(entries); got != want {
+				t.Errorf("NearMissText = %q, want %q", got, want)
+			}
+		})
+	}
+}
+
 func TestTsvOperationVerb(t *testing.T) {
 	for _, row := range loadTsv(t, "operation-verb") {
 		t.Run(row["input"], func(t *testing.T) {

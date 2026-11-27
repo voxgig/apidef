@@ -212,6 +212,17 @@ type ApiDefContext = {
   work: Record<string, any>
 
   resolved?: ResolvedSpec
+  nearmiss?: NearMissEntry[]
+}
+
+
+// A route whose evidence named something other than its entity.
+type NearMissEntry = {
+  route: string
+  entity: string
+  margin: number
+  support: string[]
+  alternatives: { name: string, sources: string[] }[]
 }
 
 
@@ -337,6 +348,7 @@ export type {
   GuidePathAction,
   GuideRenameParam,
   GuidePathOp,
+  NearMissEntry,
 
   KitModel,
 
