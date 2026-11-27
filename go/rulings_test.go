@@ -22,7 +22,7 @@ func rulingOwners(guide map[string]any) map[string]string {
 		for _, p := range sortedKeys(paths) {
 			gp, _ := paths[p].(map[string]any)
 			ops, _ := gp["op"].(map[string]any)
-			actions, _ := gp["action"].(map[string]any)
+			actions := activeActions(gp["action"])
 			names := sortedKeys(actions)
 			for _, opname := range sortedKeys(ops) {
 				op, _ := ops[opname].(map[string]any)

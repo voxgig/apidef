@@ -14,6 +14,7 @@ import assert from 'node:assert'
 import { Pino } from '@voxgig/util'
 
 import { ApiDef } from '../dist/apidef'
+import { activeActions } from '../dist/utility'
 
 
 const DEFDIR = Path.join(__dirname, '..', 'test', 'def')
@@ -103,7 +104,7 @@ async function routes(def: string): Promise<string[][]> {
   const rows: string[][] = []
   for (const [ename, ent] of Object.entries(bres.guide.entity ?? {}) as [string, any][]) {
     for (const [path, gp] of Object.entries(ent.path ?? {}) as [string, any][]) {
-      const actions = Object.keys(gp.action ?? {}).sort().join(',')
+      const actions = Object.keys(activeActions(gp.action)).sort().join(',')
       const renames = Object.entries(gp.rename?.param ?? {})
         .map(([from, to]: [string, any]) => from + '->' + (to?.target ?? to))
         .sort().join(',')

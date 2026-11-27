@@ -1,0 +1,666 @@
+{
+ "openapi": "3.0.3",
+ "info": {
+  "title": "file-slot",
+  "version": "1.0.0"
+ },
+ "servers": [
+  {
+   "url": "https://example.com"
+  }
+ ],
+ "paths": {
+  "/tracks": {
+   "get": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/Track"
+         }
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Track"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Track"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/tracks/{track_id}": {
+   "get": {
+    "parameters": [
+     {
+      "name": "track_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Track"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/tracks/{track_id}/audio": {
+   "get": {
+    "parameters": [
+     {
+      "name": "track_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "Range",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "audio/mpeg": {
+        "schema": {
+         "type": "string",
+         "format": "binary",
+         "maxLength": 8388608
+        }
+       }
+      }
+     }
+    }
+   },
+   "head": {
+    "parameters": [
+     {
+      "name": "track_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok"
+     }
+    }
+   },
+   "put": {
+    "parameters": [
+     {
+      "name": "track_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "Content-Length",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 4194304
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "audio/mpeg": {
+       "schema": {
+        "type": "string",
+        "format": "binary"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Track"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/tracks/{track_id}/cover": {
+   "get": {
+    "parameters": [
+     {
+      "name": "track_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CoverInfo"
+        }
+       },
+       "image/png": {
+        "schema": {
+         "type": "string",
+         "format": "binary"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/tracks/{track_id}/lyrics": {
+   "get": {
+    "parameters": [
+     {
+      "name": "track_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "text/plain": {
+        "schema": {
+         "type": "string"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/uploads": {
+   "post": {
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Upload"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "created",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Upload"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/uploads/{upload_id}": {
+   "get": {
+    "parameters": [
+     {
+      "name": "upload_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Upload"
+        }
+       }
+      }
+     }
+    }
+   },
+   "head": {
+    "parameters": [
+     {
+      "name": "upload_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "Tus-Resumable",
+      "in": "header",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok"
+     }
+    }
+   },
+   "patch": {
+    "parameters": [
+     {
+      "name": "upload_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "Tus-Resumable",
+      "in": "header",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "Upload-Offset",
+      "in": "header",
+      "required": true,
+      "schema": {
+       "type": "integer"
+      }
+     },
+     {
+      "name": "Upload-Checksum",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "X-Trace",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/offset+octet-stream": {
+       "schema": {
+        "type": "string",
+        "format": "binary"
+       }
+      }
+     }
+    },
+    "responses": {
+     "204": {
+      "description": "appended"
+     }
+    }
+   },
+   "delete": {
+    "parameters": [
+     {
+      "name": "upload_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "gone"
+     }
+    }
+   }
+  },
+  "/drafts": {
+   "post": {
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Draft"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "created",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Draft"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/drafts/{draft_id}": {
+   "get": {
+    "parameters": [
+     {
+      "name": "draft_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Draft"
+        }
+       }
+      }
+     }
+    }
+   },
+   "patch": {
+    "parameters": [
+     {
+      "name": "draft_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "Upload-Complete",
+      "in": "header",
+      "required": true,
+      "schema": {
+       "type": "boolean"
+      }
+     },
+     {
+      "name": "Upload-Offset",
+      "in": "header",
+      "required": true,
+      "schema": {
+       "type": "integer"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/partial-upload": {
+       "schema": {
+        "type": "string",
+        "format": "binary"
+       }
+      }
+     }
+    },
+    "responses": {
+     "204": {
+      "description": "appended"
+     }
+    }
+   }
+  },
+  "/parts": {
+   "post": {
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Part"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "created",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Part"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/parts/{part_id}": {
+   "get": {
+    "parameters": [
+     {
+      "name": "part_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Part"
+        }
+       }
+      }
+     }
+    }
+   },
+   "patch": {
+    "parameters": [
+     {
+      "name": "part_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "Tus-Resumable",
+      "in": "header",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/offset+octet-stream": {
+       "schema": {
+        "type": "string",
+        "format": "binary"
+       }
+      }
+     }
+    },
+    "responses": {
+     "204": {
+      "description": "appended"
+     }
+    }
+   }
+  }
+ },
+ "components": {
+  "schemas": {
+   "FileInfo": {
+    "type": "object",
+    "properties": {
+     "size": {
+      "type": "integer"
+     },
+     "type": {
+      "type": "string"
+     }
+    }
+   },
+   "Track": {
+    "type": "object",
+    "required": [
+     "id",
+     "title"
+    ],
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "title": {
+      "type": "string"
+     },
+     "audio": {
+      "allOf": [
+       {
+        "$ref": "#/components/schemas/FileInfo"
+       }
+      ],
+      "readOnly": true
+     }
+    }
+   },
+   "CoverInfo": {
+    "type": "object",
+    "properties": {
+     "width": {
+      "type": "integer"
+     },
+     "height": {
+      "type": "integer"
+     }
+    }
+   },
+   "Upload": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "size": {
+      "type": "integer"
+     },
+     "offset": {
+      "type": "integer",
+      "readOnly": true
+     }
+    }
+   },
+   "Draft": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "size": {
+      "type": "integer"
+     },
+     "offset": {
+      "type": "integer",
+      "readOnly": true
+     }
+    }
+   },
+   "Part": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "size": {
+      "type": "integer"
+     }
+    }
+   }
+  }
+ }
+}

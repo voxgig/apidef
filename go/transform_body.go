@@ -1156,3 +1156,112 @@ func requestDecl(def map[string]any, method string, path string) map[string]any 
 	rb, _ := opdef["requestBody"].(map[string]any)
 	return rb
 }
+
+// requestMedia mirrors ts/src/transform/body.ts.
+func requestMedia(def map[string]any, method string, path string) []string {
+	offers, _ := requestOffers(def, method, path)
+	media := []string{}
+	for _, offer := range offers {
+		media = append(media, offer.media)
+	}
+	return media
+}
+
+// binaryBounds mirrors ts/src/transform/body.ts: a binary body's schema
+// maxLength, and the maximum of a Content-Length declared beside it, by the
+// request or by the response that offers it.
+func binaryBounds(def map[string]any, method string, path string) []int {
+	paths, _ := def["paths"].(map[string]any)
+	pathdef, _ := paths[path].(map[string]any)
+	opdef, _ := pathdef[strings.ToLower(method)].(map[string]any)
+	if opdef == nil {
+		return nil
+	}
+	swagger := def["swagger"] != nil
+	headerSchema := func(header any) any {
+		hm, _ := header.(map[string]any)
+		if swagger {
+			return hm
+		}
+		return hm["schema"]
+	}
+	responses, _ := opdef["responses"].(map[string]any)
+	headersOf := func(status string) [][2]any {
+		response, _ := responses[status].(map[string]any)
+		headers, _ := response["headers"].(map[string]any)
+		out := [][2]any{}
+		for _, name := range sortedKeys(headers) {
+			out = append(out, [2]any{name, headerSchema(headers[name])})
+		}
+		return out
+	}
+
+	type side struct {
+		offers  []bodyOffer
+		headers [][2]any
+	}
+	requestOffered, _ := requestOffers(def, method, path)
+	requestHeaders := [][2]any{}
+	for _, param := range routeParams(pathdef, opdef) {
+		pm, _ := param.(map[string]any)
+		if pm != nil && pm["in"] == "header" {
+			requestHeaders = append(requestHeaders, [2]any{pm["name"], headerSchema(pm)})
+		}
+	}
+	sides := []side{{requestOffered, requestHeaders}}
+	for _, status := range sortedKeys(responses) {
+		if !successRE.MatchString(status) {
+			continue
+		}
+		if swagger {
+			if response, _ := responses[status].(map[string]any); response["schema"] != nil {
+				sides = append(sides, side{swaggerResponseOffers(def, opdef), headersOf(status)})
+				break
+			}
+			continue
+		}
+		one := map[string]any{"responses": map[string]any{status: responses[status]}}
+		sides = append(sides, side{openapiResponseOffers(one), headersOf(status)})
+	}
+
+	bounds := []int{}
+	for _, s := range sides {
+		binary := false
+		for _, offer := range s.offers {
+			if describeBody(offer)["binary"] != true {
+				continue
+			}
+			binary = true
+			schema, _ := offer.schema.(map[string]any)
+			if bound, ok := boundOf(schema["maxLength"]); ok {
+				bounds = append(bounds, bound)
+			}
+		}
+		if !binary {
+			continue
+		}
+		for _, header := range s.headers {
+			if strings.ToLower(safeStr(header[0])) != "content-length" {
+				continue
+			}
+			schema, _ := header[1].(map[string]any)
+			if bound, ok := boundOf(schema["maximum"]); ok {
+				bounds = append(bounds, bound)
+			}
+		}
+	}
+	return bounds
+}
+
+// boundOf reads a non-negative whole number of any numeric kind.
+func boundOf(v any) (int, bool) {
+	switch n := v.(type) {
+	case int:
+		return n, 0 <= n
+	case int64:
+		return int(n), 0 <= n && n <= 1<<53-1
+	case float64:
+		return int(n), 0 <= n && n <= 1<<53-1 && n == float64(int64(n))
+	}
+	return 0, false
+}

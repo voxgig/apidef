@@ -581,12 +581,17 @@ func mergeCommandEntities(guide map[string]any) []string {
 		}
 		nextRename["param"] = param
 		moved["rename"] = nextRename
-		if actions, _ := moved["action"].(map[string]any); len(actions) == 0 {
-			moved["action"] = map[string]any{
-				action: map[string]any{
-					"why_action": []string{"ent", owner, "command", ename},
-				},
+		if len(activeActions(moved["action"])) == 0 {
+			next := map[string]any{}
+			if prior, ok := moved["action"].(map[string]any); ok {
+				for name, entry := range prior {
+					next[name] = entry
+				}
 			}
+			next[action] = map[string]any{
+				"why_action": []string{"ent", owner, "command", ename},
+			}
+			moved["action"] = next
 		}
 		delete(entities, ename)
 		merged = append(merged, ename)
@@ -639,8 +644,7 @@ func separateSharedPoints(guide map[string]any, def map[string]any) []string {
 		return strings.Join(words, "_")
 	}
 	hasAction := func(gpath map[string]any) bool {
-		actions, _ := gpath["action"].(map[string]any)
-		return 0 < len(actions)
+		return 0 < len(activeActions(gpath["action"]))
 	}
 
 	entities, _ := guide["entity"].(map[string]any)
@@ -657,7 +661,7 @@ func separateSharedPoints(guide map[string]any, def map[string]any) []string {
 			if gpath == nil {
 				continue
 			}
-			actions, _ := gpath["action"].(map[string]any)
+			actions := activeActions(gpath["action"])
 			rename, _ := gpath["rename"].(map[string]any)
 			renames, _ := rename["param"].(map[string]any)
 			params := []string{}
@@ -772,9 +776,14 @@ func separateSharedPoints(guide map[string]any, def map[string]any) []string {
 						continue
 					}
 					gpath, _ := paths[pathStr].(map[string]any)
-					gpath["action"] = map[string]any{
-						action: map[string]any{"why_action": []any{"ent", ename, "shared-selector", plain}},
+					next := map[string]any{}
+					if prior, ok := gpath["action"].(map[string]any); ok {
+						for name, entry := range prior {
+							next[name] = entry
+						}
 					}
+					next[action] = map[string]any{"why_action": []any{"ent", ename, "shared-selector", plain}}
+					gpath["action"] = next
 					separated = append(separated, pathStr)
 				}
 			}
@@ -855,7 +864,7 @@ func onlyBeneath(entity map[string]any, root string) bool {
 // withdrawOwnCollectionAction mirrors ts/src/transform/entity.ts: a
 // collection literal that is also a verb word, as `/api/upload` over
 // `/api/upload/{upload_id}`, was read as an action named for the entity it
-// keys; it is that entity's collection, so the action is withdrawn.
+// keys; it is that entity's collection, so the action is switched off.
 func withdrawOwnCollectionAction(entity map[string]any, ename string, pathStr string) {
 	paths, _ := entity["path"].(map[string]any)
 	pathDesc, _ := paths[pathStr].(map[string]any)
@@ -864,7 +873,15 @@ func withdrawOwnCollectionAction(entity map[string]any, ename string, pathStr st
 	if _, ok := actions[ename]; !ok || Canonize(segs[len(segs)-1]) != ename {
 		return
 	}
-	delete(actions, ename)
+	switched := map[string]any{}
+	if prior, ok := actions[ename].(map[string]any); ok {
+		for key, value := range prior {
+			switched[key] = value
+		}
+	}
+	switched["active"] = false
+	switched["why_inactive"] = "own-collection"
+	actions[ename] = switched
 	why, _ := pathDesc["why_path"].([]string)
 	pathDesc["why_path"] = append(append([]string{}, why...), "own-collection="+ename)
 }
@@ -970,7 +987,7 @@ func resolvePathList(guideEntity map[string]any, def map[string]any) []map[strin
 			"rename":   rename,
 			"method":   "",
 			"op":       op,
-			"action":   gpathMap["action"],
+			"action":   activeActions(gpathMap["action"]),
 			"def":      pathDef,
 		}
 

@@ -101,18 +101,25 @@ async function run(folder, log, def = DEF) {
         node_assert_1.default.deepStrictEqual(Object.keys(bres.apimodel.main.kit.entity), ['planet']);
         node_assert_1.default.deepStrictEqual(Object.keys(bres.apimodel.main.kit.entity.planet.op).sort(), ['create', 'list', 'load', 'update']);
     });
-    (0, node_test_1.test)('withdrawn-action-redeclared', async () => {
+    (0, node_test_1.test)('action-switch', async () => {
         const def = 'verb-word-def.json';
-        const actions = async (entry) => {
-            const bres = await run(stage(HEAD + entry, undefined, def), undefined, def);
+        const actions = async (entry, path) => {
+            const folder = stage(HEAD + entry, undefined, def);
+            const bres = await run(folder, undefined, def);
             node_assert_1.default.strictEqual(bres.ok, true, String(bres.err?.message));
             const points = Object.values(bres.apimodel.main.kit.entity.export.op)
-                .flatMap((op) => op.points).filter((point) => '/api/export' === point.o);
-            node_assert_1.default.strictEqual(points.length, 2);
-            return points.map((point) => point.q?.$action ?? null);
+                .flatMap((op) => op.points).filter((point) => path === point.o);
+            const base = Fs.readFileSync(Path.join(folder, 'guide', PREFIX + 'base-guide.aontu'), 'utf8');
+            return { base, got: points.map((point) => point.q?.$action ?? null) };
         };
-        node_assert_1.default.deepStrictEqual(await actions('guide: {}\n'), [null, null]);
-        node_assert_1.default.deepStrictEqual(await actions('guide: entity: export: path: "/api/export": action: "export": {}\n'), ['export', 'export']);
+        const plain = await actions('guide: {}\n', '/api/export');
+        node_assert_1.default.deepStrictEqual(plain.got, [null, null]);
+        node_assert_1.default.match(plain.base, /\n +action: "export": active: \*false\n/);
+        node_assert_1.default.deepStrictEqual((await actions('guide: entity: export: path: "/api/export": action: "export": {}\n', '/api/export')).got, [null, null]);
+        node_assert_1.default.deepStrictEqual((await actions('guide: entity: export: path: "/api/export": action: "export": active: true\n', '/api/export')).got, ['export', 'export']);
+        const verb = '/api/export/{exportId}/upload';
+        node_assert_1.default.deepStrictEqual((await actions('guide: {}\n', verb)).got, ['upload']);
+        node_assert_1.default.deepStrictEqual((await actions('guide: entity: export: path: "' + verb + '": action: "upload": active: false\n', verb)).got, [null]);
     });
     (0, node_test_1.test)('id-correction-reaches-guide', async () => {
         const bres = await run(stage(HEAD + [

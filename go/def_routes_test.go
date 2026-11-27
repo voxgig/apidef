@@ -102,7 +102,7 @@ func defRoutes(t *testing.T, def string) map[string]string {
 		paths, _ := ent["path"].(map[string]any)
 		for _, path := range sortedKeys(paths) {
 			gp, _ := paths[path].(map[string]any)
-			actions, _ := gp["action"].(map[string]any)
+			actions := activeActions(gp["action"])
 			rename, _ := gp["rename"].(map[string]any)
 			params, _ := rename["param"].(map[string]any)
 			renames := []string{}

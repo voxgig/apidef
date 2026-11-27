@@ -656,7 +656,8 @@ the verb acts on the noun before the keys. A verb word followed by a key named f
 `/lines/{lineId}/stop/{stopId}` reads a `stop`. So is a verb word that ends a
 collection path with an item route keyed beneath it: beside
 `/api/upload/{upload_id}`, `POST /api/upload` creates an `upload` and calls no
-action, while `POST /api/thing/{id}/upload` stays the action `upload`.
+action, while `POST /api/thing/{id}/upload` stays the action `upload`. The
+guide still names the action, switched off, so `active: true` there calls it.
 
 A literal that opens with a verb word and continues is a verb as well, on
 the nearest resource up the path. `POST /s/{shelf}/lockLendingPolicy`
@@ -890,6 +891,25 @@ silently. Each classification carries a `why_*` array (`why_path`, `why_op`,
 emitted into `base-guide.aontu`, which means a person (or an agent) can **read
 why apidef decided something and override it** in `guide.aontu` rather than
 fighting an opaque black box.
+
+## Files and sessions
+
+A route that moves bytes is classified like any other: a binary download
+beneath an item key is the item's `load` with an action, and an upload to it
+the item's `update`. What the heuristic adds is metadata. An action whose
+route sends or answers bytes is a file slot, and its guide entry records the
+entity field that describes the file, whether a `HEAD` is declared on the
+route, and the size bound the definition gives. A `HEAD` itself never
+becomes an operation, and is known only through that fact. Where bytes are
+only an alternative to a JSON body the route prefers, the slot is written
+switched off.
+
+An upload session is an entity too: its `create` opens it, its `load` reads
+it, and a `PATCH` appends. The heuristic recognises the append by two
+signals together, the media type and a header argument of one dialect, and
+marks the entity a session. One signal alone writes the session switched
+off. On a session's append the dialect's own headers stop being the
+caller's arguments, since the runtime that speaks the dialect sends them.
 
 ## When the guess is wrong
 

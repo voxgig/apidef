@@ -1772,6 +1772,13 @@ function guideActive(node: any): boolean {
 }
 
 
+// The entries of a guide path's action map that are switched on.
+function activeActions(actions: any): Record<string, any> {
+  return Object.fromEntries(Object.entries(actions ?? {})
+    .filter(([, action]: [string, any]) => guideActive(action)))
+}
+
+
 const AUTH_TOKEN_FIELDS = [
   'access_token', 'accessToken', 'access-token',
   'id_token', 'idToken',
@@ -2968,6 +2975,7 @@ export {
   paramOf,
   paramNoun,
   guideActive,
+  activeActions,
   authExchangeOp,
   specSecuredByDefault,
   ensureMinEntityName,

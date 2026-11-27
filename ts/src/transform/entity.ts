@@ -23,7 +23,7 @@ import type {
 } from '../model'
 
 import {
-  canonize, cmpRefName, depluralize, foldName, guideActive, guideParts, guidePath, isParam,
+  activeActions, canonize, cmpRefName, depluralize, foldName, guideActive, guideParts, guidePath, isParam,
   selectorParts, selectorPath,
   paramName, paramOf, READ_METHODS, routeParams,
 } from '../utility'
@@ -351,8 +351,8 @@ function mergeCommandEntities(guide: any, log?: any): string[] {
         ...Object.entries(names).map(([param, rename]: [string, any]) => [param, { ...rename }]),
       ]),
     }
-    if (0 === Object.keys(moved.action ?? {}).length) {
-      moved.action = { [action]: { why_action: ['ent', owner, 'command', ename] } }
+    if (0 === Object.keys(activeActions(moved.action)).length) {
+      moved.action = { ...(moved.action ?? {}), [action]: { why_action: ['ent', owner, 'command', ename] } }
     }
     delete entities[ename]
     merged.push(ename)
@@ -386,7 +386,7 @@ function separateSharedPoints(guide: any, def: any, log?: any): string[] {
     const reserved: Record<string, Set<string>> = {}
     for (const pathStr of Object.keys(entity.path ?? {}).sort(byCodePoint)) {
       const gpath = entity.path[pathStr]
-      const actions = Object.keys(gpath.action ?? {})
+      const actions = Object.keys(activeActions(gpath.action))
       const renames = gpath.rename?.param ?? {}
       const params = guideParts(pathStr).filter(isParam).map(paramOf)
         .map((param: string) => canonize(renames[param]?.target ?? param))
@@ -405,7 +405,7 @@ function separateSharedPoints(guide: any, def: any, log?: any): string[] {
 
     for (const key of Object.keys(groups).sort(byCodePoint)) {
       const paths = groups[key].filter((pathStr: string) =>
-        0 === Object.keys(entity.path[pathStr]?.action ?? {}).length)
+        0 === Object.keys(activeActions(entity.path[pathStr]?.action)).length)
       const names = (key: string) => depluralize(snakify(literals(key).pop() ?? '')) === ename ? 0 : 1
       const keys = [...new Set(paths.map(selectorPath))].sort((a: string, b: string) =>
         names(a) - names(b) || literals(a).length - literals(b).length ||
@@ -421,7 +421,8 @@ function separateSharedPoints(guide: any, def: any, log?: any): string[] {
         taken.add(action)
         for (const pathStr of paths.filter((p: string) => selectorPath(p) === other)) {
           entity.path[pathStr].action = {
-            [action]: { why_action: ['ent', ename, 'shared-selector', plain] }
+            ...(entity.path[pathStr].action ?? {}),
+            [action]: { why_action: ['ent', ename, 'shared-selector', plain] },
           }
           separated.push(pathStr)
         }
@@ -501,14 +502,16 @@ function onlyBeneath(entity: any, root: string): boolean {
 
 // A collection literal that is also a verb word, as `/api/upload` over
 // `/api/upload/{upload_id}`, was read as an action named for the entity it
-// keys; it is that entity's collection, so the action is withdrawn.
+// keys; it is that entity's collection, so the action is switched off.
 function withdrawOwnCollectionAction(entity: any, ename: string, pathStr: string) {
   const pathDesc = entity?.path?.[pathStr]
   const last = guidePath(pathStr).split('/').pop() as string
   if (null == pathDesc?.action?.[ename] || canonize(last) !== ename) {
     return
   }
-  delete pathDesc.action[ename]
+  pathDesc.action[ename] = {
+    ...pathDesc.action[ename], active: false, why_inactive: 'own-collection',
+  }
   pathDesc.why_path = [...(pathDesc.why_path ?? []), 'own-collection=' + ename]
 }
 
@@ -554,7 +557,7 @@ function resolvePathList(guideEntity: GuideEntity, def: { paths: Record<string, 
       rename,
       method: '', // operation collectOps will copy and assign per op
       op: guidePath.op,
-      action: guidePath.action,
+      action: activeActions(guidePath.action),
       def: def.paths[orig],
     }
 

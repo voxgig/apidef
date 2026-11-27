@@ -1291,6 +1291,19 @@ func guideActive(node any) bool {
 	return true
 }
 
+// activeActions mirrors ts/src/utility.ts: the entries of a guide path's
+// action map that are switched on.
+func activeActions(actions any) map[string]any {
+	all, _ := actions.(map[string]any)
+	out := map[string]any{}
+	for name, action := range all {
+		if guideActive(action) {
+			out[name] = action
+		}
+	}
+	return out
+}
+
 var authTokenFields = []string{
 	"access_token", "accessToken", "access-token",
 	"id_token", "idToken",

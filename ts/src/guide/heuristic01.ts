@@ -50,6 +50,7 @@ import type {
 
 
 import {
+  activeActions,
   canonize,
   canonizeCmpName,
   canonizeParam,
@@ -87,6 +88,8 @@ import { snakify } from 'jostraca'
 import {
   mergeCollectionPaths, mergeCommandEntities, mergeFoldedEntities, separateSharedPoints,
 } from '../transform/entity'
+
+import { markFileSlots, markSessions } from '../transform/file'
 
 import { byCodePoint, countRefs, satAdd } from '../refcount'
 
@@ -264,6 +267,9 @@ async function heuristic01(ctx: ApiDefContext): Promise<Guide> {
   }
 
   separateSharedPoints(guide, ctx.def, ctx.log)
+
+  markFileSlots(guide, ctx.def, (entity: GuideEntity) => cmpSchemaOf(ctx.def, entity.orig))
+  markSessions(guide, ctx.def)
 
   ctx.nearmiss = nearMisses(result.data, guide)
 
@@ -2929,7 +2935,7 @@ function nearMisses(data: { def: any, guide: any, work: any }, guide: Guide): Ne
     for (const [pathStr, gpath] of sortedEntries(entity.path ?? {}) as [string, any][]) {
       for (const op of Object.values(gpath.op ?? {}) as any[]) {
         chosen[op.method + ' ' + pathStr] =
-          { entity: entname, actions: sortedKeys(gpath.action ?? {}) }
+          { entity: entname, actions: sortedKeys(activeActions(gpath.action)) }
       }
     }
   }

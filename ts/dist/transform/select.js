@@ -4,12 +4,15 @@ exports.selectTransform = void 0;
 exports.sortPoints = sortPoints;
 const jostraca_1 = require("jostraca");
 const types_1 = require("../types");
+const utility_1 = require("../utility");
 const body_1 = require("./body");
+const file_1 = require("./file");
 const selectTransform = async function (ctx) {
     const { apimodel, def, guide } = ctx;
     const kit = apimodel.main[types_1.KIT];
     let msg = 'select ';
     (0, jostraca_1.each)(kit.entity, (ment, entname) => {
+        (0, file_1.applySession)(guide, ment);
         (0, jostraca_1.each)(ment.op, (mop, opname) => {
             (0, jostraca_1.each)(mop.points, (mpoint) => {
                 // GraphQL defs have no `paths`; the lookup is only passed through to
@@ -40,7 +43,7 @@ function resolveSelect(guide, ment, _mop, mpoint, _pdef, carrier) {
     const graphql = 'graphql' === mpoint.k;
     argkinds.map((kind) => {
         (0, jostraca_1.each)(margs[kind], (marg) => {
-            if (!marg.r && (graphql || 'params' !== kind)) {
+            if (false === marg.a || (!marg.r && (graphql || 'params' !== kind))) {
                 return;
             }
             if (!select.exist.includes(marg.n)) {
@@ -59,10 +62,13 @@ function resolveSelect(guide, ment, _mop, mpoint, _pdef, carrier) {
     if (null == gpath) {
         return;
     }
-    if (gpath.action) {
-        const actname = Object.keys(gpath.action).sort()[0];
-        if (null != actname) {
-            select.$action = actname;
+    const actions = (0, utility_1.activeActions)(gpath.action);
+    const actname = Object.keys(actions).sort()[0];
+    if (null != actname) {
+        select.$action = actname;
+        const bn = (0, file_1.pointBinary)(mpoint.m, mpoint.rb, mpoint.rs, actions[actname].binary);
+        if (null != bn) {
+            mpoint.bn = bn;
         }
     }
 }
